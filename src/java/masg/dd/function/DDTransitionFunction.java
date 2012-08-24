@@ -27,7 +27,7 @@ public class DDTransitionFunction {
 		
 		for(CondProbADD dd:ddList) {
 			double retVal = dd.getValue(varValues);
-			System.out.println("retVal:" + retVal);
+			
 			val*=retVal;
 			
 			if(val==0.0)

@@ -24,8 +24,6 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 		
 		outVariables.retainAll(varValues.keySet());
 		
-		System.out.println();
-		
 		if(outVariables.size()!=0) {
 			@SuppressWarnings("unchecked")
 			HashSet<DDVariable> opVariables = (HashSet<DDVariable>) inVariables.clone();
@@ -45,7 +43,6 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 		}
 		
 		
-		System.out.println("Default value");
 		return 1.0f;
 	}
 

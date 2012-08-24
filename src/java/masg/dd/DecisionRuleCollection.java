@@ -17,159 +17,213 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 	}
 	
 	public void compress() {
-		int bitCol = size-1;
 		
-		ArrayList<DecisionRule> rulesCopy = new ArrayList<DecisionRule>(rules);
+		int oldRuleSize = Integer.MAX_VALUE;
 		
-		ArrayList<DecisionRule> nextRules = new ArrayList<DecisionRule>();
-		ArrayList<DecisionRule> leaveAloneRules = new ArrayList<DecisionRule>();
-		
-		DecisionRule currRule = rulesCopy.remove(0);
-		
-		int oldRulesSize = Integer.MAX_VALUE;
-		
-		while(rules.size() < oldRulesSize && rules.size()>1) {
-			System.out.println("Start compression iteration");
-			oldRulesSize = rules.size();
-			for(bitCol = size-1; bitCol>=0; bitCol--) {
-				//System.out.println("Working set:" + rulesCopy);
-				for(DecisionRule otherRule:rulesCopy) {
+		while(oldRuleSize>rules.size()) {
+			oldRuleSize = rules.size();
+			
+			for(int prefixLength = size-1;prefixLength > 0;prefixLength--) {
+				DecisionRule currPrefixRule = null;
+				
+				ArrayList<DecisionRule> suffixRules = new ArrayList<DecisionRule>();	
+				ArrayList<DecisionRule> rulesNew = new ArrayList<DecisionRule>();
+				
+				for(DecisionRule currRule:rules) {
 					
-					if(currRule.value-otherRule.value<0.001f) {
+					
+					BitMap prefixTruthValues = currRule.truthValues.get(0, prefixLength);
+					BitMap prefixSetValues = currRule.setValues.get(0, prefixLength);
+					
+					DecisionRule prefixRule = new DecisionRule(prefixLength, prefixTruthValues, prefixSetValues, currRule.value);
+					
+					DecisionRule oldPrefixRule = currPrefixRule;
+					
+					if(currPrefixRule != null)
+						currPrefixRule = getSupersetRule(currPrefixRule,prefixRule);
+					if(currPrefixRule == null) {
 						
-						//Is it the same rule
-						if(currRule.equals(otherRule)) {
-							System.out.println(currRule + " same as " + otherRule);
-							continue;
-						}
-						//Does current rule already cover this rule (or vice-versa)?
-						boolean covers = true;
-						for(int currBitIx=0;currBitIx<size;currBitIx++) {
-							if( (currRule.setValues.get(currBitIx) && !otherRule.setValues.get(currBitIx)) || 
-								(currRule.setValues.get(currBitIx) && currRule.truthValues.get(currBitIx) != otherRule.truthValues.get(currBitIx))) {
-								covers = false;
-								break;
-							}
-						}
+						currPrefixRule = oldPrefixRule;
 						
-						if(covers) {
-							System.out.println(currRule + " covers " + otherRule);
-							continue;
-						}
+						Collection<DecisionRule> mergedRules = merge(currPrefixRule,suffixRules);
 						
-						covers = true;
-						for(int currBitIx=0;currBitIx<size;currBitIx++) {
-							if( (otherRule.setValues.get(currBitIx) && !currRule.setValues.get(currBitIx)) || 
-								(otherRule.setValues.get(currBitIx) && otherRule.truthValues.get(currBitIx) != currRule.truthValues.get(currBitIx))) {
-								covers = false;
-								break;
-							}
-						}
+						rulesNew.addAll(mergedRules);
 						
-						if(covers) {
-							System.out.println(currRule + " covered by " + otherRule);
-							currRule = otherRule;
-							continue;
-						}
-						
-						boolean prefixMatch = true;
-						
-						for(int currBitIx=0;currBitIx<bitCol;currBitIx++) {
-							if( (otherRule.setValues.get(currBitIx) != currRule.setValues.get(currBitIx)) || (otherRule.truthValues.get(currBitIx) != currRule.truthValues.get(currBitIx))) { 
-								prefixMatch = false;
-								break;
-							}
-						}
-						
-						boolean suffixMatch = true;
-						
-						for(int currBitIx=bitCol+1;currBitIx<size;currBitIx++) {
-							if( (otherRule.setValues.get(currBitIx) != currRule.setValues.get(currBitIx)) || (otherRule.truthValues.get(currBitIx) != currRule.truthValues.get(currBitIx))) { 
-								suffixMatch = false;
-								break;
-							}
-						}
-						
-						boolean bitColMismatch = (currRule.setValues.get(bitCol) && otherRule.setValues.get(bitCol)) && (currRule.truthValues.get(bitCol) != otherRule.truthValues.get(bitCol));
-						
-						//Are they different by one bit in the current column?
-						if(prefixMatch && suffixMatch && bitColMismatch) {
-							System.out.println(currRule + " prefix matches " + otherRule);
-							BitMap newTruthValues = currRule.truthValues.clone();
-							newTruthValues.clear(bitCol);
-							
-							BitMap newSetValues = currRule.setValues.clone();
-							newSetValues.clear(bitCol);
-							
-							currRule = new DecisionRule(currRule.numBits,newTruthValues,newSetValues,currRule.value);
-						}
-						else {
-							//System.out.println(currRule + " not prefix matches " + otherRule);
-							
-							if(!currRule.setValues.get(bitCol)) {
-								nextRules.add(currRule);
-							}
-							else {
-								leaveAloneRules.add(currRule);
-							}
-							currRule = otherRule;
-						}
-						
+						suffixRules = new ArrayList<DecisionRule>();
+						currPrefixRule = prefixRule;
 					}
-					else{
-						if(!currRule.setValues.get(bitCol)) {
-							System.out.println(currRule + " merges with " + otherRule);
-							nextRules.add(currRule);
-						}
-						else {
-							leaveAloneRules.add(currRule);
-						}
-						currRule = otherRule;
-						
-						continue;
-					}
+					
+					BitMap suffixTruthValues = currRule.truthValues.get(prefixLength, size - prefixLength);
+					BitMap suffixSetValues = currRule.setValues.get(prefixLength, size - prefixLength);
+					
+					DecisionRule suffixRule = new DecisionRule(size - prefixLength, suffixTruthValues, suffixSetValues, currRule.value);
+					suffixRules.add(suffixRule);
 				}
-				if(currRule!=null) {
-					if(!currRule.setValues.get(bitCol)) {
-						nextRules.add(currRule);
+				
+				rulesNew.addAll(merge(currPrefixRule,suffixRules));
+				
+				rules.clear();
+				rules.addAll(rulesNew);
+			}
+			
+			
+			Collection<DecisionRule> compressedRules = compressOnFirstCol(rules);
+			rules.clear();
+			rules.addAll(compressedRules);
+		}
+	}
+	
+	protected Collection<DecisionRule> merge(DecisionRule prefixRule, Collection<DecisionRule> suffixRules ) {
+		
+		ArrayList<DecisionRule> mergedRules = new ArrayList<DecisionRule>();
+				
+		if(prefixRule==null)
+			return mergedRules;
+		
+		suffixRules = new ArrayList<DecisionRule>(compressOnFirstCol(suffixRules));
+		
+		for(DecisionRule suffixRule:suffixRules) {
+			BitMap newTruthValues = new BitMap(size);
+			BitMap newSetValues = new BitMap(size);
+			
+			for(int ix=0;ix<size;ix++) {
+				if(ix<prefixRule.numBits) {
+					if(prefixRule.truthValues.get(ix)) {
+						newTruthValues.set(ix);
 					}
-					else {
-						leaveAloneRules.add(currRule);
+					
+					if(prefixRule.setValues.get(ix)) {
+						newSetValues.set(ix);
 					}
-				}
-				System.out.println("next:" + nextRules);
-				//System.out.println("leaveAloneRules:" + leaveAloneRules);
-				System.out.println();
-				rulesCopy = nextRules;
-				if(rulesCopy.size()>0) {
-					currRule = rulesCopy.remove(0);
-					nextRules = new ArrayList<DecisionRule>();
 				}
 				else {
-					currRule = null;
+					int ixShifted = ix - prefixRule.numBits;
+					
+					if(suffixRule.truthValues.get(ixShifted)) {
+						newTruthValues.set(ix);
+					}
+					
+					if(suffixRule.setValues.get(ixShifted)) {
+						newSetValues.set(ix);
+					}
+				}
+			}
+			
+			double ruleValue = prefixRule.value;
+			
+			DecisionRule newRule = new DecisionRule(size,newTruthValues,newSetValues,ruleValue);
+			mergedRules.add(newRule);
+		}
+		
+		return mergedRules;
+	}
+	protected Collection<DecisionRule> compressOnFirstCol(Collection<DecisionRule> rules) {
+		if(rules.size()<=0)
+			return rules;
+		
+		ArrayList<DecisionRule> rulesCopy = new ArrayList<DecisionRule>(rules);
+		ArrayList<DecisionRule> returnRules = new ArrayList<DecisionRule>();
+		
+	
+		DecisionRule currRule = rulesCopy.remove(0);
+
+		for(DecisionRule otherRule:rulesCopy) {
+			boolean wildCardTail = true;
+			for(int currBitIx=1;currBitIx<currRule.numBits;currBitIx++) {
+				if(currRule.setValues.get(currBitIx)) {
+					wildCardTail = false;
 					break;
 				}
 			}
 			
-			
-			if(rulesCopy.size()>0 || leaveAloneRules.size()>0 || currRule!=null) {
-				rules = new ConcurrentSkipListSet<DecisionRule>();
-				if(currRule!=null)
-					rules.add(currRule);
-				rules.addAll(rulesCopy);
-				rules.addAll(leaveAloneRules);
+			//System.out.println("isWildCardValue:" + isWildCardValue);
+			if(((currRule.value - otherRule.value)<0.001f) && wildCardTail) {
+				
+				double ruleVal = currRule.value;
+				
+				
+				if(currRule.equals(otherRule)) {
+					//System.out.println(currRule + " same as " + otherRule);
+					continue;
+				}
+				
+				DecisionRule supersetRule = getSupersetRule(currRule,otherRule);
+				if(supersetRule!=null) {
+					//System.out.println(supersetRule + " covers " + (otherRule==supersetRule?currRule:otherRule));
+					currRule = supersetRule;
+					continue;
+				}
+				
+				boolean suffixMatch = true;
+				
+				for(int currBitIx=1;currBitIx<currRule.numBits;currBitIx++) {
+					if( (otherRule.setValues.get(currBitIx) != currRule.setValues.get(currBitIx)) || (otherRule.truthValues.get(currBitIx) != currRule.truthValues.get(currBitIx))) { 
+						suffixMatch = false;
+						break;
+					}
+				}
+				
+				boolean bitColMismatch = (currRule.setValues.get(0) && otherRule.setValues.get(0)) && (currRule.truthValues.get(0) != otherRule.truthValues.get(0));
+				
+				//Are they different by one bit in the current column?
+				if(suffixMatch && bitColMismatch) {
+					//System.out.println(currRule + " prefix matches " + otherRule);
+					BitMap newTruthValues = currRule.truthValues.clone();
+					newTruthValues.clear(0);
+					
+					BitMap newSetValues = currRule.setValues.clone();
+					newSetValues.clear(0);
+					
+					currRule = new DecisionRule(currRule.numBits,newTruthValues,newSetValues,ruleVal);
+				}
+				else {
+					returnRules.add(currRule);
+					currRule = otherRule;
+				}
 			}
-			
-			System.out.println(oldRulesSize + " > " + rules.size());
-			
-			leaveAloneRules = new ArrayList<DecisionRule>();
-			
+			else {
+				returnRules.add(currRule);
+				currRule = otherRule;
+				continue;
+			}
 		}
-		
-		
+
+		returnRules.add(currRule);
+		//System.out.println("Compressed:" + returnRules);
+		//System.out.println();
+		return returnRules;
 	}
 	
-	
+	private DecisionRule getSupersetRule(DecisionRule r1, DecisionRule r2) {
+		if((r1.value != r2.value))
+			return null;
+		
+		boolean covers = true;
+		for(int currBitIx=0;currBitIx<size;currBitIx++) {
+			if( (r1.setValues.get(currBitIx) && !r2.setValues.get(currBitIx)) || 
+				(r1.setValues.get(currBitIx) && r1.truthValues.get(currBitIx) != r2.truthValues.get(currBitIx))) {
+				covers = false;
+				break;
+			}
+		}
+		
+		if(covers)
+			return r1;
+		
+		covers = true;
+		for(int currBitIx=0;currBitIx<size;currBitIx++) {
+			if( (r2.setValues.get(currBitIx) && !r1.setValues.get(currBitIx)) || 
+				(r2.setValues.get(currBitIx) && r2.truthValues.get(currBitIx) != r1.truthValues.get(currBitIx))) {
+				covers = false;
+				break;
+			}
+		}
+		
+		if(covers)
+			return r2;
+		
+		return null;
+	}
 	
 	@Override
 	public boolean add(DecisionRule rule) {

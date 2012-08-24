@@ -6,7 +6,9 @@ import java.util.HashMap;
 import java.util.List;
 
 import masg.dd.AlgebraicDecisionDiagram;
+import masg.dd.DecisionDiagramContext
 import masg.dd.vars.DDVariable
+import masg.dd.vars.DDVariableSpace
 import masg.problem.tag.TagProblem
 
 import spock.lang.Specification
@@ -14,39 +16,58 @@ import spock.lang.Specification
 class POMDPSpec extends Specification {
 	
 	TagProblem problem = new TagProblem()
-
-	def "POMDP can be initialized properly"() {
+	POMDP p = problem.getPOMDP()
+	
+	def "POMDP initial belief is correct"() {
 		when:
 			
-			HashMap<DDVariable,Integer> varValues = new HashMap<DDVariable,Integer>()
-			varValues.put(problem.a1RowVar,0)
-			varValues.put(problem.a1ColVar,0)
-			varValues.put(problem.actVar,2)
-			varValues.put(problem.a1RowPrimeVar,0)
-			varValues.put(problem.a1ColPrimeVar,0)
-			//varValues.put(problem.wColPrimeVar,0)
+			DDVariableSpace currVarSpace = problem.getPOMDP().initBeliefDD.getContext().getVariableSpace()
 		then:
-			problem.getPOMDP().getTransFns();
-			/*p.getTransFns().getDDs().each{
-				println it
-				println "${it.rules.size()} rules"
-				println()
-			}*/
 			
-			problem.wColPrimeVar.numValues.times{
-				//varValues.put(problem.wColPrimeVar, it)
-				println problem.getPOMDP().getTransFns().getValue(varValues)
+			currVarSpace.each { HashMap<DDVariable,Integer> varSpacePoint ->
+				double valClosure = problem.initBelief(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
+				double valDD = problem.getPOMDP().initBeliefDD.getValue(currVarSpace.generateRule(varSpacePoint,0.0f))
+				
+				assert valClosure == valDD
+				
 			}
-			
 	}
 	
-	/*def "POMDP transitions are correct"() {
+	
+	def "POMDP transition function is correct"() {
 		when:
-			AlgebraicDecisionDiagram[] Ts = p.getTransFns()
+			
+			DDVariableSpace currVarSpace = new DDVariableSpace();
+			
+			
 		then:
-			Ts.eachWithIndex{ AlgebraicDecisionDiagram T, int Tix ->
-				T.getContext().getVariableInstances()
+		
+			problem.getPOMDP().getTransFns().getDDs().each{ AlgebraicDecisionDiagram dd ->
+				currVarSpace = new DDVariableSpace();
+				currVarSpace.addVariables(dd.getContext().getVariableSpace().getVariables())
+				
+				println "Testing varspace: ${currVarSpace.getVariables()}"
+				currVarSpace.each { HashMap<DDVariable,Integer> varSpacePoint ->
+					double valClosure = 1.0f
+					
+					
+					problem.transFns.each{Closure<Double> c ->
+						try{
+							valClosure *= c(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
+						} catch (Exception e) {
+							
+						}
+					}
+					
+					double valDD = problem.getPOMDP().getTransFns().getValue(varSpacePoint)
+					
+					if(valClosure != valDD) {
+						println "Invalid value for $varSpacePoint"
+					}
+					assert valClosure == valDD
+					
+				}
 			}
-			true;
-	}*/
+	}
+	
 }

@@ -62,7 +62,7 @@ class TagProblem {
 		
 		transFnVars << [a1RowVar]
 		transFns << { Map variables ->
-			assert variables["a1_row"]!=null && variables["act"]!=null && variables["a1_row'"]!=null
+			//assert variables["a1_row"]!=null && variables["act"]!=null && variables["a1_row'"]!=null
 			int row = variables["a1_row"]
 			int act = variables["act"]
 			int rowPrime = variables["a1_row'"]

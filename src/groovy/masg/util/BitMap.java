@@ -39,10 +39,12 @@ public class BitMap implements Comparable<BitMap>{
 
 	public BitMap get(int ixStart, int newSize) {
 		BitMap bm = new BitMap(newSize);
-		bm.bitMap = Arrays.copyOfRange(bitMap, ixStart, bm.bitMap.length);
 		
-		long maskForLast = (~0) << (newSize % 64);
-		bm.bitMap[bm.bitMap.length-1] = bm.bitMap[bm.bitMap.length-1] & ~maskForLast;
+		for(int ix = 0;ix<newSize;ix++) {
+			if(get(ixStart+ix))
+				bm.set(ix);
+		}
+		
 		return bm;
 	}
 	
