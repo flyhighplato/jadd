@@ -16,23 +16,28 @@ class TagProblem {
 	
 	POMDP p
 	
-	List<List<DDVariable>> transFnVars = [], obsFnVars = [], rewFnVars = []
-	List<Closure<Double>> transFns = [], obsFns = [], rewFns = []
+	List<List<DDVariable>> transFnVars = [], obsFnVars = []
+	List<Closure<Double>> transFns = [], obsFns = []
 	Closure<Double> initBelief
+	Closure<Double> rewFn
 	int gridWidth = 5, gridHeight = 5;
 	
 	DDVariable a1RowVar, a1ColVar
 	DDVariable a2RowVar, a2ColVar
 	DDVariable wRowVar, wColVar
 	DDVariable a1RowPrimeVar, a1ColPrimeVar
+	DDVariable a2RowPrimeVar, a2ColPrimeVar
 	DDVariable wRowPrimeVar, wColPrimeVar
+	DDVariable wPresent
 
 	DDVariable actVar
 	
 	public TagProblem() {
 		actVar = new DDVariable("act",4)
 		acts = [actVar]
-		obs = [new DDVariable("w_pres",2)]
+		
+		wPresent = new DDVariable("w_pres",2)
+		obs = [wPresent]
 		
 		a1RowVar = new DDVariable("a1_row",gridHeight)
 		a1ColVar = new DDVariable("a1_col",gridWidth)
@@ -45,9 +50,10 @@ class TagProblem {
 		
 		a1RowPrimeVar = new DDVariable((a1RowVar.name + "'").toString(), a1RowVar.getValueCount())
 		a1ColPrimeVar = new DDVariable((a1ColVar.name + "'").toString(), a1ColVar.getValueCount())
+		a2RowPrimeVar = new DDVariable((a2RowVar.name + "'").toString(), a2RowVar.getValueCount())
+		a2ColPrimeVar = new DDVariable((a2ColVar.name + "'").toString(), a2ColVar.getValueCount())
 		wRowPrimeVar = new DDVariable((wRowVar.name + "'").toString(), wRowVar.getValueCount())
 		wColPrimeVar = new DDVariable((wColVar.name + "'").toString(), wColVar.getValueCount())
-	
 		
 		states << a1RowVar
 		states << a1ColVar
@@ -56,12 +62,16 @@ class TagProblem {
 		states << wRowVar
 		states << wColVar
 		
+		
+		
 		initBelief = {
 			return 1.0f/Math.pow(gridWidth*gridHeight,3.0f)
 		}
 		
-		transFnVars << [a1RowVar]
+		transFnVars << [[a1RowVar, actVar], [a1RowPrimeVar]]
 		transFns << { Map variables ->
+			if(!(variables["a1_row"] && variables["act"] && variables["a1_row'"]))
+				return 1.0f;
 			//assert variables["a1_row"]!=null && variables["act"]!=null && variables["a1_row'"]!=null
 			int row = variables["a1_row"]
 			int act = variables["act"]
@@ -88,8 +98,10 @@ class TagProblem {
 			return 0.0f;
 		}
 		
-		transFnVars << [a1ColVar]
+		transFnVars << [[a1ColVar, actVar], [a1ColPrimeVar]]
 		transFns << { Map variables ->
+			if(!(variables["a1_col"] && variables["act"] && variables["a1_col'"]))
+				return 1.0f;
 			int col = variables["a1_col"]
 			int act = variables["act"]
 			int colPrime = variables["a1_col'"]
@@ -116,8 +128,10 @@ class TagProblem {
 			return 0.0f;
 		}
 		
-		transFnVars << [a2RowVar,a2ColVar]
+		transFnVars << [[a2RowVar,a2ColVar,actVar], [a2RowPrimeVar,a2ColPrimeVar]]
 		transFns << { Map variables ->
+			if(!(variables["a2_col"] && variables["a2_row"] && variables["act"] && variables["a2_col'"] && variables["a2_row'"]))
+				return 1.0f;
 			int row = variables["a2_row"]
 			int col = variables["a2_col"]
 			int act = variables["act"]
@@ -142,8 +156,10 @@ class TagProblem {
 			return 0.0f;
 		}
 		
-		transFnVars << [wRowVar,wColVar]
+		transFnVars << [[wRowVar,wColVar,actVar], [wRowPrimeVar,wColPrimeVar]]
 		transFns << { Map variables ->
+			if(!(variables["w_col"] && variables["w_row"] && variables["act"] && variables["w_col'"] && variables["w_row'"]))
+				return 1.0f;
 			int row = variables["w_row"]
 			int col = variables["w_col"]
 			int act = variables["act"]
@@ -166,6 +182,39 @@ class TagProblem {
 			}
 			
 			return 0.0f;
+		}
+		
+		obsFnVars << [[wRowPrimeVar,wColPrimeVar,a1ColPrimeVar,a1RowPrimeVar,actVar],[wPresent]]
+		
+		obsFns << { Map variables ->
+			if(!(variables["w_col'"]!=null && variables["w_row'"]!=null && variables["w_pres"]!=null && variables["a1_col'"]!=null && variables["a1_row'"]!=null))
+				return 1.0f;
+			int w_row = variables["w_row'"]
+			int w_col = variables["w_col'"]
+			int a1_row = variables["a1_row'"]
+			int a1_col = variables["a1_col'"]
+			int w_pres = variables["w_pres"]
+			
+			int distance = Math.abs(w_row - a1_row) + Math.abs(w_col - a1_col)
+			
+			if((distance<2 && w_pres==1) || (distance>=2 && w_pres==0)) {
+				return 1.0f
+			}
+			
+			return 0.0f
+		}
+		
+		
+		rewFn = { Map variables ->
+			int w_row = variables["w_row"]
+			int w_col = variables["w_col"]
+			int a1_row = variables["a1_row"]
+			int a1_col = variables["a1_col"]
+			
+			if(a1_col == w_col && a1_row == w_row)
+				return 10.0f
+			
+			return 0.0f
 		}
 	}
 	
@@ -209,7 +258,7 @@ class TagProblem {
 	
 	public POMDP getPOMDP() {
 		if(!p)
-			p = new POMDP(obs, acts, states, initBelief, transFnVars, transFns, obsFns, rewFns)
+			p = new POMDP(obs, acts, states, initBelief, transFnVars, transFns, obsFnVars, obsFns, rewFn)
 		return p
 	}
 }
