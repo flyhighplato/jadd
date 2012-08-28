@@ -27,7 +27,7 @@ public class DDVariableSpaceIterator implements Iterator<HashMap<DDVariable,Inte
 
 	@Override
 	public final HashMap<DDVariable, Integer> next() {
-		if(overflow)
+		if(overflow || varSpace.getVariables().size()==0 )
 			return null;
 		
 		@SuppressWarnings("unchecked")
