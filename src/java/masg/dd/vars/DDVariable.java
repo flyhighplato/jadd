@@ -11,6 +11,10 @@ public class DDVariable {
 		numBits = (int) Math.floor(Math.log(numValues)/Math.log(2) + 1.0f);
 	}
 	
+	public DDVariable getPrime() {
+		return new DDVariable(name + "'", numValues);
+	}
+	
 	public String getName() {
 		return name;
 	}
