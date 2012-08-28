@@ -51,7 +51,46 @@ public class AlgebraicDecisionDiagram extends DecisionDiagram {
 		return sumOut(sumOutValues);
 	}
 	
+	public AlgebraicDecisionDiagram fix(HashMap<DDVariable,Integer> varInstances) throws Exception {
+		
+		boolean willChange = false;
+		
+		for(DDVariable var:context.getVariableSpace().getVariables()) {
+			if(varInstances.containsKey(var)) {
+				willChange = true;
+				break;
+			}
+		}
+		
+		
+		
+		AlgebraicDecisionDiagram addNew = new AlgebraicDecisionDiagram(context);
+		ArrayList<DecisionRule> fixedRules = new ArrayList<DecisionRule>();
+		
+		if(willChange) {
+			DecisionRule r = context.getVariableSpace().generateRule(varInstances, 0.0f);
+			
+			for(DecisionRule ruleThis:rules) {
+				if(r.getMatchingRule(ruleThis)!=null) {
+					fixedRules.add(ruleThis);
+				}
+			}
+			addNew.addRules(fixedRules);
+			addNew = addNew.sumOut(varInstances.keySet(), true);
+		}
+		else {
+			fixedRules.addAll(rules);
+			addNew.rules.addAll(fixedRules);
+		}
+
+		return addNew;
+	}
+	
 	public AlgebraicDecisionDiagram sumOut(Collection<DDVariable> sumOutVars) throws Exception {
+		return sumOut(sumOutVars,true);
+	}
+	
+	public AlgebraicDecisionDiagram sumOut(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
 		DDVariableSpace newVarSpace = new DDVariableSpace();
 		
 		DDVariableSpace ignoreVarSpace = new DDVariableSpace();
@@ -75,13 +114,33 @@ public class AlgebraicDecisionDiagram extends DecisionDiagram {
 		HashMap<String,Double> newRuleNonnormValues = new HashMap<String,Double>();
 		double totalSum = 0.0f;
 		
-		for(HashMap<DDVariable,Integer> newVarSpacePoint: newVarSpace){
-			DecisionRule ruleNewInOldContext = context.varSpace.generateRule(newVarSpacePoint, 0);
-			
+		if(newVarSpace.getVariableCount()>0) {
+			for(HashMap<DDVariable,Integer> newVarSpacePoint: newVarSpace){
+				DecisionRule ruleNewInOldContext = context.varSpace.generateRule(newVarSpacePoint, 0);
+				
+				for(DecisionRule ruleThis:rules) {
+					DecisionRule resRule = ruleThis.getMatchingRule(ruleNewInOldContext);
+					if(resRule!=null) {
+						DecisionRule ruleNewInNewContext = newVarSpace.generateRule(newVarSpacePoint, ruleThis.value);
+						
+						totalSum += ruleThis.value;
+						
+						String newRuleStr = ruleNewInNewContext.toBitString();
+						if(newRuleNonnormValues.containsKey(newRuleStr)) {
+							newRuleNonnormValues.put(newRuleStr, newRuleNonnormValues.get(newRuleStr) + ruleThis.value);
+						}
+						else {
+							newRuleNonnormValues.put(newRuleStr, ruleThis.value);
+						}
+					}
+				}
+				
+			}
+		}
+		else {
 			for(DecisionRule ruleThis:rules) {
-				DecisionRule resRule = ruleThis.getMatchingRule(ruleNewInOldContext);
-				if(resRule!=null) {
-					DecisionRule ruleNewInNewContext = newVarSpace.generateRule(newVarSpacePoint, ruleThis.value);
+
+					DecisionRule ruleNewInNewContext = new DecisionRule(0, ruleThis.value);
 					
 					totalSum += ruleThis.value;
 					
@@ -92,22 +151,28 @@ public class AlgebraicDecisionDiagram extends DecisionDiagram {
 					else {
 						newRuleNonnormValues.put(newRuleStr, ruleThis.value);
 					}
-				}
+				
 			}
-			
 		}
+		
 		
 		ArrayList<DecisionRule> newRules = new ArrayList<DecisionRule>();
 		
 		for(Entry<String,Double> newRuleValueEntry:newRuleNonnormValues.entrySet()) {
-			DecisionRule r = new DecisionRule(newRuleValueEntry.getKey(),newRuleValueEntry.getValue()/totalSum);
+			DecisionRule r;
+			if(normalize) {
+				r = new DecisionRule(newRuleValueEntry.getKey(),newRuleValueEntry.getValue()/totalSum);
+			}
+			else {
+				r = new DecisionRule(newRuleValueEntry.getKey(),newRuleValueEntry.getValue());
+			}
 			newRules.add(r);
 		}
 		
 		
 
 		resultDD.addRules(newRules);
-		
+
 		return resultDD;
 	}
 	

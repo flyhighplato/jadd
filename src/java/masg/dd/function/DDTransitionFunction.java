@@ -1,6 +1,7 @@
 package masg.dd.function;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 
 import masg.dd.cpt.CondProbADD;
@@ -36,5 +37,21 @@ public class DDTransitionFunction {
 		}
 		
 		return val;
+	}
+	
+	public DDTransitionFunction sumOut(Collection<DDVariable> sumOutVars) throws Exception {
+		DDTransitionFunction newFn = new DDTransitionFunction();
+		for(CondProbADD dd:ddList) {
+			newFn.ddList.add(dd.sumOut(sumOutVars));
+		}
+		return newFn;
+	}
+	
+	public DDTransitionFunction fix(HashMap<DDVariable,Integer> varInstances) throws Exception {
+		DDTransitionFunction newFn = new DDTransitionFunction();
+		for(CondProbADD dd:ddList) {
+			newFn.ddList.add(dd.fix(varInstances));
+		}
+		return newFn;
 	}
 }
