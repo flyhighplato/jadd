@@ -41,6 +41,33 @@ public class DDVariableSpace implements Iterable<HashMap<DDVariable,Integer>> {
 		return r;
 	}
 	
+	public DecisionRule translateRule(DecisionRule fromRule, DDVariableSpace fromVarSpace) throws Exception {
+		DecisionRule toRule = new DecisionRule(getBitCount(),fromRule.value);
+		
+		int toStartBitIx=0;
+		for(int i = 0;i<variables.size();i++) {
+			DDVariable currVar = variables.get(i);
+			int fromVarIx = fromVarSpace.variables.indexOf(currVar);
+			
+			if(fromVarIx>-1) {
+				
+				int fromStartBitIx = 0;
+				for(int j = 0;j<fromVarIx;j++) {
+					fromStartBitIx+=fromVarSpace.variables.get(j).getBitCount();
+				}
+				
+				for(int j = 0; j<currVar.getBitCount();j++) {
+					toRule.setBit(toStartBitIx + j, fromRule.getBit(fromStartBitIx + j));
+				}
+				
+			}
+			
+			toStartBitIx += variables.get(i).getBitCount();
+		}
+		
+		return toRule;
+	}
+	
 	public int getVariableCount() {
 		return variables.size();
 	}
