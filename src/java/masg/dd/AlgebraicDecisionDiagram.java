@@ -1,8 +1,6 @@
 package masg.dd;
 
 
-import groovy.lang.Closure;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -71,7 +69,7 @@ public class AlgebraicDecisionDiagram extends DecisionDiagram {
 			DecisionRule r = context.getVariableSpace().generateRule(varInstances, 0.0f);
 			
 			for(DecisionRule ruleThis:rules) {
-				if(r.getMatchingRule(ruleThis)!=null) {
+				if(r.matches(ruleThis)) {
 					fixedRules.add(ruleThis);
 				}
 			}
@@ -119,8 +117,7 @@ public class AlgebraicDecisionDiagram extends DecisionDiagram {
 				DecisionRule ruleNewInOldContext = context.varSpace.generateRule(newVarSpacePoint, 0);
 				
 				for(DecisionRule ruleThis:rules) {
-					DecisionRule resRule = ruleThis.getMatchingRule(ruleNewInOldContext);
-					if(resRule!=null) {
+					if(ruleThis.matches(ruleNewInOldContext)) {
 						DecisionRule ruleNewInNewContext = newVarSpace.generateRule(newVarSpacePoint, ruleThis.value);
 						
 						totalSum += ruleThis.value;
@@ -179,8 +176,7 @@ public class AlgebraicDecisionDiagram extends DecisionDiagram {
 	
 	public double getValue(DecisionRule ruleOther) {
 		for(DecisionRule ruleThis:rules) {
-			DecisionRule resRule = ruleThis.getMatchingRule(ruleOther);
-			if(resRule!=null) {
+			if(ruleThis.matches(ruleOther)) {
 				return ruleThis.value;
 			}
 		}
@@ -188,110 +184,15 @@ public class AlgebraicDecisionDiagram extends DecisionDiagram {
 		return Double.NaN;
 	}
 	
-	public AlgebraicDecisionDiagram plus(AlgebraicDecisionDiagram addOther) throws Exception {
-		AlgebraicDecisionDiagram addNew = new AlgebraicDecisionDiagram(context);
-		
-		for(DecisionRule ruleThis:rules) {
-			for(DecisionRule ruleOther:addOther.rules) {
-				DecisionRule resRule = ruleThis.getMatchingRule(ruleOther);
-				if(resRule!=null) {
-					resRule.value = ruleThis.value + ruleOther.value;
-					addNew.addRule(resRule);
-				}
-			}
-		}
-		
-		return addNew;
-	}
-	
-	public AlgebraicDecisionDiagram minus(AlgebraicDecisionDiagram addOther) throws Exception {
-		AlgebraicDecisionDiagram addNew = new AlgebraicDecisionDiagram(context);
-		
-		for(DecisionRule ruleThis:rules) {
-			for(DecisionRule ruleOther:addOther.rules) {
-				DecisionRule resRule = ruleThis.getMatchingRule(ruleOther);
-				if(resRule!=null) {
-					resRule.value = ruleThis.value - ruleOther.value;
-					addNew.addRule(resRule);
-				}
-			}
-		}
-		
-		return addNew;
-	}
-	
 	public AlgebraicDecisionDiagram multiply(AlgebraicDecisionDiagram addOther) throws Exception {
 		AlgebraicDecisionDiagram addNew = new AlgebraicDecisionDiagram(context);
 		
 		for(DecisionRule ruleThis:rules) {
 			for(DecisionRule ruleOther:addOther.rules) {
-				DecisionRule resRule = ruleThis.getMatchingRule(ruleOther);
-				if(resRule!=null) {
+				
+				if(ruleThis.matches(ruleOther)) {
+					DecisionRule resRule = new DecisionRule(ruleThis);
 					resRule.value = ruleThis.value * ruleOther.value;
-					addNew.addRule(resRule);
-				}
-			}
-		}
-		
-		return addNew;
-	}
-	
-	public AlgebraicDecisionDiagram div(AlgebraicDecisionDiagram addOther) throws Exception {
-		AlgebraicDecisionDiagram addNew = new AlgebraicDecisionDiagram(context);
-		
-		for(DecisionRule ruleThis:rules) {
-			for(DecisionRule ruleOther:addOther.rules) {
-				DecisionRule resRule = ruleThis.getMatchingRule(ruleOther);
-				if(resRule!=null) {
-					resRule.value = ruleThis.value / ruleOther.value;
-					addNew.addRule(resRule);
-				}
-			}
-		}
-		
-		return addNew;
-	}
-	
-	public AlgebraicDecisionDiagram max(AlgebraicDecisionDiagram addOther) throws Exception {
-		AlgebraicDecisionDiagram addNew = new AlgebraicDecisionDiagram(context);
-		
-		for(DecisionRule ruleThis:rules) {
-			for(DecisionRule ruleOther:addOther.rules) {
-				DecisionRule resRule = ruleThis.getMatchingRule(ruleOther);
-				if(resRule!=null) {
-					resRule.value = Math.max(ruleThis.value,ruleOther.value);
-					addNew.addRule(resRule);
-				}
-			}
-		}
-		
-		return addNew;
-	}
-	
-	public AlgebraicDecisionDiagram min(AlgebraicDecisionDiagram addOther) throws Exception {
-		AlgebraicDecisionDiagram addNew = new AlgebraicDecisionDiagram(context);
-		
-		for(DecisionRule ruleThis:rules) {
-			for(DecisionRule ruleOther:addOther.rules) {
-				DecisionRule resRule = ruleThis.getMatchingRule(ruleOther);
-				if(resRule!=null) {
-					resRule.value = Math.min(ruleThis.value,ruleOther.value);
-					addNew.addRule(resRule);
-				}
-			}
-		}
-		
-		return addNew;
-	}
-	
-	public AlgebraicDecisionDiagram applyFunction(AlgebraicDecisionDiagram addOther, Closure<Double> fn) throws Exception {
-		AlgebraicDecisionDiagram addNew = new AlgebraicDecisionDiagram(context);
-		
-		for(DecisionRule ruleThis:rules) {
-			for(DecisionRule ruleOther:addOther.rules) {
-				DecisionRule resRule = ruleThis.getMatchingRule(ruleOther);
-				if(resRule!=null) {
-					resRule.value = (Double) fn.call(ruleThis.value,ruleOther.value);
 					addNew.addRule(resRule);
 				}
 			}

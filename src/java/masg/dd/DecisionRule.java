@@ -1,8 +1,5 @@
 package masg.dd;
 
-//import java.util.BitSet;
-
-
 import masg.util.BitMap;
 
 public class DecisionRule implements Comparable<DecisionRule> {
@@ -13,7 +10,7 @@ public class DecisionRule implements Comparable<DecisionRule> {
 	protected String bitString = null;
 	
 	int numBits = 0;
-	double value = 0;
+	public double value = 0;
 	
 	
 	public DecisionRule(int numBits, double value) {
@@ -28,6 +25,13 @@ public class DecisionRule implements Comparable<DecisionRule> {
 		truthValues = truthVals;
 		setValues = setVals;
 		this.value = value;
+	}
+	
+	public DecisionRule(DecisionRule r) {
+		this.numBits = r.numBits;
+		truthValues = r.truthValues.clone();
+		setValues = r.setValues.clone();
+		this.value = r.value;
 	}
 	
 	public DecisionRule(String bitAndValueString) throws Exception {
@@ -61,6 +65,18 @@ public class DecisionRule implements Comparable<DecisionRule> {
 		}
 		
 		bitString = null;
+	}
+	
+	public char getBit(int ix) {
+		if(setValues.get(ix)) {
+			if(truthValues.get(ix))
+				return '1';
+			else
+				return '0';
+		}
+		else {
+			return '*';
+		}
 	}
 	
 	public void setBit(int ix, char c) throws Exception {
@@ -108,27 +124,6 @@ public class DecisionRule implements Comparable<DecisionRule> {
 			
 			if(maskedRule1.equals(maskedRule2))
 				return rule2;
-			
-			/*if(rule1.setValues.equals(rule2.setValues)) {
-				BitMap setValues = (BitMap) rule1.setValues.clone();
-				BitMap truthValues = (BitMap) rule1.truthValues.clone();
-				
-				truthValues.xor((BitMap) rule2.truthValues.clone());
-				truthValues.not();
-				setValues.and(truthValues);
-				
-				truthValues = (BitMap) rule1.truthValues.clone();
-				truthValues.and(setValues);
-				
-				DecisionRule mergedRule = new DecisionRule(rule1.numBits,rule1.value);
-				mergedRule.truthValues = truthValues;
-				mergedRule.setValues = setValues;
-				
-				return mergedRule;
-			}*/
-			
-			
-			
 			
 			int ix1Wild = rule1.setValues.nextClearBit(0);
 			int ix2Wild = rule2.setValues.nextClearBit(0);
@@ -186,33 +181,18 @@ public class DecisionRule implements Comparable<DecisionRule> {
 		return null;
 	}
 	
-	public DecisionRule getMatchingRule(DecisionRule otherRule) {
+	public boolean matches(DecisionRule otherRule) {
+		if(otherRule.numBits!=otherRule.numBits)
+			return false;
 		
-		BitMap maskedOther = (BitMap) otherRule.truthValues.clone();
-		maskedOther.and(setValues);
-		maskedOther.and(otherRule.setValues);
-		
-		BitMap maskedThis = (BitMap) truthValues.clone();
-		maskedThis.and(setValues);	
-		maskedThis.and(otherRule.setValues);
-		
-		if(!maskedThis.equals(maskedOther))
-			return null;
-		else {
-			DecisionRule resultRule = new DecisionRule(otherRule.numBits,Double.NaN);
-			resultRule.truthValues = (BitMap) truthValues.clone();
-			resultRule.truthValues.and(setValues);
-			
-			BitMap temp = (BitMap) otherRule.truthValues.clone();
-			temp.and(otherRule.setValues);
-			
-			resultRule.truthValues.or(temp);
-			
-			resultRule.setValues = (BitMap) setValues.clone();
-			resultRule.setValues.or(otherRule.setValues);
-			return resultRule;
+		for(int ix = 0; ix < numBits; ix++) {
+			if(otherRule.setValues.get(ix) && setValues.get(ix)) {
+				if(otherRule.truthValues.get(ix)!=truthValues.get(ix))
+					return false;
+			}
 		}
-				
+		
+		return true;
 	}
 	
 	public String toString() {
