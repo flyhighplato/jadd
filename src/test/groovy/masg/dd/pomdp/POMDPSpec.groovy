@@ -157,45 +157,27 @@ class POMDPSpec extends Specification {
 	
 	def "belief updating works"() {
 		when:
-			DDVariable act = p.actions[0]
-			DDVariable obs = p.obs[0]
+			println new Date().getTime()
 			
 			HashMap<DDVariable, Integer> fixAt = [:]
-			fixAt[act]=0
-			fixAt[obs]=0
+			p.actions.each{ DDVariable a->
+				fixAt[a]=0
+			}
+			p.obs.each{ DDVariable o->
+				fixAt[o]=1
+			}
+			
+			
+			println new Date().getTime()
 			
 			DDTransitionFunction fixedObsFn = p.obsFns.fix(fixAt);
 			DDTransitionFunction fixedTransFn = p.transFns.fix(fixAt);
 		
+			DDTransitionFunction temp = fixedTransFn.multiply(p.initBeliefDD)
+			temp = temp.sumOut(p.initBeliefDD.getContext().getVariableSpace().getVariables())
+			temp = temp.multiply(fixedObsFn)
 		then:
-			
-			p.initBeliefDD.context.getVariableSpace().each{ HashMap<DDVariable,Integer> varSpacePoint ->
-				
-				HashMap<DDVariable,Integer> varSpacePointPrime = [:]
-				varSpacePoint.each { DDVariable var, Integer varValue ->
-					varSpacePointPrime[var.getPrime()] = varValue
-				}
-				
-				
-				double obsProb = fixedObsFn.getValue(varSpacePointPrime)
-				
-				DDTransitionFunction fixedTransFnTemp = fixedTransFn.fix(varSpacePointPrime)
-				fixedTransFnTemp = fixedTransFnTemp.sumOut(varSpacePoint.keySet())
-				
-				if(obsProb>0.0f) {
-					double sPrimeProb = 0.0f
-					fixedTransFnTemp.getDDs().each{ CondProbADD dd ->
-						assert dd.getRules().size()==1
-						sPrimeProb = dd.getRules().rules.first().value
-						
-					}
-					
-					println sPrimeProb*obsProb
-				}
-				else {
-					println 0.0f
-				}
-			}
+			println new Date().getTime()
 		
 	}
 	
