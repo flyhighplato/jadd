@@ -7,6 +7,7 @@ import java.util.HashSet;
 
 import masg.dd.AlgebraicDecisionDiagram;
 import masg.dd.DecisionRule;
+import masg.dd.DecisionRuleCollection;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
@@ -71,6 +72,42 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 		
 		CondProbADD cpDDNew = new CondProbADD(cpContextNew);
 		cpDDNew.rules = summedOutDD.getRules();
+		
+		return cpDDNew;
+	}
+	
+	public CondProbADD multiply(AlgebraicDecisionDiagram add) throws Exception {
+		CondProbDDContext cpContext = (CondProbDDContext) context;
+		
+		add = add.sumOutAllExcept(cpContext.getVariableSpace().getVariables());
+		
+		DecisionRuleCollection newRules = new DecisionRuleCollection(cpContext.getVariableSpace().getBitCount());
+		for(DecisionRule otherRule:add.getRules()) {
+			DecisionRule translatedOtherRule = cpContext.getVariableSpace().translateRule(otherRule, add.getContext().getVariableSpace());
+			
+			for(DecisionRule thisRule:getRules()) {
+				if(thisRule.matches(translatedOtherRule)) {
+					DecisionRule resRule = new DecisionRule(thisRule);
+					resRule.value = thisRule.value * otherRule.value;
+					newRules.add(resRule);
+				}
+			}
+		}
+		
+		@SuppressWarnings("unchecked")
+		ArrayList<DDVariable> inVars = (ArrayList<DDVariable>) cpContext.getInputVarSpace().getVariables().clone();
+		@SuppressWarnings("unchecked")
+		ArrayList<DDVariable> outVars = (ArrayList<DDVariable>) cpContext.getOutputVarSpace().getVariables().clone();
+		
+		DDVariableSpace inVarSpace = new DDVariableSpace();
+		inVarSpace.addVariables(inVars);
+		
+		DDVariableSpace outVarSpace = new DDVariableSpace();
+		outVarSpace.addVariables(outVars);
+		
+		CondProbDDContext cpContextNew = new CondProbDDContext(inVarSpace,outVarSpace);
+		CondProbADD cpDDNew = new CondProbADD(cpContextNew);
+		cpDDNew.rules = newRules;
 		
 		return cpDDNew;
 	}
