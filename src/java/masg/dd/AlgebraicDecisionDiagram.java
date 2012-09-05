@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
-public class AlgebraicDecisionDiagram extends DecisionDiagram {
+public class AlgebraicDecisionDiagram extends AbstractDecisionDiagram {
 	protected DecisionRuleCollection rules;
 
 	public AlgebraicDecisionDiagram(DecisionDiagramContext ctx) {
@@ -27,7 +27,7 @@ public class AlgebraicDecisionDiagram extends DecisionDiagram {
 
 	}
 	
-	public void addRules(ArrayList<DecisionRule> rules) throws Exception {
+	public synchronized void addRules(ArrayList<DecisionRule> rules) throws Exception {
 		this.rules.addAll(rules);
 		compress();
 	}
@@ -49,7 +49,7 @@ public class AlgebraicDecisionDiagram extends DecisionDiagram {
 		return sumOut(sumOutValues);
 	}
 	
-	public AlgebraicDecisionDiagram fix(HashMap<DDVariable,Integer> varInstances) throws Exception {
+	public AlgebraicDecisionDiagram restrict(HashMap<DDVariable,Integer> varInstances) throws Exception {
 		
 		boolean willChange = false;
 		
@@ -74,7 +74,7 @@ public class AlgebraicDecisionDiagram extends DecisionDiagram {
 				}
 			}
 			addNew.addRules(fixedRules);
-			addNew = addNew.sumOut(varInstances.keySet(), true);
+			addNew = addNew.sumOut(varInstances.keySet(), false);
 		}
 		else {
 			fixedRules.addAll(rules);
@@ -191,7 +191,7 @@ public class AlgebraicDecisionDiagram extends DecisionDiagram {
 			for(DecisionRule ruleOther:addOther.rules) {
 				
 				if(ruleThis.matches(ruleOther)) {
-					DecisionRule resRule = new DecisionRule(ruleThis);
+					DecisionRule resRule = DecisionRule.getSubsetBitStringRule(ruleThis, ruleOther);
 					resRule.value = ruleThis.value * ruleOther.value;
 					addNew.addRule(resRule);
 				}
@@ -201,8 +201,21 @@ public class AlgebraicDecisionDiagram extends DecisionDiagram {
 		return addNew;
 	}
 	
+	public void normalize() {
+		double totalWeight = 0.0f;
+		
+		for(DecisionRule ruleThis:rules) {
+			totalWeight  += ruleThis.value;
+		}
+		
+		for(DecisionRule ruleThis:rules) {
+			ruleThis.value = ruleThis.value/totalWeight;
+		}
+	}
+	
 	public String toString() {
 		String str = "";
+		str += context.getVariableSpace().getVariables() + "\n";
 		for(DecisionRule rule:rules) {
 			str += rule + "\n";
 		}

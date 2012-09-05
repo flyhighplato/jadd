@@ -11,8 +11,22 @@ public class DDVariable {
 		numBits = (int) Math.floor(Math.log(numValues)/Math.log(2) + 1.0f);
 	}
 	
-	public DDVariable getPrime() {
-		return new DDVariable(name + "'", numValues);
+	public DDVariable getPrimed() {
+		if(!isPrime())
+			return new DDVariable(name + "'", numValues);
+		else
+			return this;
+	}
+	
+	public DDVariable getUnprimed() {
+		if(isPrime())
+			return new DDVariable(name.substring(0, name.length()-1), numValues);
+		else
+			return this;
+	}
+	
+	public boolean isPrime() {
+		return name.endsWith("'");	
 	}
 	
 	public String getName() {

@@ -25,7 +25,6 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 		inVariables.retainAll(varValues.keySet());
 		
 		HashSet<DDVariable> outVariables = new HashSet<DDVariable>(cpContext.getOutputVarSpace().getVariables());
-		
 		outVariables.retainAll(varValues.keySet());
 		
 		if(!(outVariables.size()==0 && cpContext.getOutputVarSpace().getVariables().size()!=0) ) {
@@ -50,8 +49,8 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 		return 1.0f;
 	}
 	
-	public CondProbADD fix(HashMap<DDVariable,Integer> varInstances) throws Exception {
-		AlgebraicDecisionDiagram summedOutDD = super.fix(varInstances);
+	public CondProbADD restrict(HashMap<DDVariable,Integer> varInstances) throws Exception {
+		AlgebraicDecisionDiagram summedOutDD = super.restrict(varInstances);
 		CondProbDDContext cpContext = (CondProbDDContext) context;
 		
 		@SuppressWarnings("unchecked")
@@ -87,7 +86,7 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 			
 			for(DecisionRule thisRule:getRules()) {
 				if(thisRule.matches(translatedOtherRule)) {
-					DecisionRule resRule = new DecisionRule(thisRule);
+					DecisionRule resRule = DecisionRule.getIntersectionBitStringRule(thisRule, translatedOtherRule);
 					resRule.value = thisRule.value * otherRule.value;
 					newRules.add(resRule);
 				}
@@ -112,8 +111,8 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 		return cpDDNew;
 	}
 	
-	public CondProbADD sumOut(Collection<DDVariable> sumOutVars) throws Exception {
-		AlgebraicDecisionDiagram summedOutDD = super.sumOut(sumOutVars);
+	public CondProbADD sumOut(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
+		AlgebraicDecisionDiagram summedOutDD = super.sumOut(sumOutVars, normalize);
 		CondProbDDContext cpContext = (CondProbDDContext) context;
 		
 		@SuppressWarnings("unchecked")

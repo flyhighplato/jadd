@@ -10,6 +10,14 @@ import masg.dd.DecisionRule;
 public class DDVariableSpace implements Iterable<HashMap<DDVariable,Integer>> {
 	protected ArrayList<DDVariable> variables = new ArrayList<DDVariable>();
 
+	public DDVariableSpace() {
+		
+	}
+	
+	public DDVariableSpace(ArrayList<DDVariable> variables) {
+		this.variables = variables;
+	}
+	
 	@Override
 	public DDVariableSpaceIterator iterator() {
 		return new DDVariableSpaceIterator(this);
@@ -94,6 +102,32 @@ public class DDVariableSpace implements Iterable<HashMap<DDVariable,Integer>> {
 			sumNumBits += var.numBits;
 		}
 		return sumNumBits;
+	}
+	
+	public void unprime() throws Exception {
+		ArrayList<DDVariable> newVars = new ArrayList<DDVariable>();
+		for(DDVariable var:variables) {
+			DDVariable varUnprime = var.getUnprimed();
+			if(newVars.contains(varUnprime)){
+				throw new Exception("Unpriming would make a duplicate variable (" + varUnprime + ")");
+			}
+			newVars.add(varUnprime);
+		}
+		variables = newVars;
+	}
+	
+	public void prime() throws Exception {
+		ArrayList<DDVariable> newVars = new ArrayList<DDVariable>();
+		for(DDVariable var:variables) {
+			DDVariable varPrime = var.getPrimed();
+			
+			if(newVars.contains(varPrime)){
+				throw new Exception("Priming would make a duplicate variable (" + varPrime + ")");
+			}
+			newVars.add(varPrime);
+		}
+		
+		variables = newVars;
 	}
 	
 	@SuppressWarnings("unchecked")

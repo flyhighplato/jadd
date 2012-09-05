@@ -40,7 +40,7 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 					DecisionRule oldPrefixRule = currPrefixRule;
 					
 					if(currPrefixRule != null)
-						currPrefixRule = getSupersetRule(currPrefixRule,prefixRule);
+						currPrefixRule = DecisionRule.getSupersetRule(currPrefixRule,prefixRule);
 					if(currPrefixRule == null) {
 						
 						currPrefixRule = oldPrefixRule;
@@ -147,7 +147,7 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 					continue;
 				}
 				
-				DecisionRule supersetRule = getSupersetRule(currRule,otherRule);
+				DecisionRule supersetRule = DecisionRule.getSupersetRule(currRule,otherRule);
 				if(supersetRule!=null) {
 					//System.out.println(supersetRule + " covers " + (otherRule==supersetRule?currRule:otherRule));
 					currRule = supersetRule;
@@ -194,36 +194,7 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 		return returnRules;
 	}
 	
-	private DecisionRule getSupersetRule(DecisionRule r1, DecisionRule r2) {
-		if((r1.value != r2.value))
-			return null;
-		
-		boolean covers = true;
-		for(int currBitIx=0;currBitIx<size;currBitIx++) {
-			if( (r1.setValues.get(currBitIx) && !r2.setValues.get(currBitIx)) || 
-				(r1.setValues.get(currBitIx) && r1.truthValues.get(currBitIx) != r2.truthValues.get(currBitIx))) {
-				covers = false;
-				break;
-			}
-		}
-		
-		if(covers)
-			return r1;
-		
-		covers = true;
-		for(int currBitIx=0;currBitIx<size;currBitIx++) {
-			if( (r2.setValues.get(currBitIx) && !r1.setValues.get(currBitIx)) || 
-				(r2.setValues.get(currBitIx) && r2.truthValues.get(currBitIx) != r1.truthValues.get(currBitIx))) {
-				covers = false;
-				break;
-			}
-		}
-		
-		if(covers)
-			return r2;
-		
-		return null;
-	}
+	
 	
 	@Override
 	public boolean add(DecisionRule rule) {

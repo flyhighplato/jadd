@@ -21,10 +21,11 @@ class POMDP{
 	protected AlgebraicDecisionDiagram rewFnDD;
 	protected AlgebraicDecisionDiagram initBeliefDD;
 	
+	protected DDTransitionFunction currBeliefFn;
 	
 	private POMDP() {
-		
 	}
+	
 	public POMDP(List<DDVariable> obs, List<DDVariable> act, List<DDVariable> states, Closure<Double> initBeliefClosure, List<List<DDVariable>> transFnStates, List<Closure<Double>> transFnClosures, List<List<DDVariable>> obsFnVars, List<Closure<Double>> obsFnClosures, Closure<Double> rewFnClosure) {
 		this.obs = obs
 		this.act = act
@@ -310,12 +311,12 @@ class POMDP{
 			println "Current number of rules:" + dd.getRules().size() + "/" + numRules;
 		}
 		
-		if(dd.getRules().size()<10) {
+		/*if(dd.getRules().size()<10) {
 			dd.getRules().each{ DecisionRule r ->
 				println r
 			}
 		}
-		println()
+		println()*/
 		
 	}
 	
@@ -329,5 +330,34 @@ class POMDP{
 	
 	public final List<DDVariable> getActions() {
 		return act;
+	}
+	
+	public final DDTransitionFunction getCurrentBelief() {
+		return currBeliefFn;
+	}
+	
+	public void updateBelief(HashMap<DDVariable,Integer> acts, HashMap<DDVariable,Integer> obs) {
+		HashMap<DDVariable, Integer> fixAt = [:]
+		acts.each{ DDVariable a, Integer val->
+			fixAt[a]=val
+		}
+		obs.each{ DDVariable o, Integer val->
+			fixAt[o]=val
+		}
+		
+		DDTransitionFunction fixedObsFn = obsFns.restrict(fixAt);
+		DDTransitionFunction fixedTransFn = transFns.restrict(fixAt);
+	
+		DDTransitionFunction temp
+		if(currBeliefFn == null)
+			temp = fixedTransFn.multiply(initBeliefDD)
+		else
+			temp = fixedTransFn.multiply(currBeliefFn)
+			
+		temp = temp.sumOut(states,false)
+		currBeliefFn = temp.multiply(fixedObsFn)
+		currBeliefFn.normalize()
+		currBeliefFn.compress()
+		currBeliefFn.unprimeAllContexts();
 	}
 }

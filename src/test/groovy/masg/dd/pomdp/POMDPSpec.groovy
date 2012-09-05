@@ -90,11 +90,12 @@ class POMDPSpec extends Specification {
 					
 					problem.transFns.each{Closure<Double> c ->
 						try{
-							valClosure *= c(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
+							double temp = c(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
+							valClosure = valClosure * temp
 						} catch (Exception e) {
-							println "Transition function"
-							println varSpacePoint.collectEntries{k,v -> [k.toString(),v]}
-							println e
+							//println "Transition function"
+							//println varSpacePoint.collectEntries{k,v -> [k.toString(),v]}
+							//println e
 						}
 					}
 					
@@ -157,28 +158,26 @@ class POMDPSpec extends Specification {
 	
 	def "belief updating works"() {
 		when:
-			println new Date().getTime()
+			HashMap<DDVariable,Integer> acts = [:]
+			HashMap<DDVariable,Integer> obs = [:]
 			
-			HashMap<DDVariable, Integer> fixAt = [:]
-			p.actions.each{ DDVariable a->
-				fixAt[a]=0
-			}
-			p.obs.each{ DDVariable o->
-				fixAt[o]=1
-			}
+			acts[problem.actVar]=0
+			obs[problem.wPresenceObsVar]=1
+			obs[problem.a1ColObsVar]=0
+			obs[problem.a1RowObsVar]=4
 			
-			
-			println new Date().getTime()
-			
-			DDTransitionFunction fixedObsFn = p.obsFns.fix(fixAt);
-			DDTransitionFunction fixedTransFn = p.transFns.fix(fixAt);
-		
-			DDTransitionFunction temp = fixedTransFn.multiply(p.initBeliefDD)
-			temp = temp.sumOut(p.initBeliefDD.getContext().getVariableSpace().getVariables())
-			temp = temp.multiply(fixedObsFn)
 		then:
-			println new Date().getTime()
-		
+			100.times{
+				p.updateBelief(acts,obs)
+				
+			}
+			p.getCurrentBelief()?.getDDs().each{ AlgebraicDecisionDiagram dd ->
+					println dd.getContext().getVariableSpace().getVariables()
+					dd.getRules().each{ DecisionRule r ->
+						println r
+					}
+				}
+			println()
 	}
 	
 }

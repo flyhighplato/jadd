@@ -28,7 +28,7 @@ class TagProblem {
 	DDVariable a1RowPrimeVar, a1ColPrimeVar
 	DDVariable a2RowPrimeVar, a2ColPrimeVar
 	DDVariable wRowPrimeVar, wColPrimeVar
-	DDVariable wPresent
+	DDVariable wPresenceObsVar, a1RowObsVar, a1ColObsVar
 
 	DDVariable actVar
 	
@@ -36,8 +36,10 @@ class TagProblem {
 		actVar = new DDVariable("act",4)
 		acts = [actVar]
 		
-		wPresent = new DDVariable("w_pres",2)
-		obs = [wPresent]
+		wPresenceObsVar = new DDVariable("w_pres",2)
+		a1RowObsVar = new DDVariable("a1_row_loc",5)
+		a1ColObsVar = new DDVariable("a1_col_loc",5)
+		obs = [wPresenceObsVar, a1RowObsVar, a1ColObsVar]
 		
 		a1RowVar = new DDVariable("a1_row",gridHeight)
 		a1ColVar = new DDVariable("a1_col",gridWidth)
@@ -70,9 +72,6 @@ class TagProblem {
 		
 		transFnVars << [[a1RowVar, actVar], [a1RowPrimeVar]]
 		transFns << { Map variables ->
-			if(!(variables["a1_row"] && variables["act"] && variables["a1_row'"]))
-				return 1.0f;
-			//assert variables["a1_row"]!=null && variables["act"]!=null && variables["a1_row'"]!=null
 			int row = variables["a1_row"]
 			int act = variables["act"]
 			int rowPrime = variables["a1_row'"]
@@ -100,8 +99,6 @@ class TagProblem {
 		
 		transFnVars << [[a1ColVar, actVar], [a1ColPrimeVar]]
 		transFns << { Map variables ->
-			if(!(variables["a1_col"] && variables["act"] && variables["a1_col'"]))
-				return 1.0f;
 			int col = variables["a1_col"]
 			int act = variables["act"]
 			int colPrime = variables["a1_col'"]
@@ -130,8 +127,6 @@ class TagProblem {
 		
 		transFnVars << [[a2RowVar,a2ColVar,actVar], [a2RowPrimeVar,a2ColPrimeVar]]
 		transFns << { Map variables ->
-			if(!(variables["a2_col"] && variables["a2_row"] && variables["act"] && variables["a2_col'"] && variables["a2_row'"]))
-				return 1.0f;
 			int row = variables["a2_row"]
 			int col = variables["a2_col"]
 			int act = variables["act"]
@@ -158,8 +153,6 @@ class TagProblem {
 		
 		transFnVars << [[wRowVar,wColVar,actVar], [wRowPrimeVar,wColPrimeVar]]
 		transFns << { Map variables ->
-			if(!(variables["w_col"] && variables["w_row"] && variables["act"] && variables["w_col'"] && variables["w_row'"]))
-				return 1.0f;
 			int row = variables["w_row"]
 			int col = variables["w_col"]
 			int act = variables["act"]
@@ -184,11 +177,9 @@ class TagProblem {
 			return 0.0f;
 		}
 		
-		obsFnVars << [[wRowPrimeVar,wColPrimeVar,a1ColPrimeVar,a1RowPrimeVar,actVar],[wPresent]]
+		obsFnVars << [[wRowPrimeVar,wColPrimeVar,a1ColPrimeVar,a1RowPrimeVar,actVar],[wPresenceObsVar]]
 		
 		obsFns << { Map variables ->
-			if(!(variables["w_col'"]!=null && variables["w_row'"]!=null && variables["w_pres"]!=null && variables["a1_col'"]!=null && variables["a1_row'"]!=null))
-				return 1.0f;
 			int w_row = variables["w_row'"]
 			int w_col = variables["w_col'"]
 			int a1_row = variables["a1_row'"]
@@ -202,6 +193,30 @@ class TagProblem {
 			}
 			
 			return 0.0f
+		}
+		
+		obsFnVars << [[a1ColPrimeVar,actVar],[a1ColObsVar]]
+		obsFns << { Map variables ->
+				
+			int a1_col = variables["a1_col'"]
+			int a1_col_loc = variables["a1_col_loc"]
+			
+			if(a1_col == a1_col_loc)
+				return 1.0f;
+			
+			return 0.0f;
+		}
+		
+		obsFnVars << [[a1RowPrimeVar,actVar],[a1RowObsVar]]
+		obsFns << { Map variables ->
+				
+			int a1_row = variables["a1_row'"]
+			int a1_row_loc = variables["a1_row_loc"]
+			
+			if(a1_row == a1_row_loc)
+				return 1.0f;
+			
+			return 0.0f;
 		}
 		
 		

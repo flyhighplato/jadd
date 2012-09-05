@@ -221,6 +221,111 @@ public class DecisionRule implements Comparable<DecisionRule> {
 		return bitString;
 	}
 	
+	public static DecisionRule getSubsetRule(DecisionRule r1, DecisionRule r2) {
+		DecisionRule r = getSupersetRule(r1,r2);
+		if(r!=null) {
+			if(r.equals(r1))
+				return new DecisionRule(r2);
+			else if (r.equals(r2))
+				return new DecisionRule(r1);
+		}
+		
+		return null;
+	}
+	
+	public static DecisionRule getSupersetRule(DecisionRule r1, DecisionRule r2) {
+		if((r1.value != r2.value))
+			return null;
+		
+		
+		return getSupersetBitStringRule(r1,r2);
+	}
+	
+	public static DecisionRule getSubsetBitStringRule(DecisionRule r1, DecisionRule r2) {
+		DecisionRule r = getSupersetBitStringRule(r1,r2);
+		
+		if(r!=null) {
+			if(r.equals(r1))
+				return new DecisionRule(r2);
+			else if (r.equals(r2))
+				return new DecisionRule(r1);
+		}
+		
+		return null;
+	}
+	
+	public static DecisionRule getSupersetBitStringRule(DecisionRule r1, DecisionRule r2) {
+		int size = r1.numBits;
+		if(r1.numBits!=r2.numBits)
+			return null;
+		
+		boolean covers = true;
+		for(int currBitIx=0;currBitIx<size;currBitIx++) {
+			if( (r1.setValues.get(currBitIx) && !r2.setValues.get(currBitIx)) || 
+				(r1.setValues.get(currBitIx) && r1.truthValues.get(currBitIx) != r2.truthValues.get(currBitIx))) {
+				covers = false;
+				break;
+			}
+		}
+		
+		if(covers)
+			return r1;
+		
+		covers = true;
+		for(int currBitIx=0;currBitIx<size;currBitIx++) {
+			if( (r2.setValues.get(currBitIx) && !r1.setValues.get(currBitIx)) || 
+				(r2.setValues.get(currBitIx) && r2.truthValues.get(currBitIx) != r1.truthValues.get(currBitIx))) {
+				covers = false;
+				break;
+			}
+		}
+		
+		if(covers)
+			return new DecisionRule(r2);
+		
+		return null;
+	}
+	
+	public static DecisionRule getIntersectionBitStringRule(DecisionRule r1, DecisionRule r2) throws Exception {
+		int size = r1.numBits;
+		if(r1.numBits!=r2.numBits)
+			return null;
+		
+		DecisionRule rRes = getSubsetBitStringRule(r1,r2);
+		if(rRes!=null)
+			return rRes;
+		else {
+			rRes = new DecisionRule(size, Double.NaN);
+			for(int currBitIx=0;currBitIx<size;currBitIx++) {
+				
+				if(!r1.setValues.get(currBitIx) && !r2.setValues.get(currBitIx)) {
+					rRes.setBit(currBitIx, '*');
+				}
+				else if(r1.setValues.get(currBitIx) && r2.setValues.get(currBitIx)){
+					if(r1.truthValues.get(currBitIx)!=r2.truthValues.get(currBitIx)) {
+						return null;
+					}
+					else {
+						if(r1.truthValues.get(currBitIx))
+							rRes.setBit(currBitIx, '1');
+						else
+							rRes.setBit(currBitIx, '0');
+					}
+				}
+				else if(r1.setValues.get(currBitIx) != r2.setValues.get(currBitIx)) {
+					boolean setVal = r1.setValues.get(currBitIx)?r1.truthValues.get(currBitIx):r2.truthValues.get(currBitIx);
+					
+					if(setVal)
+						rRes.setBit(currBitIx, '1');
+					else
+						rRes.setBit(currBitIx, '0');
+				}
+			}
+		}
+		
+		return rRes;
+	}
+	
 	public boolean equals(Object o) {
 		
 		if(o instanceof DecisionRule) {
@@ -275,7 +380,6 @@ public class DecisionRule implements Comparable<DecisionRule> {
 				return 1;
 			}
 		}
-		//for(int i=0;i<ruleThis)
 		
 		if(compRes == 0) {
 			return Double.compare(value, o.value);
