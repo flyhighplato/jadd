@@ -7,16 +7,17 @@ import java.util.Map;
 
 import masg.dd.pomdp.POMDP;
 import masg.dd.vars.DDVariable;
+import masg.dd.vars.DDVariableCollection
 
 class TagProblem {
 	
-	List<DDVariable> states = []
-	List<DDVariable> acts = []
-	List<DDVariable> obs = []
+	DDVariableCollection states = new DDVariableCollection()
+	DDVariableCollection acts = new DDVariableCollection()
+	DDVariableCollection obs = new DDVariableCollection()
 	
 	POMDP p
 	
-	List<List<DDVariable>> transFnVars = [], obsFnVars = []
+	List<DDVariableCollection> transFnVars = [], obsFnVars = []
 	List<Closure<Double>> transFns = [], obsFns = []
 	Closure<Double> initBelief
 	Closure<Double> rewFn
