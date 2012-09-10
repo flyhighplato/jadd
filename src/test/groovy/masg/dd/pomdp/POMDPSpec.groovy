@@ -167,17 +167,17 @@ class POMDPSpec extends Specification {
 			obs[problem.a1RowObsVar]=4
 			
 		then:
-			100.times{
+			Date startTime = new Date()
+			
+			long start = startTime.time
+
+			int numUpdates = 0
+			while(new Date().time - start < 60000) {
+				numUpdates ++
 				p.updateBelief(acts,obs)
-				
 			}
-			p.getCurrentBelief()?.getDDs().each{ AlgebraicDecisionDiagram dd ->
-					println dd.getContext().getVariableSpace().getVariables()
-					dd.getRules().each{ DecisionRule r ->
-						println r
-					}
-				}
-			println()
+			
+			println "Number of updates in a minute: $numUpdates"
 	}
 	
 }

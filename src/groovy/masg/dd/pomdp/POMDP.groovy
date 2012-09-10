@@ -1,6 +1,9 @@
 package masg.dd.pomdp
 
 import masg.dd.AlgebraicDecisionDiagram
+import masg.dd.AlgebraicDecisionDiagramBuilder
+import masg.dd.CondProbADDBuilder
+import masg.dd.DDTransitionFunctionBuilder
 import masg.dd.DecisionDiagramContext
 import masg.dd.DecisionRule
 import masg.dd.DecisionRuleCollection
@@ -17,7 +20,11 @@ class POMDP{
 	protected List<DDVariable> states
 	
 	protected DDTransitionFunction transFn;
+	protected HashMap<HashMap<DDVariable,Integer>, DDTransitionFunction> fixedTransFns = new HashMap<DDVariable, DDTransitionFunction>();
+	
 	protected DDTransitionFunction obsFn;
+	protected HashMap<HashMap<DDVariable,Integer>, DDTransitionFunction> fixedObsFns = new HashMap<DDVariable, DDTransitionFunction>();
+	
 	protected AlgebraicDecisionDiagram rewFnDD;
 	protected AlgebraicDecisionDiagram initBeliefDD;
 	
@@ -26,27 +33,41 @@ class POMDP{
 	private POMDP() {
 	}
 	
+	public POMDP(List<DDVariable> Obs, List<DDVariable> S, List<DDVariable> A, AlgebraicDecisionDiagram initBelief, AlgebraicDecisionDiagram R, DDTransitionFunction T, DDTransitionFunction O) {
+		obs = Obs
+		states = S
+		act = A
+		initBeliefDD = initBelief
+		rewFnDD = R
+		transFn = T
+		obsFn = O
+		
+		initFixed()
+	}
+	
 	public POMDP(List<DDVariable> obs, List<DDVariable> act, List<DDVariable> states, Closure<Double> initBeliefClosure, List<List<DDVariable>> transFnStates, List<Closure<Double>> transFnClosures, List<List<DDVariable>> obsFnVars, List<Closure<Double>> obsFnClosures, Closure<Double> rewFnClosure) {
 		this.obs = obs
 		this.act = act
 		this.states = states
 		
-		DecisionDiagramContext beliefCtxt = new DecisionDiagramContext();
-		beliefCtxt.getVariableSpace().addVariables(states)
-		
-		initBeliefDD = new AlgebraicDecisionDiagram(beliefCtxt);
-		populateDD(initBeliefDD,initBeliefClosure)
-		
-		
-		DecisionDiagramContext rewCtxt = new DecisionDiagramContext();
-		rewCtxt.getVariableSpace().addVariables(states)
-		rewFnDD = new AlgebraicDecisionDiagram(rewCtxt)
-		populateDD(rewFnDD,rewFnClosure)
+		initBeliefDD = AlgebraicDecisionDiagramBuilder.build(states,initBeliefClosure)
+		rewFnDD = AlgebraicDecisionDiagramBuilder.build(states,rewFnClosure)
 		
 		assert transFnStates.size() == transFnClosures.size()
 		
-		transFn = populateFn(transFnClosures,transFnStates)
-		obsFn = populateFn(obsFnClosures,obsFnVars)
+		DDTransitionFunctionBuilder transBuilder = new DDTransitionFunctionBuilder()
+		transFnClosures.eachWithIndex { Closure<Double> fnClosure, fnIx ->
+			transBuilder.add(transFnStates[fnIx][0],transFnStates[fnIx][1],fnClosure)
+		}
+		transFn = transBuilder.build()
+		
+		
+		
+		DDTransitionFunctionBuilder obsBuilder = new DDTransitionFunctionBuilder()
+		obsFnClosures.eachWithIndex { Closure<Double> fnClosure, fnIx ->
+			obsBuilder.add(obsFnVars[fnIx][0],obsFnVars[fnIx][1],fnClosure)
+		}
+		obsFn = obsBuilder.build()
 	}
 	
 	public writeOut(Writer out) {
@@ -186,140 +207,6 @@ class POMDP{
 		return p
 	}
 	
-	private DDTransitionFunction populateFn(List<Closure<Double>> fnClosures, List<List<DDVariable>> fnVars) {
-		DDTransitionFunction fn = new DDTransitionFunction()
-
-		fnClosures.eachWithIndex { Closure<Double> fnClosure, fnIx ->
-			DDVariableSpace inVarSpace = new DDVariableSpace();
-			inVarSpace.addVariables(fnVars[fnIx][0])
-			
-			DDVariableSpace outVarSpace = new DDVariableSpace();
-			outVarSpace.addVariables(fnVars[fnIx][1])
-			
-			CondProbDDContext transCtx = new CondProbDDContext(inVarSpace,outVarSpace)
-			CondProbADD currDD = new CondProbADD(transCtx)
-			
-			populateDD(currDD,fnClosure)
-			
-			fn.appendDD(currDD);
-			
-		}
-		
-		return fn
-	}
-	
-	private void populateDD(AlgebraicDecisionDiagram dd, Closure c) {
-		
-		int numRules=0;
-		DDVariableSpace varSpace = dd.getContext().getVariableSpace();
-		
-		
-		DecisionRuleCollection rules = new DecisionRuleCollection(varSpace.getBitCount())
-		
-		println "Current number of rules:" + dd.getRules().size();
-		
-		varSpace.each{ HashMap<DDVariable,Integer> varSpacePoint ->
-			double val = c(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
-			
-			DecisionRule r = varSpace.generateRule(varSpacePoint,val)
-			
-			numRules++;
-			rules << r
-			
-			if(rules.size()>100) {
-				rules.compress()
-			}
-			
-			if(rules.size()>100) {
-				dd.addRules(new ArrayList(rules))
-				rules = new DecisionRuleCollection(varSpace.getBitCount())
-				println "Current number of rules:" + dd.getRules().size() + "/" + numRules;
-			}
-			
-		}
-		
-		dd.addRules(new ArrayList(rules))
-		println "Current number of rules:" + dd.getRules().size() + "/" + numRules;
-		
-		println "Adding negative space..."
-		
-		
-		for(int varIx = varSpace.getVariables().size()-1;varIx>=0;varIx--) {
-			rules = new DecisionRuleCollection(varSpace.getBitCount())
-			HashMap<DDVariable,Range> unusedValues = new HashMap<DDVariable,Range>();
-			
-			DDVariable currVar = varSpace.getVariables().get(varIx)
-			
-			int totalValuesPossible = (int)Math.pow(2.0f, currVar.getBitCount())-1
-			int firstUnusedValue = currVar.getValueCount()
-			unusedValues[currVar] = (firstUnusedValue..totalValuesPossible)
-			
-			println "$currVar has unused range ${unusedValues[currVar]}"
-			
-			varSpace.each{ HashMap<DDVariable,Integer> varSpacePoint ->
-				double val = c(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
-				
-				unusedValues.each{ DDVariable var, Range valRange ->
-					HashMap<DDVariable,Integer> varSpacePointCopy = varSpacePoint.clone()
-					
-					for(int laterVarIx=varIx;laterVarIx<varSpace.getVariables().size();laterVarIx++) {
-						varSpacePointCopy.remove(varSpace.getVariables().get(laterVarIx))
-					}
-					valRange.each{ int varVal ->
-						
-						varSpacePointCopy[var] = varVal;
-						DecisionRule r = varSpace.generateRule(varSpacePointCopy,val)
-						numRules++;
-						rules << r
-					}
-				}
-				
-				if(rules.size()>100) {
-					rules.compress()
-				}
-				
-				if(rules.size()>100) {
-					dd.addRules(new ArrayList(rules))
-					rules = new DecisionRuleCollection(varSpace.getBitCount())
-					println "Current number of rules:" + dd.getRules().size() + "/" + numRules;
-				}
-				
-			}
-			
-			println "Removing unused negative space..."
-			varSpace.each{ HashMap<DDVariable,Integer> varSpacePoint ->
-				double val = c(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
-				
-				unusedValues.each{ DDVariable var, Range valRange ->
-					HashMap<DDVariable,Integer> varSpacePointCopy = varSpacePoint.clone()
-					
-					for(int laterVarIx=varIx;laterVarIx<varSpace.getVariables().size();laterVarIx++) {
-						varSpacePointCopy.remove(varSpace.getVariables().get(laterVarIx))
-					}
-					valRange.each{ int varVal ->
-						
-						varSpacePointCopy[var] = varVal;
-						DecisionRule r = varSpace.generateRule(varSpacePointCopy,val)
-						if(dd.getRules().remove(r)) {
-							numRules--
-						}
-					}
-				}
-			}
-			
-			dd.addRules(new ArrayList(rules))
-			println "Current number of rules:" + dd.getRules().size() + "/" + numRules;
-		}
-		
-		/*if(dd.getRules().size()<10) {
-			dd.getRules().each{ DecisionRule r ->
-				println r
-			}
-		}
-		println()*/
-		
-	}
-	
 	public final DDTransitionFunction getTransFns() {
 		return transFn;
 	}
@@ -345,9 +232,22 @@ class POMDP{
 			fixAt[o]=val
 		}
 		
-		DDTransitionFunction fixedObsFn = obsFns.restrict(fixAt);
-		DDTransitionFunction fixedTransFn = transFns.restrict(fixAt);
-	
+		DDTransitionFunction fixedObsFn
+		if(fixedObsFns.containsKey(fixAt)) 
+			fixedObsFn = fixedObsFns[fixAt]
+		else {
+			fixedObsFn = obsFns.restrict(fixAt);
+			fixedObsFns[fixAt] = fixedObsFn
+		}
+		
+		DDTransitionFunction fixedTransFn
+		if(fixedTransFns.containsKey(fixAt))
+			fixedTransFn = fixedObsFns[fixAt]
+		else {
+			fixedTransFn = transFns.restrict(fixAt);
+			fixedObsFns[fixAt] = fixedTransFn
+		}
+		
 		DDTransitionFunction temp
 		if(currBeliefFn == null)
 			temp = fixedTransFn.multiply(initBeliefDD)
@@ -357,7 +257,6 @@ class POMDP{
 		temp = temp.sumOut(states,false)
 		currBeliefFn = temp.multiply(fixedObsFn)
 		currBeliefFn.normalize()
-		currBeliefFn.compress()
 		currBeliefFn.unprimeAllContexts();
 	}
 }
