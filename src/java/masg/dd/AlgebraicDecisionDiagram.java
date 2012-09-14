@@ -49,6 +49,19 @@ public class AlgebraicDecisionDiagram extends AbstractDecisionDiagram {
 		return sumOut(sumOutValues);
 	}
 	
+	public AlgebraicDecisionDiagram sumOutAllExcept(Collection<DDVariable> values, boolean normalize) throws Exception {
+		ArrayList<DDVariable> sumOutValues = new ArrayList<DDVariable>();
+		
+		ArrayList<DDVariable> currVariables = context.varSpace.getVariables();
+		for(DDVariable val:currVariables) {
+			if(!values.contains(val)) {
+				sumOutValues.add(val);
+			}
+		}
+		
+		return sumOut(sumOutValues, normalize);
+	}
+	
 	public AlgebraicDecisionDiagram restrict(HashMap<DDVariable,Integer> varInstances) throws Exception {
 		
 		boolean willChange = false;

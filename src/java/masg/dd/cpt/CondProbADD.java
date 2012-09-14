@@ -136,5 +136,31 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 		
 		return cpDDNew;
 	}
+	
+	public CondProbADD sumOutAllExcept(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
+		AlgebraicDecisionDiagram summedOutDD = super.sumOutAllExcept(sumOutVars, normalize);
+		CondProbDDContext cpContext = (CondProbDDContext) context;
+		
+		@SuppressWarnings("unchecked")
+		ArrayList<DDVariable> inVars = (ArrayList<DDVariable>) cpContext.getInputVarSpace().getVariables().clone();
+		@SuppressWarnings("unchecked")
+		ArrayList<DDVariable> outVars = (ArrayList<DDVariable>) cpContext.getOutputVarSpace().getVariables().clone();
+		
+		inVars.retainAll(sumOutVars);
+		outVars.retainAll(sumOutVars);
+		
+		DDVariableSpace inVarSpace = new DDVariableSpace();
+		inVarSpace.addVariables(inVars);
+		
+		DDVariableSpace outVarSpace = new DDVariableSpace();
+		outVarSpace.addVariables(outVars);
+		
+		CondProbDDContext cpContextNew = new CondProbDDContext(inVarSpace,outVarSpace);
+		
+		CondProbADD cpDDNew = new CondProbADD(cpContextNew);
+		cpDDNew.rules = summedOutDD.getRules();
+		
+		return cpDDNew;
+	}
 
 }

@@ -58,6 +58,14 @@ public class DDTransitionFunction implements DecisionDiagram{
 		return newFn;
 	}
 	
+	public DDTransitionFunction sumOutAllExcept(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
+		DDTransitionFunction newFn = new DDTransitionFunction();
+		for(CondProbADD dd:ddList) {
+			newFn.ddList.add(dd.sumOutAllExcept(sumOutVars,normalize));
+		}
+		return newFn;
+	}
+	
 	public DDTransitionFunction restrict(HashMap<DDVariable,Integer> varInstances) throws Exception {
 		DDTransitionFunction newFn = new DDTransitionFunction();
 		for(CondProbADD dd:ddList) {
@@ -167,9 +175,23 @@ public class DDTransitionFunction implements DecisionDiagram{
 		return newFn;
 	}
 	
+	public void primeAllContexts() throws Exception {
+		for(CondProbADD cddThis:ddList) {
+			CondProbDDContext cpContext = (CondProbDDContext) cddThis.getContext();
+			if(cpContext.getInputVarSpace().getVariableCount()>0)
+				throw new Exception("Can't prime.  This is still a conditional probability.");
+			cpContext.getVariableSpace().prime();
+			cpContext.getOutputVarSpace().prime();
+		}
+	}
+	
 	public void unprimeAllContexts() throws Exception {
 		for(CondProbADD cddThis:ddList) {
-			cddThis.getContext().getVariableSpace().unprime();
+			CondProbDDContext cpContext = (CondProbDDContext) cddThis.getContext();
+			if(cpContext.getInputVarSpace().getVariableCount()>0)
+				throw new Exception("Can't unprime.  This is still a conditional probability.");
+			cpContext.getVariableSpace().unprime();
+			cpContext.getOutputVarSpace().unprime();
 		}
 	}
 
@@ -177,5 +199,9 @@ public class DDTransitionFunction implements DecisionDiagram{
 	public DecisionDiagramContext getContext() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	public String toString() {
+		return ddList==null?null:ddList.toString();
 	}
 }
