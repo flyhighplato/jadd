@@ -5,6 +5,8 @@ import groovy.lang.Closure;
 import java.util.HashMap;
 import java.util.List;
 
+import masg.agent.pomdp.belief.BeliefRegion
+import masg.agent.pomdp.policy.RandomPolicy;
 import masg.dd.AlgebraicDecisionDiagram;
 import masg.dd.DecisionDiagramContext
 import masg.dd.DecisionRule
@@ -178,6 +180,14 @@ class POMDPSpec extends Specification {
 			}
 			
 			println "Number of updates in a minute: $numUpdates"
+	}
+	
+	def "belief region gets populated"() {
+		when:
+			RandomPolicy policy = new RandomPolicy(p)
+		then:
+			BeliefRegion bReg = new BeliefRegion(100, p, policy)
+			//println bReg.beliefSamples
 	}
 	
 }
