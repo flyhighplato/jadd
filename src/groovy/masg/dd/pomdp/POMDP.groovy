@@ -219,11 +219,19 @@ class POMDP{
 		return act;
 	}
 	
+	public final AlgebraicDecisionDiagram getInitialtBelief() {
+		return initBeliefDD;
+	}
+	
 	public final DDTransitionFunction getCurrentBelief() {
 		return currBeliefFn;
 	}
 	
 	public void updateBelief(HashMap<DDVariable,Integer> acts, HashMap<DDVariable,Integer> obs) {
+		currBeliefFn = updateBelief(this,currBeliefFn?currBeliefFn:initBeliefDD,acts,obs)
+	}
+	
+	static public DDTransitionFunction updateBelief(POMDP p, def belief, HashMap<DDVariable,Integer> acts, HashMap<DDVariable,Integer> obs) {
 		HashMap<DDVariable, Integer> fixAt = [:]
 		acts.each{ DDVariable a, Integer val->
 			fixAt[a]=val
@@ -233,30 +241,29 @@ class POMDP{
 		}
 		
 		DDTransitionFunction fixedObsFn
-		if(fixedObsFns.containsKey(fixAt)) 
-			fixedObsFn = fixedObsFns[fixAt]
+		if(p.fixedObsFns.containsKey(fixAt)) 
+			fixedObsFn = p.fixedObsFns[fixAt]
 		else {
-			fixedObsFn = obsFns.restrict(fixAt);
-			fixedObsFns[fixAt] = fixedObsFn
+			fixedObsFn = p.obsFns.restrict(fixAt);
+			p.fixedObsFns[fixAt] = fixedObsFn
 		}
 		
 		DDTransitionFunction fixedTransFn
-		if(fixedTransFns.containsKey(fixAt))
-			fixedTransFn = fixedObsFns[fixAt]
+		if(p.fixedTransFns.containsKey(fixAt))
+			p.fixedTransFn = p.fixedObsFns[fixAt]
 		else {
-			fixedTransFn = transFns.restrict(fixAt);
-			fixedObsFns[fixAt] = fixedTransFn
+			fixedTransFn = p.transFns.restrict(fixAt);
+			p.fixedObsFns[fixAt] = fixedTransFn
 		}
 		
-		DDTransitionFunction temp
-		if(currBeliefFn == null)
-			temp = fixedTransFn.multiply(initBeliefDD)
-		else
-			temp = fixedTransFn.multiply(currBeliefFn)
+		DDTransitionFunction temp = fixedTransFn.multiply(belief)
+		
 			
-		temp = temp.sumOut(states,false)
-		currBeliefFn = temp.multiply(fixedObsFn)
+		temp = temp.sumOut(p.states,false)
+		DDTransitionFunction currBeliefFn = temp.multiply(fixedObsFn)
 		currBeliefFn.normalize()
 		currBeliefFn.unprimeAllContexts();
+		
+		return currBeliefFn;
 	}
 }
