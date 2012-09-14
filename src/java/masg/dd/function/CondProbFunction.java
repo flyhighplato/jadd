@@ -14,10 +14,10 @@ import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
 
-public class DDTransitionFunction implements DecisionDiagram{
+public class CondProbFunction implements DecisionDiagram{
 	ArrayList<CondProbADD> ddList = new ArrayList<CondProbADD>();
 	
-	public DDTransitionFunction() {
+	public CondProbFunction() {
 		
 	}
 	
@@ -50,24 +50,24 @@ public class DDTransitionFunction implements DecisionDiagram{
 		return val;
 	}
 	
-	public DDTransitionFunction sumOut(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
-		DDTransitionFunction newFn = new DDTransitionFunction();
+	public CondProbFunction sumOut(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
+		CondProbFunction newFn = new CondProbFunction();
 		for(CondProbADD dd:ddList) {
 			newFn.ddList.add(dd.sumOut(sumOutVars,normalize));
 		}
 		return newFn;
 	}
 	
-	public DDTransitionFunction sumOutAllExcept(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
-		DDTransitionFunction newFn = new DDTransitionFunction();
+	public CondProbFunction sumOutAllExcept(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
+		CondProbFunction newFn = new CondProbFunction();
 		for(CondProbADD dd:ddList) {
 			newFn.ddList.add(dd.sumOutAllExcept(sumOutVars,normalize));
 		}
 		return newFn;
 	}
 	
-	public DDTransitionFunction restrict(HashMap<DDVariable,Integer> varInstances) throws Exception {
-		DDTransitionFunction newFn = new DDTransitionFunction();
+	public CondProbFunction restrict(HashMap<DDVariable,Integer> varInstances) throws Exception {
+		CondProbFunction newFn = new CondProbFunction();
 		for(CondProbADD dd:ddList) {
 			newFn.ddList.add(dd.restrict(varInstances));
 		}
@@ -75,8 +75,8 @@ public class DDTransitionFunction implements DecisionDiagram{
 		return newFn.separate();
 	}
 	
-	private DDTransitionFunction separate() throws Exception {
-		DDTransitionFunction newFn = new DDTransitionFunction();
+	private CondProbFunction separate() throws Exception {
+		CondProbFunction newFn = new CondProbFunction();
 		
 		
 		ArrayList<CondProbADD> ddListOld = ddList;
@@ -144,8 +144,8 @@ public class DDTransitionFunction implements DecisionDiagram{
 		
 	}
 	
-	public DDTransitionFunction multiply(AlgebraicDecisionDiagram add) throws Exception {
-		DDTransitionFunction newFn = new DDTransitionFunction();
+	public CondProbFunction multiply(AlgebraicDecisionDiagram add) throws Exception {
+		CondProbFunction newFn = new CondProbFunction();
 		for(CondProbADD cdd:ddList) {
 			newFn.ddList.add(cdd.multiply(add));
 		}
@@ -158,8 +158,8 @@ public class DDTransitionFunction implements DecisionDiagram{
 		}
 	}
 	
-	public DDTransitionFunction multiply(DDTransitionFunction fnOther) throws Exception {
-		DDTransitionFunction newFn = new DDTransitionFunction();
+	public CondProbFunction multiply(CondProbFunction fnOther) throws Exception {
+		CondProbFunction newFn = new CondProbFunction();
 		for(CondProbADD cddThis:ddList) {
 			CondProbADD cddRes = null;
 			for(CondProbADD cddOther:fnOther.ddList) {

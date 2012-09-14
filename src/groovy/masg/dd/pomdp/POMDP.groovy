@@ -3,13 +3,13 @@ package masg.dd.pomdp
 import masg.dd.AlgebraicDecisionDiagram
 import masg.dd.AlgebraicDecisionDiagramBuilder
 import masg.dd.CondProbADDBuilder
-import masg.dd.DDTransitionFunctionBuilder
+import masg.dd.CondProbFunctionBuilder
 import masg.dd.DecisionDiagramContext
 import masg.dd.DecisionRule
 import masg.dd.DecisionRuleCollection
 import masg.dd.cpt.CondProbADD
 import masg.dd.cpt.CondProbDDContext
-import masg.dd.function.DDTransitionFunction
+import masg.dd.function.CondProbFunction
 
 import masg.dd.vars.DDVariable
 import masg.dd.vars.DDVariableSpace
@@ -19,21 +19,21 @@ class POMDP{
 	protected List<DDVariable> act
 	protected List<DDVariable> states
 	
-	protected DDTransitionFunction transFn;
-	protected HashMap<HashMap<DDVariable,Integer>, DDTransitionFunction> fixedTransFns = new HashMap<DDVariable, DDTransitionFunction>();
+	protected CondProbFunction transFn;
+	protected HashMap<HashMap<DDVariable,Integer>, CondProbFunction> fixedTransFns = new HashMap<DDVariable, CondProbFunction>();
 	
-	protected DDTransitionFunction obsFn;
-	protected HashMap<HashMap<DDVariable,Integer>, DDTransitionFunction> fixedObsFns = new HashMap<DDVariable, DDTransitionFunction>();
+	protected CondProbFunction obsFn;
+	protected HashMap<HashMap<DDVariable,Integer>, CondProbFunction> fixedObsFns = new HashMap<DDVariable, CondProbFunction>();
 	
 	protected AlgebraicDecisionDiagram rewFnDD;
 	protected AlgebraicDecisionDiagram initBeliefDD;
 	
-	protected DDTransitionFunction currBeliefFn;
+	protected CondProbFunction currBeliefFn;
 	
 	private POMDP() {
 	}
 	
-	public POMDP(List<DDVariable> Obs, List<DDVariable> S, List<DDVariable> A, AlgebraicDecisionDiagram initBelief, AlgebraicDecisionDiagram R, DDTransitionFunction T, DDTransitionFunction O) {
+	public POMDP(List<DDVariable> Obs, List<DDVariable> S, List<DDVariable> A, AlgebraicDecisionDiagram initBelief, AlgebraicDecisionDiagram R, CondProbFunction T, CondProbFunction O) {
 		obs = Obs
 		states = S
 		act = A
@@ -55,7 +55,7 @@ class POMDP{
 		
 		assert transFnStates.size() == transFnClosures.size()
 		
-		DDTransitionFunctionBuilder transBuilder = new DDTransitionFunctionBuilder()
+		CondProbFunctionBuilder transBuilder = new CondProbFunctionBuilder()
 		transFnClosures.eachWithIndex { Closure<Double> fnClosure, fnIx ->
 			transBuilder.add(transFnStates[fnIx][0],transFnStates[fnIx][1],fnClosure)
 		}
@@ -63,7 +63,7 @@ class POMDP{
 		
 		
 		
-		DDTransitionFunctionBuilder obsBuilder = new DDTransitionFunctionBuilder()
+		CondProbFunctionBuilder obsBuilder = new CondProbFunctionBuilder()
 		obsFnClosures.eachWithIndex { Closure<Double> fnClosure, fnIx ->
 			obsBuilder.add(obsFnVars[fnIx][0],obsFnVars[fnIx][1],fnClosure)
 		}
@@ -122,7 +122,7 @@ class POMDP{
 		
 		
 		println "Reading transition function..."
-		p.transFn = new DDTransitionFunction()
+		p.transFn = new CondProbFunction()
 
 		String separator = rdr.readLine().trim()
 		
@@ -154,7 +154,7 @@ class POMDP{
 		separator = rdr.readLine().trim()
 		
 		println "Reading observation function..."
-		p.obsFn = new DDTransitionFunction()
+		p.obsFn = new CondProbFunction()
 		while(separator!="+" && separator.length()>0) {
 			println "separator:" + separator
 			DDVariableSpace inVarSpace = new DDVariableSpace();
@@ -207,11 +207,11 @@ class POMDP{
 		return p
 	}
 	
-	public final DDTransitionFunction getTransFns() {
+	public final CondProbFunction getTransFns() {
 		return transFn;
 	}
 	
-	public final DDTransitionFunction getObsFns() {
+	public final CondProbFunction getObsFns() {
 		return obsFn;
 	}
 	
@@ -223,7 +223,7 @@ class POMDP{
 		return initBeliefDD;
 	}
 	
-	public final DDTransitionFunction getCurrentBelief() {
+	public final CondProbFunction getCurrentBelief() {
 		return currBeliefFn;
 	}
 	
@@ -231,7 +231,7 @@ class POMDP{
 		currBeliefFn = updateBelief(this,currBeliefFn?currBeliefFn:initBeliefDD,acts,obs)
 	}
 	
-	static public DDTransitionFunction updateBelief(POMDP p, def belief, HashMap<DDVariable,Integer> acts, HashMap<DDVariable,Integer> obs) {
+	static public CondProbFunction updateBelief(POMDP p, def belief, HashMap<DDVariable,Integer> acts, HashMap<DDVariable,Integer> obs) {
 		HashMap<DDVariable, Integer> fixAt = [:]
 		acts.each{ DDVariable a, Integer val->
 			fixAt[a]=val
@@ -240,7 +240,7 @@ class POMDP{
 			fixAt[o]=val
 		}
 		
-		DDTransitionFunction fixedObsFn
+		CondProbFunction fixedObsFn
 		if(p.fixedObsFns.containsKey(fixAt)) 
 			fixedObsFn = p.fixedObsFns[fixAt]
 		else {
@@ -248,7 +248,7 @@ class POMDP{
 			p.fixedObsFns[fixAt] = fixedObsFn
 		}
 		
-		DDTransitionFunction fixedTransFn
+		CondProbFunction fixedTransFn
 		if(p.fixedTransFns.containsKey(fixAt))
 			p.fixedTransFn = p.fixedObsFns[fixAt]
 		else {
@@ -256,11 +256,11 @@ class POMDP{
 			p.fixedObsFns[fixAt] = fixedTransFn
 		}
 		
-		DDTransitionFunction temp = fixedTransFn.multiply(belief)
+		CondProbFunction temp = fixedTransFn.multiply(belief)
 		
 			
 		temp = temp.sumOut(p.states,false)
-		DDTransitionFunction currBeliefFn = temp.multiply(fixedObsFn)
+		CondProbFunction currBeliefFn = temp.multiply(fixedObsFn)
 		currBeliefFn.normalize()
 		currBeliefFn.unprimeAllContexts();
 		

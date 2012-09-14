@@ -1,7 +1,7 @@
 package masg.agent.pomdp.belief
 
 import masg.agent.pomdp.policy.RandomPolicy
-import masg.dd.function.DDTransitionFunction
+import masg.dd.function.CondProbFunction
 import masg.dd.pomdp.POMDP
 import masg.dd.vars.DDVariable
 
@@ -24,16 +24,13 @@ class BeliefRegion {
 			
 			HashMap<DDVariable,Integer> actInstance = policy.getAction(belief)
 			
-			
-			//println "action: $actInstance"
-			
-			DDTransitionFunction restrictedTransFn = p.getTransFns().restrict(actInstance);
-			DDTransitionFunction belTransFn = restrictedTransFn.multiply(belief)
-			DDTransitionFunction summedTransFn = belTransFn.sumOut(p.states,false)
+			CondProbFunction restrictedTransFn = p.getTransFns().restrict(actInstance);
+			CondProbFunction belTransFn = restrictedTransFn.multiply(belief)
+			CondProbFunction summedTransFn = belTransFn.sumOut(p.states,false)
 			summedTransFn.normalize()
 			
-			DDTransitionFunction restrictedObsFn = p.getObsFns().restrict(actInstance);
-			DDTransitionFunction summedObsFn = restrictedObsFn.multiply(summedTransFn)
+			CondProbFunction restrictedObsFn = p.getObsFns().restrict(actInstance);
+			CondProbFunction summedObsFn = restrictedObsFn.multiply(summedTransFn)
 			summedObsFn = summedObsFn.sumOutAllExcept(p.obs, false);
 			
 			summedObsFn.normalize();
@@ -41,7 +38,7 @@ class BeliefRegion {
 			
 			HashMap<DDVariable,Integer> obsPt = new HashMap<DDVariable,Integer>()
 			p.obs.each{DDVariable o ->
-				DDTransitionFunction temp = summedObsFn.sumOutAllExcept([o],false)
+				CondProbFunction temp = summedObsFn.sumOutAllExcept([o],false)
 				temp.normalize();
 
 				double thresh = random.nextDouble();
@@ -52,7 +49,6 @@ class BeliefRegion {
 					weight += temp.getValue(tempPt)
 					if(weight>thresh) {
 						obsPt[o] = i
-						//println "observation: $o = $i"
 						break
 					}
 				}

@@ -11,7 +11,7 @@ import masg.dd.AlgebraicDecisionDiagram;
 import masg.dd.DecisionDiagramContext
 import masg.dd.DecisionRule
 import masg.dd.cpt.CondProbADD
-import masg.dd.function.DDTransitionFunction
+import masg.dd.function.CondProbFunction
 import masg.dd.vars.DDVariable
 import masg.dd.vars.DDVariableSpace
 import masg.problem.tag.TagProblem
