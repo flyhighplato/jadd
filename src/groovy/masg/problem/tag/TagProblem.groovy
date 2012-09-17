@@ -230,7 +230,7 @@ class TagProblem {
 			if(a1_col == w_col && a1_row == w_row)
 				return 10.0f
 			
-			return 0.0f
+			return -1.0f
 		}
 	}
 	

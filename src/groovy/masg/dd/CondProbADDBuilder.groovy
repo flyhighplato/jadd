@@ -25,6 +25,16 @@ class CondProbADDBuilder extends AlgebraicDecisionDiagramBuilder {
 		return resDD
 	}
 	
+	static CondProbADD build(List<DDVariable> varsIn, List<DDVariable> varsOut, double val) {
+		
+		CondProbDDContext context = makeContext(varsIn, varsOut)
+		
+		CondProbADD resDD = initializeDD(context)
+
+		populateDD(resDD,val)
+		
+		return resDD
+	}
 	
 	
 	protected static CondProbDDContext makeContext(List<DDVariable> varsIn, List<DDVariable> varsOut) {

@@ -194,7 +194,13 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 		return returnRules;
 	}
 	
-	
+	public double getRuleValueSum() {
+		double sum = 0.0f;
+		for(DecisionRule r: rules) {
+			sum += r.value;
+		}
+		return sum;
+	}
 	
 	@Override
 	public boolean add(DecisionRule rule) {

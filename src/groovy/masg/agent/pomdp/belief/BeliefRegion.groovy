@@ -3,6 +3,8 @@ package masg.agent.pomdp.belief
 import masg.agent.pomdp.policy.RandomPolicy
 import masg.dd.function.CondProbFunction
 import masg.dd.pomdp.POMDP
+import masg.agent.pomdp.POMDPUtils
+
 import masg.dd.vars.DDVariable
 
 class BeliefRegion {
@@ -24,13 +26,13 @@ class BeliefRegion {
 			
 			HashMap<DDVariable,Integer> actInstance = policy.getAction(belief)
 			
-			CondProbFunction restrictedTransFn = p.getTransFns().restrict(actInstance);
-			CondProbFunction belTransFn = restrictedTransFn.multiply(belief)
+			CondProbFunction restrictedTransFn = p.getTransFn().restrict(actInstance);
+			CondProbFunction belTransFn = restrictedTransFn.times(belief)
 			CondProbFunction summedTransFn = belTransFn.sumOut(p.states,false)
 			summedTransFn.normalize()
 			
 			CondProbFunction restrictedObsFn = p.getObsFns().restrict(actInstance);
-			CondProbFunction summedObsFn = restrictedObsFn.multiply(summedTransFn)
+			CondProbFunction summedObsFn = restrictedObsFn.times(summedTransFn)
 			summedObsFn = summedObsFn.sumOutAllExcept(p.obs, false);
 			
 			summedObsFn.normalize();
@@ -55,9 +57,7 @@ class BeliefRegion {
 				
 			}
 			
-			
-			
-			belief = POMDP.updateBelief(p, belief, actInstance, obsPt)
+			belief = POMDPUtils.updateBelief(p, belief, actInstance, obsPt)
 		}
 	}
 }

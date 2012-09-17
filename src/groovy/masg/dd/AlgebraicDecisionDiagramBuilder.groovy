@@ -21,7 +21,16 @@ class AlgebraicDecisionDiagramBuilder {
 		return resDD		
 	}
 	
-	
+	static AlgebraicDecisionDiagram build(List<DDVariable> vars, double val) {
+		
+		DecisionDiagramContext context = makeContext(vars)
+		
+		AlgebraicDecisionDiagram resDD = initializeDD(context)
+
+		populateDD(resDD,val)
+		
+		return resDD
+	}
 	
 	protected static DecisionDiagramContext makeContext(List<DDVariable> vars) {
 		DecisionDiagramContext context = new DecisionDiagramContext();
@@ -31,6 +40,11 @@ class AlgebraicDecisionDiagramBuilder {
 	
 	protected static AlgebraicDecisionDiagram initializeDD(DecisionDiagramContext context) {
 		return new AlgebraicDecisionDiagram(context);
+	}
+	
+	protected static void populateDD(AlgebraicDecisionDiagram dd, double val) {
+		DecisionRule r = new DecisionRule( dd.getContext().getVariableSpace().getBitCount(),val)
+		dd.addRule(r)
 	}
 	
 	protected static void populateDD(AlgebraicDecisionDiagram dd, Closure c) {

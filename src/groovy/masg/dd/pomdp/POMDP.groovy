@@ -14,26 +14,25 @@ import masg.dd.function.CondProbFunction
 import masg.dd.vars.DDVariable
 import masg.dd.vars.DDVariableSpace
 
+import masg.agent.pomdp.POMDPUtils
+
 class POMDP{
 	protected List<DDVariable> obs;
 	protected List<DDVariable> act
 	protected List<DDVariable> states
 	
 	protected CondProbFunction transFn;
-	protected HashMap<HashMap<DDVariable,Integer>, CondProbFunction> fixedTransFns = new HashMap<DDVariable, CondProbFunction>();
-	
 	protected CondProbFunction obsFn;
-	protected HashMap<HashMap<DDVariable,Integer>, CondProbFunction> fixedObsFns = new HashMap<DDVariable, CondProbFunction>();
 	
-	protected AlgebraicDecisionDiagram rewFnDD;
-	protected AlgebraicDecisionDiagram initBeliefDD;
+	protected CondProbFunction rewFn;
+	protected CondProbFunction initBeliefFn;
 	
 	protected CondProbFunction currBeliefFn;
 	
 	private POMDP() {
 	}
 	
-	public POMDP(List<DDVariable> Obs, List<DDVariable> S, List<DDVariable> A, AlgebraicDecisionDiagram initBelief, AlgebraicDecisionDiagram R, CondProbFunction T, CondProbFunction O) {
+	public POMDP(List<DDVariable> Obs, List<DDVariable> S, List<DDVariable> A, CondProbFunction initBelief, CondProbFunction R, CondProbFunction T, CondProbFunction O) {
 		obs = Obs
 		states = S
 		act = A
@@ -50,19 +49,20 @@ class POMDP{
 		this.act = act
 		this.states = states
 		
-		initBeliefDD = AlgebraicDecisionDiagramBuilder.build(states,initBeliefClosure)
-		rewFnDD = AlgebraicDecisionDiagramBuilder.build(states,rewFnClosure)
+		CondProbFunctionBuilder beliefBuilder = new CondProbFunctionBuilder()
+		beliefBuilder.add([], states,initBeliefClosure)
+		initBeliefFn = beliefBuilder.build()
 		
-		assert transFnStates.size() == transFnClosures.size()
+		CondProbFunctionBuilder rewFnBuilder = new CondProbFunctionBuilder()
+		rewFnBuilder.add([], states,rewFnClosure)
+		rewFn = rewFnBuilder.build()
 		
 		CondProbFunctionBuilder transBuilder = new CondProbFunctionBuilder()
 		transFnClosures.eachWithIndex { Closure<Double> fnClosure, fnIx ->
 			transBuilder.add(transFnStates[fnIx][0],transFnStates[fnIx][1],fnClosure)
 		}
 		transFn = transBuilder.build()
-		
-		
-		
+
 		CondProbFunctionBuilder obsBuilder = new CondProbFunctionBuilder()
 		obsFnClosures.eachWithIndex { Closure<Double> fnClosure, fnIx ->
 			obsBuilder.add(obsFnVars[fnIx][0],obsFnVars[fnIx][1],fnClosure)
@@ -100,15 +100,26 @@ class POMDP{
 			
 			out.writeLine("")
 			
-			out.writeLine(initBeliefDD.context.variableSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
-			initBeliefDD.rules.each{ DecisionRule r->
-				out.writeLine(r.toString())
+			initBeliefFn.getDDs().each{ CondProbADD dd ->
+				CondProbDDContext cpCtxt = dd.context
+				out.writeLine(cpCtxt.inputVarSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
+				out.writeLine(cpCtxt.outputVarSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
+				dd.rules.each{DecisionRule r ->
+					out.writeLine(r.toString())
+				}
+				out.writeLine("+")
 			}
 			
 			out.writeLine("")
-			out.writeLine(rewFnDD.context.variableSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
-			rewFnDD.rules.each{ DecisionRule r->
-				out.writeLine(r.toString())
+			
+			rewFn.getDDs().each{ CondProbADD dd ->
+				CondProbDDContext cpCtxt = dd.context
+				out.writeLine(cpCtxt.inputVarSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
+				out.writeLine(cpCtxt.outputVarSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
+				dd.rules.each{DecisionRule r ->
+					out.writeLine(r.toString())
+				}
+				out.writeLine("+")
 			}
 	}
 	
@@ -181,33 +192,70 @@ class POMDP{
 				break;
 		}
 		
-		println "Reading initial belief...."
-		DecisionDiagramContext beliefCtxt = new DecisionDiagramContext();
-		beliefCtxt.getVariableSpace().addVariables(rdr.readLine().trim().split(",").collect{new DDVariable(it.split(":")[0], Integer.parseInt(it.split(":")[1]))})
-		
-		p.initBeliefDD = new AlgebraicDecisionDiagram(beliefCtxt);
-		
 		separator = rdr.readLine().trim()
-		while(separator?.length()>0) {
-			p.initBeliefDD.rules.add(new DecisionRule(separator))
-			separator = rdr.readLine()?.trim()
+		separator = rdr.readLine().trim()
+		
+		println "Reading initial belief function..."
+		p.initBeliefFn = new CondProbFunction()
+		while(separator!="+" && separator.length()>0) {
+			println "separator:" + separator
+			DDVariableSpace inVarSpace = new DDVariableSpace();
+			
+			DDVariableSpace outVarSpace = new DDVariableSpace();
+			outVarSpace.addVariables(separator.trim().split(",").collect{new DDVariable(it.split(":")[0], Integer.parseInt(it.split(":")[1]))})
+			
+			CondProbDDContext transCtx = new CondProbDDContext(inVarSpace,outVarSpace)
+			CondProbADD currDD = new CondProbADD(transCtx)
+			
+			while(separator!="+" && separator.length()>0) {
+				separator=rdr.readLine().trim()
+				
+				if(separator!="+" && separator.length()>0)
+					currDD.rules.add(new DecisionRule(separator))
+			}
+			
+			p.initBeliefFn.appendDD(currDD)
+			
+			separator = rdr.readLine().trim()
+			
+			if(separator.length()==0)
+				break;
 		}
 		
 		println "Reading reward function..."
-		DecisionDiagramContext rewCtxt = new DecisionDiagramContext();
-		rewCtxt.getVariableSpace().addVariables(rdr.readLine().trim().split(",").collect{new DDVariable(it.split(":")[0], Integer.parseInt(it.split(":")[1]))})
-		p.rewFnDD = new AlgebraicDecisionDiagram(rewCtxt)
-		
 		separator = rdr.readLine().trim()
-		while(separator?.length()>0) {
-			p.rewFnDD.rules.add(new DecisionRule(separator))
-			separator = rdr.readLine()?.trim()
-		}
+		separator = rdr.readLine().trim()
 		
+		p.rewFn = new CondProbFunction()
+		while(separator!="+" && separator.length()>0) {
+			println "separator:" + separator
+			DDVariableSpace inVarSpace = new DDVariableSpace();
+			
+			DDVariableSpace outVarSpace = new DDVariableSpace();
+			outVarSpace.addVariables(separator.trim().split(",").collect{new DDVariable(it.split(":")[0], Integer.parseInt(it.split(":")[1]))})
+			
+			CondProbDDContext transCtx = new CondProbDDContext(inVarSpace,outVarSpace)
+			CondProbADD currDD = new CondProbADD(transCtx)
+			
+			while(separator!="+" && separator.length()>0) {
+				separator=rdr.readLine().trim()
+				
+				if(separator!="+" && separator.length()>0)
+					currDD.rules.add(new DecisionRule(separator))
+				
+			}
+			
+			p.rewFn.appendDD(currDD)
+			
+			separator = rdr.readLine()?.trim()
+			
+			if(!separator || separator.length()==0)
+				break;
+		}
 		return p
 	}
 	
-	public final CondProbFunction getTransFns() {
+	public final CondProbFunction getTransFn() {
 		return transFn;
 	}
 	
@@ -219,51 +267,28 @@ class POMDP{
 		return act;
 	}
 	
-	public final AlgebraicDecisionDiagram getInitialtBelief() {
-		return initBeliefDD;
+	public final List<DDVariable> getStates() {
+		return states;
 	}
+	
+	public final List<DDVariable> getObservations() {
+		return obs;
+	}
+	
+	public final CondProbFunction getInitialtBelief() {
+		return initBeliefFn;
+	}
+	
+	public final CondProbFunction getRewardFn() {
+		return rewFn;
+	}
+	
 	
 	public final CondProbFunction getCurrentBelief() {
 		return currBeliefFn;
 	}
 	
 	public void updateBelief(HashMap<DDVariable,Integer> acts, HashMap<DDVariable,Integer> obs) {
-		currBeliefFn = updateBelief(this,currBeliefFn?currBeliefFn:initBeliefDD,acts,obs)
-	}
-	
-	static public CondProbFunction updateBelief(POMDP p, def belief, HashMap<DDVariable,Integer> acts, HashMap<DDVariable,Integer> obs) {
-		HashMap<DDVariable, Integer> fixAt = [:]
-		acts.each{ DDVariable a, Integer val->
-			fixAt[a]=val
-		}
-		obs.each{ DDVariable o, Integer val->
-			fixAt[o]=val
-		}
-		
-		CondProbFunction fixedObsFn
-		if(p.fixedObsFns.containsKey(fixAt)) 
-			fixedObsFn = p.fixedObsFns[fixAt]
-		else {
-			fixedObsFn = p.obsFns.restrict(fixAt);
-			p.fixedObsFns[fixAt] = fixedObsFn
-		}
-		
-		CondProbFunction fixedTransFn
-		if(p.fixedTransFns.containsKey(fixAt))
-			p.fixedTransFn = p.fixedObsFns[fixAt]
-		else {
-			fixedTransFn = p.transFns.restrict(fixAt);
-			p.fixedObsFns[fixAt] = fixedTransFn
-		}
-		
-		CondProbFunction temp = fixedTransFn.multiply(belief)
-		
-			
-		temp = temp.sumOut(p.states,false)
-		CondProbFunction currBeliefFn = temp.multiply(fixedObsFn)
-		currBeliefFn.normalize()
-		currBeliefFn.unprimeAllContexts();
-		
-		return currBeliefFn;
+		currBeliefFn = POMDPUtils.updateBelief(this, currBeliefFn?currBeliefFn:initBeliefFn ,acts,obs)
 	}
 }

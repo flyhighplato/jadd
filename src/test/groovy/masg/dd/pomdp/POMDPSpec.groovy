@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import masg.agent.pomdp.belief.BeliefRegion
+import masg.agent.pomdp.policy.PolicyBuilder
 import masg.agent.pomdp.policy.RandomPolicy;
 import masg.dd.AlgebraicDecisionDiagram;
 import masg.dd.DecisionDiagramContext
@@ -45,31 +46,78 @@ class POMDPSpec extends Specification {
 	def "POMDP initial belief is correct"() {
 		when:
 			
-			DDVariableSpace currVarSpace = p.initBeliefDD.getContext().getVariableSpace()
-		then:
+			DDVariableSpace currVarSpace = new DDVariableSpace();
 			
-			currVarSpace.each { HashMap<DDVariable,Integer> varSpacePoint ->
-				double valClosure = problem.initBelief(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
-				double valDD = p.initBeliefDD.getValue(currVarSpace.generateRule(varSpacePoint,0.0f))
+			
+		then:
+		
+			p.getInitialtBelief().getDDs().each{ AlgebraicDecisionDiagram dd ->
+				currVarSpace = new DDVariableSpace();
+				currVarSpace.addVariables(dd.getContext().getVariableSpace().getVariables())
 				
-				assert valClosure == valDD
-				
+				println "Testing varspace: ${currVarSpace.getVariables()}"
+				currVarSpace.each { HashMap<DDVariable,Integer> varSpacePoint ->
+					double valClosure = 1.0f
+					
+					
+					problem.initBelief.each{Closure<Double> c ->
+						try{
+							double temp = c(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
+							valClosure = valClosure * temp
+						} catch (Exception e) {
+							//println "Transition function"
+							//println varSpacePoint.collectEntries{k,v -> [k.toString(),v]}
+							//println e
+						}
+					}
+					
+					double valDD = p.getInitialtBelief().getValue(varSpacePoint)
+					
+					if(valClosure != valDD) {
+						println "Invalid value for $varSpacePoint"
+					}
+					assert valClosure == valDD
+					
+				}
 			}
 	}
 	
 	def "POMDP reward function is correct"() {
 		when:
-		
-			DDVariableSpace currVarSpace = p.rewFnDD.getContext().getVariableSpace()
+			
+			DDVariableSpace currVarSpace = new DDVariableSpace();
+
 		then:
-			
-			currVarSpace.each { HashMap<DDVariable,Integer> varSpacePoint ->
-			double valClosure = problem.rewFn(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
-			double valDD = p.rewFnDD.getValue(currVarSpace.generateRule(varSpacePoint,0.0f))
-			
-			assert valClosure == valDD
-			
-		}
+		
+			p.getRewardFn().getDDs().each{ AlgebraicDecisionDiagram dd ->
+				currVarSpace = new DDVariableSpace();
+				currVarSpace.addVariables(dd.getContext().getVariableSpace().getVariables())
+				
+				println "Testing varspace: ${currVarSpace.getVariables()}"
+				currVarSpace.each { HashMap<DDVariable,Integer> varSpacePoint ->
+					double valClosure = 1.0f
+					
+					
+					problem.rewFn.each{Closure<Double> c ->
+						try{
+							double temp = c(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
+							valClosure = valClosure * temp
+						} catch (Exception e) {
+							//println "Transition function"
+							//println varSpacePoint.collectEntries{k,v -> [k.toString(),v]}
+							//println e
+						}
+					}
+					
+					double valDD = p.getRewardFn().getValue(varSpacePoint)
+					
+					if(valClosure != valDD) {
+						println "Invalid value for $varSpacePoint"
+					}
+					assert valClosure == valDD
+					
+				}
+			}
 	}
 	
 	
@@ -81,7 +129,7 @@ class POMDPSpec extends Specification {
 			
 		then:
 		
-			p.getTransFns().getDDs().each{ AlgebraicDecisionDiagram dd ->
+			p.getTransFn().getDDs().each{ AlgebraicDecisionDiagram dd ->
 				currVarSpace = new DDVariableSpace();
 				currVarSpace.addVariables(dd.getContext().getVariableSpace().getVariables())
 				
@@ -101,7 +149,7 @@ class POMDPSpec extends Specification {
 						}
 					}
 					
-					double valDD = p.getTransFns().getValue(varSpacePoint)
+					double valDD = p.getTransFn().getValue(varSpacePoint)
 					
 					if(valClosure != valDD) {
 						println "Invalid value for $varSpacePoint"
@@ -187,7 +235,13 @@ class POMDPSpec extends Specification {
 			RandomPolicy policy = new RandomPolicy(p)
 		then:
 			BeliefRegion bReg = new BeliefRegion(100, p, policy)
-			//println bReg.beliefSamples
+	}
+	
+	def "policy gets built"() {
+		when:
+			PolicyBuilder polBuilder = new PolicyBuilder(p)
+		then:
+			polBuilder.computePureStrategies();
 	}
 	
 }

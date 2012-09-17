@@ -13,6 +13,12 @@ public class CondProbDDContext extends DecisionDiagramContext {
 		this.varSpace = inVarSpace.plus(outVarSpace);
 	}
 	
+	public CondProbDDContext(CondProbDDContext oldContext) {
+		this.inVarSpace = new DDVariableSpace(oldContext.inVarSpace.getVariables());
+		this.outVarSpace = new DDVariableSpace(oldContext.outVarSpace.getVariables());
+		this.varSpace = inVarSpace.plus(outVarSpace);
+	}
+	
 	public DDVariableSpace getInputVarSpace() {
 		return inVarSpace;
 	}

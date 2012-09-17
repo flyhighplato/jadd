@@ -14,6 +14,10 @@ class CondProbFunctionBuilder {
 		add(varsIn.collect{k,v -> new DDVariable(k,v)},varsOut.collect{k,v -> new DDVariable(k,v)},c)
 	}
 	
+	public add(List<DDVariable> varsIn, List<DDVariable> varsOut, double val) {
+		fn.appendDD(CondProbADDBuilder.build(varsIn,varsOut,val));
+	}
+	
 	public add(List<DDVariable> varsIn, List<DDVariable> varsOut, Closure<Double> c) {
 		fn.appendDD(CondProbADDBuilder.build(varsIn,varsOut,c));
 	}

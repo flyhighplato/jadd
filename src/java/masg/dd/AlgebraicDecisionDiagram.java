@@ -197,7 +197,7 @@ public class AlgebraicDecisionDiagram extends AbstractDecisionDiagram {
 		return Double.NaN;
 	}
 	
-	public AlgebraicDecisionDiagram multiply(AlgebraicDecisionDiagram addOther) throws Exception {
+	public AlgebraicDecisionDiagram times(AlgebraicDecisionDiagram addOther) throws Exception {
 		AlgebraicDecisionDiagram addNew = new AlgebraicDecisionDiagram(context);
 		
 		for(DecisionRule ruleThis:rules) {

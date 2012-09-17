@@ -66,13 +66,33 @@ public class CondProbFunction implements DecisionDiagram{
 		return newFn;
 	}
 	
+	//TODO: Name this properly
+	public double getWeight() throws Exception {
+		double weight = 0.0f;
+		CondProbFunction newFn = sumOutAllExcept(new ArrayList<DDVariable>(),false);
+		for(CondProbADD dd: newFn.getDDs()) {
+			weight *= dd.getRules().getRuleValueSum();
+		}
+		
+		return weight;
+	}
+	
+	protected HashMap<HashMap<DDVariable,Integer>, CondProbFunction> restrictCache = new HashMap<HashMap<DDVariable,Integer>, CondProbFunction>();
+	
 	public CondProbFunction restrict(HashMap<DDVariable,Integer> varInstances) throws Exception {
+		
+		if(restrictCache.containsKey(varInstances)) {
+			return restrictCache.get(varInstances);
+		}
+		
 		CondProbFunction newFn = new CondProbFunction();
 		for(CondProbADD dd:ddList) {
 			newFn.ddList.add(dd.restrict(varInstances));
 		}
+		newFn = newFn.separate();
+		restrictCache.put(varInstances, newFn);
 		
-		return newFn.separate();
+		return newFn;
 	}
 	
 	private CondProbFunction separate() throws Exception {
@@ -144,30 +164,65 @@ public class CondProbFunction implements DecisionDiagram{
 		
 	}
 	
-	public CondProbFunction multiply(AlgebraicDecisionDiagram add) throws Exception {
-		CondProbFunction newFn = new CondProbFunction();
-		for(CondProbADD cdd:ddList) {
-			newFn.ddList.add(cdd.multiply(add));
-		}
-		return newFn;
-	}
-	
 	public void normalize() {
 		for(CondProbADD cdd:ddList) {
 			cdd.normalize();
 		}
 	}
 	
-	public CondProbFunction multiply(CondProbFunction fnOther) throws Exception {
+	public CondProbFunction times(double value){
+		CondProbFunction newFn = new CondProbFunction();
+		for(CondProbADD cddThis:ddList) {
+			newFn.ddList.add(cddThis.times(value));
+		}
+		
+		return newFn;
+	}
+	
+	public CondProbFunction max(CondProbFunction fnOther) throws Exception {
 		CondProbFunction newFn = new CondProbFunction();
 		for(CondProbADD cddThis:ddList) {
 			CondProbADD cddRes = null;
 			for(CondProbADD cddOther:fnOther.ddList) {
 				if(cddRes == null) {
-					cddRes = cddThis.multiply(cddOther);
+					cddRes = cddThis.max(cddOther);
 				}
 				else {
-					cddRes = cddRes.multiply(cddOther);
+					cddRes = cddRes.max(cddOther);
+				}
+			}
+			newFn.ddList.add(cddRes);
+		}
+		return newFn;
+	}
+	
+	public CondProbFunction plus(CondProbFunction fnOther) throws Exception {
+		CondProbFunction newFn = new CondProbFunction();
+		for(CondProbADD cddThis:ddList) {
+			CondProbADD cddRes = null;
+			for(CondProbADD cddOther:fnOther.ddList) {
+				if(cddRes == null) {
+					cddRes = cddThis.plus(cddOther);
+				}
+				else {
+					cddRes = cddRes.plus(cddOther);
+				}
+			}
+			newFn.ddList.add(cddRes);
+		}
+		return newFn;
+	}
+	
+	public CondProbFunction times(CondProbFunction fnOther) throws Exception {
+		CondProbFunction newFn = new CondProbFunction();
+		for(CondProbADD cddThis:ddList) {
+			CondProbADD cddRes = null;
+			for(CondProbADD cddOther:fnOther.ddList) {
+				if(cddRes == null) {
+					cddRes = cddThis.times(cddOther);
+				}
+				else {
+					cddRes = cddRes.times(cddOther);
 				}
 			}
 			newFn.ddList.add(cddRes);

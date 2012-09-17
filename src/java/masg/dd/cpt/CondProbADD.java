@@ -75,8 +75,74 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 		return cpDDNew;
 	}
 	
-	public CondProbADD multiply(AlgebraicDecisionDiagram add) throws Exception {
-		CondProbDDContext cpContext = (CondProbDDContext) context;
+	public CondProbADD times(double value) {
+		CondProbDDContext cpContext = new CondProbDDContext((CondProbDDContext) context);
+		
+		DecisionRuleCollection newRules = new DecisionRuleCollection(cpContext.getVariableSpace().getBitCount());
+
+		for(DecisionRule thisRule:getRules()) {
+			DecisionRule resRule = new DecisionRule(thisRule);
+			resRule.value = thisRule.value * value;
+			newRules.add(resRule);
+		}
+		
+		CondProbADD cpDDNew = new CondProbADD(cpContext);
+		cpDDNew.rules = newRules;
+		
+		return cpDDNew;
+	}
+	
+	
+	public CondProbADD max(AlgebraicDecisionDiagram add) throws Exception {
+		CondProbDDContext cpContext = new CondProbDDContext((CondProbDDContext) context);
+		
+		add = add.sumOutAllExcept(cpContext.getVariableSpace().getVariables());
+		
+		DecisionRuleCollection newRules = new DecisionRuleCollection(cpContext.getVariableSpace().getBitCount());
+		for(DecisionRule otherRule:add.getRules()) {
+			DecisionRule translatedOtherRule = cpContext.getVariableSpace().translateRule(otherRule, add.getContext().getVariableSpace());
+			
+			for(DecisionRule thisRule:getRules()) {
+				if(thisRule.matches(translatedOtherRule)) {
+					DecisionRule resRule = DecisionRule.getIntersectionBitStringRule(thisRule, translatedOtherRule);
+					resRule.value = Math.max(thisRule.value,otherRule.value);
+					newRules.add(resRule);
+				}
+			}
+		}
+		
+		CondProbADD cpDDNew = new CondProbADD(cpContext);
+		cpDDNew.rules = newRules;
+		
+		return cpDDNew;
+	}
+	
+	public CondProbADD plus(AlgebraicDecisionDiagram add) throws Exception {
+		CondProbDDContext cpContext = new CondProbDDContext((CondProbDDContext) context);
+		
+		add = add.sumOutAllExcept(cpContext.getVariableSpace().getVariables());
+		
+		DecisionRuleCollection newRules = new DecisionRuleCollection(cpContext.getVariableSpace().getBitCount());
+		for(DecisionRule otherRule:add.getRules()) {
+			DecisionRule translatedOtherRule = cpContext.getVariableSpace().translateRule(otherRule, add.getContext().getVariableSpace());
+			
+			for(DecisionRule thisRule:getRules()) {
+				if(thisRule.matches(translatedOtherRule)) {
+					DecisionRule resRule = DecisionRule.getIntersectionBitStringRule(thisRule, translatedOtherRule);
+					resRule.value = thisRule.value + otherRule.value;
+					newRules.add(resRule);
+				}
+			}
+		}
+		
+		CondProbADD cpDDNew = new CondProbADD(cpContext);
+		cpDDNew.rules = newRules;
+		
+		return cpDDNew;
+	}
+	
+	public CondProbADD times(AlgebraicDecisionDiagram add) throws Exception {
+		CondProbDDContext cpContext = new CondProbDDContext((CondProbDDContext) context);
 		
 		add = add.sumOutAllExcept(cpContext.getVariableSpace().getVariables());
 		
@@ -93,23 +159,13 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 			}
 		}
 		
-		@SuppressWarnings("unchecked")
-		ArrayList<DDVariable> inVars = (ArrayList<DDVariable>) cpContext.getInputVarSpace().getVariables().clone();
-		@SuppressWarnings("unchecked")
-		ArrayList<DDVariable> outVars = (ArrayList<DDVariable>) cpContext.getOutputVarSpace().getVariables().clone();
-		
-		DDVariableSpace inVarSpace = new DDVariableSpace();
-		inVarSpace.addVariables(inVars);
-		
-		DDVariableSpace outVarSpace = new DDVariableSpace();
-		outVarSpace.addVariables(outVars);
-		
-		CondProbDDContext cpContextNew = new CondProbDDContext(inVarSpace,outVarSpace);
-		CondProbADD cpDDNew = new CondProbADD(cpContextNew);
+		CondProbADD cpDDNew = new CondProbADD(cpContext);
 		cpDDNew.rules = newRules;
 		
 		return cpDDNew;
 	}
+	
+	
 	
 	public CondProbADD sumOut(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
 		AlgebraicDecisionDiagram summedOutDD = super.sumOut(sumOutVars, normalize);
