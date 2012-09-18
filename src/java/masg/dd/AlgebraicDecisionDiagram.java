@@ -170,7 +170,7 @@ public class AlgebraicDecisionDiagram extends AbstractDecisionDiagram {
 		
 		for(Entry<String,Double> newRuleValueEntry:newRuleNonnormValues.entrySet()) {
 			DecisionRule r;
-			if(normalize) {
+			if(normalize && totalSum>0.0f) {
 				r = new DecisionRule(newRuleValueEntry.getKey(),newRuleValueEntry.getValue()/totalSum);
 			}
 			else {
