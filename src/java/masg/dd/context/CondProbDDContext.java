@@ -1,6 +1,5 @@
-package masg.dd.cpt;
+package masg.dd.context;
 
-import masg.dd.DecisionDiagramContext;
 import masg.dd.vars.DDVariableSpace;
 
 public class CondProbDDContext extends DecisionDiagramContext {

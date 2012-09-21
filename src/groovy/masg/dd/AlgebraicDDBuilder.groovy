@@ -1,31 +1,34 @@
 package masg.dd
 
 import groovy.lang.Closure;
+import masg.dd.context.DecisionDiagramContext;
+import masg.dd.rules.DecisionRule;
+import masg.dd.rules.DecisionRuleCollection;
 import masg.dd.vars.DDVariable
 import masg.dd.vars.DDVariableSpace
 
-class AlgebraicDecisionDiagramBuilder {
+class AlgebraicDDBuilder {
 
-	static AlgebraicDecisionDiagram build(Map<String,Integer> vars, Closure<Double> c) {
+	static AlgebraicDD build(Map<String,Integer> vars, Closure<Double> c) {
 		build(vars.collect{k,v -> new DDVariable(k,v)},c)
 	}
 	
-	static AlgebraicDecisionDiagram build(List<DDVariable> vars, Closure<Double> c) {
+	static AlgebraicDD build(List<DDVariable> vars, Closure<Double> c) {
 		
 		DecisionDiagramContext context = makeContext(vars)
 		
-		AlgebraicDecisionDiagram resDD = initializeDD(context)
+		AlgebraicDD resDD = initializeDD(context)
 
 		populateDD(resDD,c)
 		
 		return resDD		
 	}
 	
-	static AlgebraicDecisionDiagram build(List<DDVariable> vars, double val) {
+	static AlgebraicDD build(List<DDVariable> vars, double val) {
 		
 		DecisionDiagramContext context = makeContext(vars)
 		
-		AlgebraicDecisionDiagram resDD = initializeDD(context)
+		AlgebraicDD resDD = initializeDD(context)
 
 		populateDD(resDD,val)
 		
@@ -38,16 +41,16 @@ class AlgebraicDecisionDiagramBuilder {
 		return context;
 	}
 	
-	protected static AlgebraicDecisionDiagram initializeDD(DecisionDiagramContext context) {
-		return new AlgebraicDecisionDiagram(context);
+	protected static AlgebraicDD initializeDD(DecisionDiagramContext context) {
+		return new AlgebraicDD(context);
 	}
 	
-	protected static void populateDD(AlgebraicDecisionDiagram dd, double val) {
+	protected static void populateDD(AlgebraicDD dd, double val) {
 		DecisionRule r = new DecisionRule( dd.getContext().getVariableSpace().getBitCount(),val)
 		dd.addRule(r)
 	}
 	
-	protected static void populateDD(AlgebraicDecisionDiagram dd, Closure c) {
+	protected static void populateDD(AlgebraicDD dd, Closure c) {
 		
 		int numRules=0;
 		DDVariableSpace varSpace = dd.getContext().getVariableSpace();
@@ -78,9 +81,12 @@ class AlgebraicDecisionDiagramBuilder {
 		}
 		
 		dd.addRules(new ArrayList(rules))
+		
+		dd.compress()
+		
 		println "Current number of rules:" + dd.getRules().size() + "/" + numRules;
 		
-		println "Adding negative space..."
+		/*println "Adding negative space..."
 		
 		
 		for(int varIx = varSpace.getVariables().size()-1;varIx>=0;varIx--) {
@@ -125,6 +131,8 @@ class AlgebraicDecisionDiagramBuilder {
 				
 			}
 			
+			dd.compress();
+			
 			println "Removing unused negative space..."
 			varSpace.each{ HashMap<DDVariable,Integer> varSpacePoint ->
 				double val = c(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
@@ -147,15 +155,9 @@ class AlgebraicDecisionDiagramBuilder {
 			}
 			
 			dd.addRules(new ArrayList(rules))
+			dd.compress();
 			println "Current number of rules:" + dd.getRules().size() + "/" + numRules;
-		}
-		
-		/*if(dd.getRules().size()<10) {
-			dd.getRules().each{ DecisionRule r ->
-				println r
-			}
-		}
-		println()*/
+		}*/
 		
 	}
 	

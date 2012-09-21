@@ -1,4 +1,4 @@
-package masg.dd;
+package masg.dd.rules;
 
 import masg.util.BitMap;
 

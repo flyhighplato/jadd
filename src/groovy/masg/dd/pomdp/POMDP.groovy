@@ -1,16 +1,19 @@
 package masg.dd.pomdp
 
-import masg.dd.AlgebraicDecisionDiagram
-import masg.dd.AlgebraicDecisionDiagramBuilder
-import masg.dd.CondProbADDBuilder
-import masg.dd.CondProbFunctionBuilder
-import masg.dd.DecisionDiagramContext
-import masg.dd.DecisionRule
-import masg.dd.DecisionRuleCollection
-import masg.dd.cpt.CondProbADD
-import masg.dd.cpt.CondProbDDContext
-import masg.dd.function.CondProbFunction
+import masg.dd.AlgebraicDD
+import masg.dd.AlgebraicDDBuilder
+import masg.dd.CondProbDDBuilder
 
+import masg.dd.CondProbDD;
+import masg.dd.RealValueFunctionBuilder
+import masg.dd.CondProbFunctionBuilder
+import masg.dd.context.CondProbDDContext;
+import masg.dd.context.DecisionDiagramContext;
+import masg.dd.function.CondProbFunction
+import masg.dd.function.RealValueFunction
+
+import masg.dd.rules.DecisionRule;
+import masg.dd.rules.DecisionRuleCollection;
 import masg.dd.vars.DDVariable
 import masg.dd.vars.DDVariableSpace
 
@@ -24,7 +27,7 @@ class POMDP{
 	protected CondProbFunction transFn;
 	protected CondProbFunction obsFn;
 	
-	protected CondProbFunction rewFn;
+	protected RealValueFunction rewFn;
 	protected CondProbFunction initBeliefFn;
 	
 	protected CondProbFunction currBeliefFn;
@@ -32,7 +35,7 @@ class POMDP{
 	private POMDP() {
 	}
 	
-	public POMDP(List<DDVariable> Obs, List<DDVariable> S, List<DDVariable> A, CondProbFunction initBelief, CondProbFunction R, CondProbFunction T, CondProbFunction O) {
+	public POMDP(List<DDVariable> Obs, List<DDVariable> S, List<DDVariable> A, CondProbFunction initBelief, RealValueFunction R, CondProbFunction T, CondProbFunction O) {
 		obs = Obs
 		states = S
 		act = A
@@ -53,9 +56,7 @@ class POMDP{
 		beliefBuilder.add([], states,initBeliefClosure)
 		initBeliefFn = beliefBuilder.build()
 		
-		CondProbFunctionBuilder rewFnBuilder = new CondProbFunctionBuilder()
-		rewFnBuilder.add([], states,rewFnClosure)
-		rewFn = rewFnBuilder.build()
+		rewFn = RealValueFunctionBuilder.build(states,rewFnClosure)
 		
 		CondProbFunctionBuilder transBuilder = new CondProbFunctionBuilder()
 		transFnClosures.eachWithIndex { Closure<Double> fnClosure, fnIx ->
@@ -76,7 +77,7 @@ class POMDP{
 			out.writeLine(states.collect{"${it.name}:${it.numValues}"}.join(","))
 			out.writeLine("")
 			
-			transFn.getDDs().each{ CondProbADD dd ->
+			transFn.getDDs().each{ CondProbDD dd ->
 				CondProbDDContext cpCtxt = dd.context
 				out.writeLine(cpCtxt.inputVarSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
 				out.writeLine(cpCtxt.outputVarSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
@@ -88,7 +89,7 @@ class POMDP{
 			
 			out.writeLine("")
 			
-			obsFn.getDDs().each{ CondProbADD dd ->
+			obsFn.getDDs().each{ CondProbDD dd ->
 				CondProbDDContext cpCtxt = dd.context
 				out.writeLine(cpCtxt.inputVarSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
 				out.writeLine(cpCtxt.outputVarSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
@@ -100,7 +101,7 @@ class POMDP{
 			
 			out.writeLine("")
 			
-			initBeliefFn.getDDs().each{ CondProbADD dd ->
+			initBeliefFn.getDDs().each{ CondProbDD dd ->
 				CondProbDDContext cpCtxt = dd.context
 				out.writeLine(cpCtxt.inputVarSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
 				out.writeLine(cpCtxt.outputVarSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
@@ -112,10 +113,9 @@ class POMDP{
 			
 			out.writeLine("")
 			
-			rewFn.getDDs().each{ CondProbADD dd ->
-				CondProbDDContext cpCtxt = dd.context
-				out.writeLine(cpCtxt.inputVarSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
-				out.writeLine(cpCtxt.outputVarSpace.variables.collect{"${it.name}:${it.numValues}"}.join(","))
+			rewFn.getDD().each{ AlgebraicDD dd ->
+				DecisionDiagramContext ddCtxt = dd.context
+				out.writeLine(ddCtxt.getVariableSpace().variables.collect{"${it.name}:${it.numValues}"}.join(","))
 				dd.rules.each{DecisionRule r ->
 					out.writeLine(r.toString())
 				}
@@ -145,7 +145,7 @@ class POMDP{
 			outVarSpace.addVariables(rdr.readLine().trim().split(",").collect{new DDVariable(it.split(":")[0], Integer.parseInt(it.split(":")[1]))})
 			
 			CondProbDDContext transCtx = new CondProbDDContext(inVarSpace,outVarSpace)
-			CondProbADD currDD = new CondProbADD(transCtx)
+			CondProbDD currDD = new CondProbDD(transCtx)
 			
 			while(separator!="+") {
 				separator=rdr.readLine().trim()
@@ -175,7 +175,7 @@ class POMDP{
 			outVarSpace.addVariables(rdr.readLine().trim().split(",").collect{new DDVariable(it.split(":")[0], Integer.parseInt(it.split(":")[1]))})
 			
 			CondProbDDContext transCtx = new CondProbDDContext(inVarSpace,outVarSpace)
-			CondProbADD currDD = new CondProbADD(transCtx)
+			CondProbDD currDD = new CondProbDD(transCtx)
 			
 			while(separator!="+" && separator.length()>0) {
 				separator=rdr.readLine().trim()
@@ -205,7 +205,7 @@ class POMDP{
 			outVarSpace.addVariables(separator.trim().split(",").collect{new DDVariable(it.split(":")[0], Integer.parseInt(it.split(":")[1]))})
 			
 			CondProbDDContext transCtx = new CondProbDDContext(inVarSpace,outVarSpace)
-			CondProbADD currDD = new CondProbADD(transCtx)
+			CondProbDD currDD = new CondProbDD(transCtx)
 			
 			while(separator!="+" && separator.length()>0) {
 				separator=rdr.readLine().trim()
@@ -224,18 +224,15 @@ class POMDP{
 		
 		println "Reading reward function..."
 		separator = rdr.readLine().trim()
-		separator = rdr.readLine().trim()
 		
-		p.rewFn = new CondProbFunction()
-		while(separator!="+" && separator.length()>0) {
+		if(separator!="+" && separator.length()>0) {
 			println "separator:" + separator
-			DDVariableSpace inVarSpace = new DDVariableSpace();
 			
 			DDVariableSpace outVarSpace = new DDVariableSpace();
 			outVarSpace.addVariables(separator.trim().split(",").collect{new DDVariable(it.split(":")[0], Integer.parseInt(it.split(":")[1]))})
 			
-			CondProbDDContext transCtx = new CondProbDDContext(inVarSpace,outVarSpace)
-			CondProbADD currDD = new CondProbADD(transCtx)
+			DecisionDiagramContext transCtx = new DecisionDiagramContext(outVarSpace)
+			AlgebraicDD currDD = new AlgebraicDD(transCtx)
 			
 			while(separator!="+" && separator.length()>0) {
 				separator=rdr.readLine().trim()
@@ -245,12 +242,9 @@ class POMDP{
 				
 			}
 			
-			p.rewFn.appendDD(currDD)
+			p.rewFn = new RealValueFunction(currDD);
 			
 			separator = rdr.readLine()?.trim()
-			
-			if(!separator || separator.length()==0)
-				break;
 		}
 		return p
 	}
@@ -279,7 +273,7 @@ class POMDP{
 		return initBeliefFn;
 	}
 	
-	public final CondProbFunction getRewardFn() {
+	public final RealValueFunction getRewardFn() {
 		return rewFn;
 	}
 	

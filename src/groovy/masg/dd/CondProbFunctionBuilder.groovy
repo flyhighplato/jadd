@@ -15,11 +15,11 @@ class CondProbFunctionBuilder {
 	}
 	
 	public add(List<DDVariable> varsIn, List<DDVariable> varsOut, double val) {
-		fn.appendDD(CondProbADDBuilder.build(varsIn,varsOut,val));
+		fn.appendDD(CondProbDDBuilder.build(varsIn,varsOut,val));
 	}
 	
 	public add(List<DDVariable> varsIn, List<DDVariable> varsOut, Closure<Double> c) {
-		fn.appendDD(CondProbADDBuilder.build(varsIn,varsOut,c));
+		fn.appendDD(CondProbDDBuilder.build(varsIn,varsOut,c));
 	}
 	
 	public CondProbFunction build() {

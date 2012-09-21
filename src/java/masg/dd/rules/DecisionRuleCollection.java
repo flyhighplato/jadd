@@ -1,4 +1,4 @@
-package masg.dd;
+package masg.dd.rules;
 
 import java.util.ArrayList;
 import java.util.Collection;

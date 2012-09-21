@@ -1,42 +1,22 @@
-package masg.dd;
-
+package masg.dd.context;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import masg.dd.AlgebraicDD;
+import masg.dd.rules.DecisionRule;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
-public class AlgebraicDecisionDiagram extends AbstractDecisionDiagram {
-	protected DecisionRuleCollection rules;
+public class ProbDD extends AlgebraicDD {
 
-	public AlgebraicDecisionDiagram(DecisionDiagramContext ctx) {
+	public ProbDD(DecisionDiagramContext ctx) {
 		super(ctx);
-		rules = new DecisionRuleCollection(ctx.getVariableSpace().getBitCount());
-	}
-
-	public DecisionRuleCollection getRules() {
-		return rules;
 	}
 	
-	public synchronized void addRule(DecisionRule rule) throws Exception {
-		rules.add(rule);
-		compress();
-
-	}
-	
-	public synchronized void addRules(ArrayList<DecisionRule> rules) throws Exception {
-		this.rules.addAll(rules);
-		compress();
-	}
-
-	public void compress() throws Exception {
-		rules.compress();
-	}
-	
-	public AlgebraicDecisionDiagram sumOutAllExcept(Collection<DDVariable> values) throws Exception {
+	public ProbDD sumOutAllExcept(Collection<DDVariable> values) throws Exception {
 		ArrayList<DDVariable> sumOutValues = new ArrayList<DDVariable>();
 		
 		ArrayList<DDVariable> currVariables = context.varSpace.getVariables();
@@ -49,7 +29,7 @@ public class AlgebraicDecisionDiagram extends AbstractDecisionDiagram {
 		return sumOut(sumOutValues);
 	}
 	
-	public AlgebraicDecisionDiagram sumOutAllExcept(Collection<DDVariable> values, boolean normalize) throws Exception {
+	public ProbDD sumOutAllExcept(Collection<DDVariable> values, boolean normalize) throws Exception {
 		ArrayList<DDVariable> sumOutValues = new ArrayList<DDVariable>();
 		
 		ArrayList<DDVariable> currVariables = context.varSpace.getVariables();
@@ -62,46 +42,11 @@ public class AlgebraicDecisionDiagram extends AbstractDecisionDiagram {
 		return sumOut(sumOutValues, normalize);
 	}
 	
-	public AlgebraicDecisionDiagram restrict(HashMap<DDVariable,Integer> varInstances) throws Exception {
-		
-		boolean willChange = false;
-		
-		for(DDVariable var:context.getVariableSpace().getVariables()) {
-			if(varInstances.containsKey(var)) {
-				willChange = true;
-				break;
-			}
-		}
-		
-		
-		
-		AlgebraicDecisionDiagram addNew = new AlgebraicDecisionDiagram(context);
-		ArrayList<DecisionRule> fixedRules = new ArrayList<DecisionRule>();
-		
-		if(willChange) {
-			DecisionRule r = context.getVariableSpace().generateRule(varInstances, 0.0f);
-			
-			for(DecisionRule ruleThis:rules) {
-				if(r.matches(ruleThis)) {
-					fixedRules.add(ruleThis);
-				}
-			}
-			addNew.addRules(fixedRules);
-			addNew = addNew.sumOut(varInstances.keySet(), false);
-		}
-		else {
-			fixedRules.addAll(rules);
-			addNew.rules.addAll(fixedRules);
-		}
-
-		return addNew;
-	}
-	
-	public AlgebraicDecisionDiagram sumOut(Collection<DDVariable> sumOutVars) throws Exception {
+	public ProbDD sumOut(Collection<DDVariable> sumOutVars) throws Exception {
 		return sumOut(sumOutVars,true);
 	}
 	
-	public AlgebraicDecisionDiagram sumOut(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
+	public ProbDD sumOut(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
 		DDVariableSpace newVarSpace = new DDVariableSpace();
 		
 		DDVariableSpace ignoreVarSpace = new DDVariableSpace();
@@ -120,7 +65,7 @@ public class AlgebraicDecisionDiagram extends AbstractDecisionDiagram {
 			return this;
 		
 		DecisionDiagramContext newCtx = new DecisionDiagramContext(newVarSpace);
-		AlgebraicDecisionDiagram resultDD = new AlgebraicDecisionDiagram(newCtx);
+		ProbDD resultDD = new ProbDD(newCtx);
 		
 		HashMap<String,Double> newRuleNonnormValues = new HashMap<String,Double>();
 		double totalSum = 0.0f;
@@ -186,52 +131,39 @@ public class AlgebraicDecisionDiagram extends AbstractDecisionDiagram {
 		return resultDD;
 	}
 	
-	
-	public double getValue(DecisionRule ruleOther) {
-		for(DecisionRule ruleThis:rules) {
-			if(ruleThis.matches(ruleOther)) {
-				return ruleThis.value;
+	public ProbDD restrict(HashMap<DDVariable,Integer> varInstances) throws Exception {
+		
+		boolean willChange = false;
+		
+		for(DDVariable var:context.getVariableSpace().getVariables()) {
+			if(varInstances.containsKey(var)) {
+				willChange = true;
+				break;
 			}
 		}
 		
-		return Double.NaN;
-	}
-	
-	public AlgebraicDecisionDiagram times(AlgebraicDecisionDiagram addOther) throws Exception {
-		AlgebraicDecisionDiagram addNew = new AlgebraicDecisionDiagram(context);
 		
-		for(DecisionRule ruleThis:rules) {
-			for(DecisionRule ruleOther:addOther.rules) {
-				
-				if(ruleThis.matches(ruleOther)) {
-					DecisionRule resRule = DecisionRule.getSubsetBitStringRule(ruleThis, ruleOther);
-					resRule.value = ruleThis.value * ruleOther.value;
-					addNew.addRule(resRule);
+		
+		ProbDD addNew = new ProbDD(context);
+		ArrayList<DecisionRule> fixedRules = new ArrayList<DecisionRule>();
+		
+		if(willChange) {
+			DecisionRule r = context.getVariableSpace().generateRule(varInstances, 0.0f);
+			
+			for(DecisionRule ruleThis:rules) {
+				if(r.matches(ruleThis)) {
+					fixedRules.add(ruleThis);
 				}
 			}
+			addNew.addRules(fixedRules);
+			addNew = addNew.sumOut(varInstances.keySet(), false);
 		}
-		
+		else {
+			fixedRules.addAll(rules);
+			addNew.rules.addAll(fixedRules);
+		}
+
 		return addNew;
 	}
-	
-	public void normalize() {
-		double totalWeight = 0.0f;
-		
-		for(DecisionRule ruleThis:rules) {
-			totalWeight  += ruleThis.value;
-		}
-		
-		for(DecisionRule ruleThis:rules) {
-			ruleThis.value = ruleThis.value/totalWeight;
-		}
-	}
-	
-	public String toString() {
-		String str = "";
-		str += context.getVariableSpace().getVariables() + "\n";
-		for(DecisionRule rule:rules) {
-			str += rule + "\n";
-		}
-		return str;
-	}
+
 }

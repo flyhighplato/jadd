@@ -3,8 +3,9 @@ package masg.agent.pomdp.policy;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import masg.dd.CondProbFunctionBuilder;
+import masg.dd.RealValueFunctionBuilder;
 import masg.dd.function.CondProbFunction;
+import masg.dd.function.RealValueFunction;
 import masg.dd.pomdp.POMDP;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
@@ -16,37 +17,42 @@ public class PolicyBuilder {
 	}
 	
 	public void computePureStrategies() throws Exception {
-		CondProbFunction initBelief = p.getInitialtBelief();
 		CondProbFunction transFn = p.getTransFn();
-		CondProbFunction rewFn = p.getRewardFn();
-		CondProbFunction obsFn = p.getObsFns();
+		RealValueFunction rewFn = p.getRewardFn();
 		
 		DDVariableSpace actSpace = new DDVariableSpace(new ArrayList<DDVariable>(p.getActions()));
 		
 		double discFactor = 0.9f;
 		
 		
-		HashMap<HashMap<DDVariable,Integer>,CondProbFunction> pureAlphas = new HashMap<HashMap<DDVariable,Integer>,CondProbFunction>();
+		HashMap<HashMap<DDVariable,Integer>,RealValueFunction> pureAlphas = new HashMap<HashMap<DDVariable,Integer>,RealValueFunction>();
 		
-		
-
 		for(HashMap<DDVariable,Integer> actSpacePt:actSpace) {
 			
-			CondProbFunctionBuilder alphaFnBuilder = new CondProbFunctionBuilder();
-			alphaFnBuilder.add(new ArrayList<DDVariable>(), p.getStates(),0.0f);
-			CondProbFunction currAlpha = alphaFnBuilder.build();
+			RealValueFunction currAlpha = RealValueFunctionBuilder.build(p.getStates(),0.0f);
 			
 			CondProbFunction fixedTransFn = transFn.restrict(actSpacePt);
-			CondProbFunction fixedRewFn = rewFn.restrict(actSpacePt);
+			RealValueFunction fixedRewFn = rewFn.restrict(actSpacePt);
+			
+			double bellmanError = 0.0f;
 			
 			for(int i=0;i<50;i++) {
 				
-				CondProbFunction discTransFn = fixedTransFn.times(currAlpha);
-				discTransFn = discTransFn.sumOut(p.getStates(),false);
+				System.out.println("Iteration #" + i);
+				currAlpha.primeAllContexts();
+				RealValueFunction discTransFn = fixedTransFn.timesAndSumOut(currAlpha,p.getStates());
 				discTransFn = discTransFn.times(discFactor);
 				discTransFn.unprimeAllContexts();
 				
-				currAlpha = discTransFn.plus(fixedRewFn);
+				RealValueFunction newAlpha = discTransFn.plus(fixedRewFn);
+				
+				currAlpha.unprimeAllContexts();
+				bellmanError = newAlpha.maxDiff(currAlpha);
+				System.out.println("Bellman error:" + bellmanError);
+				if(bellmanError<0.001f) {
+					break;
+				}
+				currAlpha = newAlpha;
 			}
 			pureAlphas.put(actSpacePt, currAlpha);
 		}

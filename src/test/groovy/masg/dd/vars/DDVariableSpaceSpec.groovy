@@ -1,6 +1,6 @@
 package masg.dd.vars
 
-import masg.dd.DecisionRule
+import masg.dd.rules.DecisionRule;
 import spock.lang.Specification
 
 class DDVariableSpaceSpec extends Specification {

@@ -1,5 +1,7 @@
 package masg.dd
 
+import masg.dd.context.DecisionDiagramContext;
+import masg.dd.rules.DecisionRule;
 import spock.lang.Specification
 
 
@@ -8,7 +10,7 @@ class AlgebraicDecisionDiagramSpec extends Specification {
 	
 	def "ADD initializes correctly"() {
 		when:
-			AlgebraicDecisionDiagram add = new AlgebraicDecisionDiagram(ctx);
+			AlgebraicDD add = new AlgebraicDD(ctx);
 			
 			add.addRule(new DecisionRule("111",50));
 			add.addRule(new DecisionRule("110",6));
@@ -24,13 +26,13 @@ class AlgebraicDecisionDiagramSpec extends Specification {
 	
 	def "ADDs add correctly"() {
 		when:
-		AlgebraicDecisionDiagram add1 = new AlgebraicDecisionDiagram(ctx);
+		AlgebraicDD add1 = new AlgebraicDD(ctx);
 		add1.addRule(new DecisionRule("11",1));
 		add1.addRule(new DecisionRule("10",1));
 		add1.addRule(new DecisionRule("01",2));
 		add1.addRule(new DecisionRule("00",2));
 		
-		AlgebraicDecisionDiagram add2 = new AlgebraicDecisionDiagram(ctx);
+		AlgebraicDD add2 = new AlgebraicDD(ctx);
 		add2.addRule(new DecisionRule("11",3));
 		add2.addRule(new DecisionRule("10",4));
 		add2.addRule(new DecisionRule("01",5));
@@ -46,13 +48,13 @@ class AlgebraicDecisionDiagramSpec extends Specification {
 	
 	def "ADDs max correctly"() {
 		when:
-		AlgebraicDecisionDiagram add1 = new AlgebraicDecisionDiagram(ctx);
+		AlgebraicDD add1 = new AlgebraicDD(ctx);
 		add1.addRule(new DecisionRule("11",1));
 		add1.addRule(new DecisionRule("10",1));
 		add1.addRule(new DecisionRule("01",7));
 		add1.addRule(new DecisionRule("00",2));
 		
-		AlgebraicDecisionDiagram add2 = new AlgebraicDecisionDiagram(ctx);
+		AlgebraicDD add2 = new AlgebraicDD(ctx);
 		add2.addRule(new DecisionRule("11",1));
 		add2.addRule(new DecisionRule("10",4));
 		add2.addRule(new DecisionRule("01",5));

@@ -1,5 +1,7 @@
 package masg.dd;
 
+import masg.dd.context.DecisionDiagramContext;
+
 
 public abstract class AbstractDecisionDiagram implements DecisionDiagram {
 	protected final DecisionDiagramContext context;

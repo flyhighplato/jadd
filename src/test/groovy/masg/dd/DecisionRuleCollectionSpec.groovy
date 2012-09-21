@@ -1,5 +1,7 @@
 package masg.dd
 
+import masg.dd.rules.DecisionRule;
+import masg.dd.rules.DecisionRuleCollection;
 import spock.lang.Specification
 
 class DecisionRuleCollectionSpec extends Specification {

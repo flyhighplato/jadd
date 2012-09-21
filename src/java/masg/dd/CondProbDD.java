@@ -1,19 +1,20 @@
-package masg.dd.cpt;
+package masg.dd;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import masg.dd.AlgebraicDecisionDiagram;
-import masg.dd.DecisionRule;
-import masg.dd.DecisionRuleCollection;
+import masg.dd.context.CondProbDDContext;
+import masg.dd.context.ProbDD;
+import masg.dd.rules.DecisionRule;
+import masg.dd.rules.DecisionRuleCollection;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
-public class CondProbADD extends AlgebraicDecisionDiagram {
+public class CondProbDD extends ProbDD {
 
-	public CondProbADD(CondProbDDContext ctx) {
+	public CondProbDD(CondProbDDContext ctx) {
 		super(ctx);
 	}
 	
@@ -34,7 +35,7 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 			opVariables.addAll(outVariables);
 			
 			
-			AlgebraicDecisionDiagram dd = sumOutAllExcept(opVariables);
+			AlgebraicDD dd = sumOutAllExcept(opVariables);
 			
 			HashMap<DDVariable,Integer> opVariableValues = new HashMap<DDVariable,Integer>();
 			for(DDVariable var:opVariables) {
@@ -49,8 +50,8 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 		return 1.0f;
 	}
 	
-	public CondProbADD restrict(HashMap<DDVariable,Integer> varInstances) throws Exception {
-		AlgebraicDecisionDiagram summedOutDD = super.restrict(varInstances);
+	public CondProbDD restrict(HashMap<DDVariable,Integer> varInstances) throws Exception {
+		AlgebraicDD summedOutDD = super.restrict(varInstances);
 		CondProbDDContext cpContext = (CondProbDDContext) context;
 		
 		@SuppressWarnings("unchecked")
@@ -69,13 +70,13 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 		
 		CondProbDDContext cpContextNew = new CondProbDDContext(inVarSpace,outVarSpace);
 		
-		CondProbADD cpDDNew = new CondProbADD(cpContextNew);
+		CondProbDD cpDDNew = new CondProbDD(cpContextNew);
 		cpDDNew.rules = summedOutDD.getRules();
 		
 		return cpDDNew;
 	}
 	
-	public CondProbADD times(double value) {
+	public CondProbDD times(double value) {
 		CondProbDDContext cpContext = new CondProbDDContext((CondProbDDContext) context);
 		
 		DecisionRuleCollection newRules = new DecisionRuleCollection(cpContext.getVariableSpace().getBitCount());
@@ -86,14 +87,14 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 			newRules.add(resRule);
 		}
 		
-		CondProbADD cpDDNew = new CondProbADD(cpContext);
+		CondProbDD cpDDNew = new CondProbDD(cpContext);
 		cpDDNew.rules = newRules;
 		
 		return cpDDNew;
 	}
 	
 	
-	public CondProbADD max(AlgebraicDecisionDiagram add) throws Exception {
+	public CondProbDD max(ProbDD add) throws Exception {
 		CondProbDDContext cpContext = new CondProbDDContext((CondProbDDContext) context);
 		
 		add = add.sumOutAllExcept(cpContext.getVariableSpace().getVariables());
@@ -111,13 +112,13 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 			}
 		}
 		
-		CondProbADD cpDDNew = new CondProbADD(cpContext);
+		CondProbDD cpDDNew = new CondProbDD(cpContext);
 		cpDDNew.rules = newRules;
 		
 		return cpDDNew;
 	}
 	
-	public CondProbADD plus(AlgebraicDecisionDiagram add) throws Exception {
+	public CondProbDD plus(ProbDD add) throws Exception {
 		CondProbDDContext cpContext = new CondProbDDContext((CondProbDDContext) context);
 		
 		add = add.sumOutAllExcept(cpContext.getVariableSpace().getVariables());
@@ -135,13 +136,13 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 			}
 		}
 		
-		CondProbADD cpDDNew = new CondProbADD(cpContext);
+		CondProbDD cpDDNew = new CondProbDD(cpContext);
 		cpDDNew.rules = newRules;
 		
 		return cpDDNew;
 	}
 	
-	public CondProbADD times(AlgebraicDecisionDiagram add) throws Exception {
+	public CondProbDD times(ProbDD add) throws Exception {
 		CondProbDDContext cpContext = new CondProbDDContext((CondProbDDContext) context);
 		
 		add = add.sumOutAllExcept(cpContext.getVariableSpace().getVariables());
@@ -159,7 +160,7 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 			}
 		}
 		
-		CondProbADD cpDDNew = new CondProbADD(cpContext);
+		CondProbDD cpDDNew = new CondProbDD(cpContext);
 		cpDDNew.rules = newRules;
 		
 		return cpDDNew;
@@ -167,8 +168,8 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 	
 	
 	
-	public CondProbADD sumOut(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
-		AlgebraicDecisionDiagram summedOutDD = super.sumOut(sumOutVars, normalize);
+	public CondProbDD sumOut(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
+		AlgebraicDD summedOutDD = super.sumOut(sumOutVars, normalize);
 		CondProbDDContext cpContext = (CondProbDDContext) context;
 		
 		@SuppressWarnings("unchecked")
@@ -187,14 +188,14 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 		
 		CondProbDDContext cpContextNew = new CondProbDDContext(inVarSpace,outVarSpace);
 		
-		CondProbADD cpDDNew = new CondProbADD(cpContextNew);
+		CondProbDD cpDDNew = new CondProbDD(cpContextNew);
 		cpDDNew.rules = summedOutDD.getRules();
 		
 		return cpDDNew;
 	}
 	
-	public CondProbADD sumOutAllExcept(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
-		AlgebraicDecisionDiagram summedOutDD = super.sumOutAllExcept(sumOutVars, normalize);
+	public CondProbDD sumOutAllExcept(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
+		AlgebraicDD summedOutDD = super.sumOutAllExcept(sumOutVars, normalize);
 		CondProbDDContext cpContext = (CondProbDDContext) context;
 		
 		@SuppressWarnings("unchecked")
@@ -213,7 +214,7 @@ public class CondProbADD extends AlgebraicDecisionDiagram {
 		
 		CondProbDDContext cpContextNew = new CondProbDDContext(inVarSpace,outVarSpace);
 		
-		CondProbADD cpDDNew = new CondProbADD(cpContextNew);
+		CondProbDD cpDDNew = new CondProbDD(cpContextNew);
 		cpDDNew.rules = summedOutDD.getRules();
 		
 		return cpDDNew;

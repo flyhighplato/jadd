@@ -2,34 +2,33 @@ package masg.dd
 import java.util.List;
 import java.util.Map;
 
+import masg.dd.context.CondProbDDContext;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace
 import groovy.lang.Closure;
-import masg.dd.cpt.CondProbADD
-import masg.dd.cpt.CondProbDDContext
 
-class CondProbADDBuilder extends AlgebraicDecisionDiagramBuilder {
+class CondProbDDBuilder extends AlgebraicDDBuilder {
 	
-	static CondProbADD build(Map<String,Integer> varsIn, Map<String,Integer> varsOut, Closure<Double> c) {
+	static CondProbDD build(Map<String,Integer> varsIn, Map<String,Integer> varsOut, Closure<Double> c) {
 		build(varsIn.collect{k,v -> new DDVariable(k,v)},varsOut.collect{k,v -> new DDVariable(k,v)},c)
 	}
 	
-	static CondProbADD build(List<DDVariable> varsIn, List<DDVariable> varsOut, Closure<Double> c) {
+	static CondProbDD build(List<DDVariable> varsIn, List<DDVariable> varsOut, Closure<Double> c) {
 		
 		CondProbDDContext context = makeContext(varsIn, varsOut)
 		
-		CondProbADD resDD = initializeDD(context)
+		CondProbDD resDD = initializeDD(context)
 
 		populateDD(resDD,c)
 		
 		return resDD
 	}
 	
-	static CondProbADD build(List<DDVariable> varsIn, List<DDVariable> varsOut, double val) {
+	static CondProbDD build(List<DDVariable> varsIn, List<DDVariable> varsOut, double val) {
 		
 		CondProbDDContext context = makeContext(varsIn, varsOut)
 		
-		CondProbADD resDD = initializeDD(context)
+		CondProbDD resDD = initializeDD(context)
 
 		populateDD(resDD,val)
 		
@@ -47,7 +46,7 @@ class CondProbADDBuilder extends AlgebraicDecisionDiagramBuilder {
 		return new CondProbDDContext(inVarSpace,outVarSpace)
 	}
 	
-	protected static CondProbADD initializeDD(CondProbDDContext context) {
-		return new CondProbADD(context)
+	protected static CondProbDD initializeDD(CondProbDDContext context) {
+		return new CondProbDD(context)
 	}
 }

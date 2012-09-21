@@ -8,11 +8,11 @@ import java.util.List;
 import masg.agent.pomdp.belief.BeliefRegion
 import masg.agent.pomdp.policy.PolicyBuilder
 import masg.agent.pomdp.policy.RandomPolicy;
-import masg.dd.AlgebraicDecisionDiagram;
-import masg.dd.DecisionDiagramContext
-import masg.dd.DecisionRule
-import masg.dd.cpt.CondProbADD
+import masg.dd.AlgebraicDD;
+import masg.dd.CondProbDD;
+import masg.dd.context.DecisionDiagramContext;
 import masg.dd.function.CondProbFunction
+import masg.dd.rules.DecisionRule;
 import masg.dd.vars.DDVariable
 import masg.dd.vars.DDVariableSpace
 import masg.problem.tag.TagProblem
@@ -51,7 +51,7 @@ class POMDPSpec extends Specification {
 			
 		then:
 		
-			p.getInitialtBelief().getDDs().each{ AlgebraicDecisionDiagram dd ->
+			p.getInitialtBelief().getDDs().each{ AlgebraicDD dd ->
 				currVarSpace = new DDVariableSpace();
 				currVarSpace.addVariables(dd.getContext().getVariableSpace().getVariables())
 				
@@ -89,9 +89,8 @@ class POMDPSpec extends Specification {
 
 		then:
 		
-			p.getRewardFn().getDDs().each{ AlgebraicDecisionDiagram dd ->
-				currVarSpace = new DDVariableSpace();
-				currVarSpace.addVariables(dd.getContext().getVariableSpace().getVariables())
+
+				currVarSpace.addVariables(p.getRewardFn().getDD().getContext().getVariableSpace().getVariables())
 				
 				println "Testing varspace: ${currVarSpace.getVariables()}"
 				currVarSpace.each { HashMap<DDVariable,Integer> varSpacePoint ->
@@ -117,7 +116,7 @@ class POMDPSpec extends Specification {
 					assert valClosure == valDD
 					
 				}
-			}
+			
 	}
 	
 	
@@ -129,7 +128,7 @@ class POMDPSpec extends Specification {
 			
 		then:
 		
-			p.getTransFn().getDDs().each{ AlgebraicDecisionDiagram dd ->
+			p.getTransFn().getDDs().each{ AlgebraicDD dd ->
 				currVarSpace = new DDVariableSpace();
 				currVarSpace.addVariables(dd.getContext().getVariableSpace().getVariables())
 				
@@ -168,7 +167,7 @@ class POMDPSpec extends Specification {
 			
 		then:
 		
-			p.getObsFns().getDDs().each{ AlgebraicDecisionDiagram dd ->
+			p.getObsFns().getDDs().each{ AlgebraicDD dd ->
 				currVarSpace = new DDVariableSpace();
 				currVarSpace.addVariables(dd.getContext().getVariableSpace().getVariables())
 				
@@ -196,7 +195,7 @@ class POMDPSpec extends Specification {
 			}
 	}
 	
-	def "POMDP can be saved to disk"() {
+	/*def "POMDP can be saved to disk"() {
 		when:
 			File f = new File(fileName)
 		then:
@@ -204,7 +203,7 @@ class POMDPSpec extends Specification {
 				p.writeOut(out)
 			}
 		
-	}
+	}*/
 	
 	def "belief updating works"() {
 		when:

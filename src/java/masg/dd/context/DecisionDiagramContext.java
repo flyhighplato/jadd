@@ -1,4 +1,4 @@
-package masg.dd;
+package masg.dd.context;
 
 import masg.dd.vars.DDVariableSpace;
 

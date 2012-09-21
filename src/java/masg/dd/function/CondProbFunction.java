@@ -3,34 +3,36 @@ package masg.dd.function;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 
-import masg.dd.AlgebraicDecisionDiagram;
+import masg.dd.AlgebraicDD;
+import masg.dd.CondProbDD;
 import masg.dd.DecisionDiagram;
-import masg.dd.DecisionDiagramContext;
-import masg.dd.DecisionRule;
-import masg.dd.cpt.CondProbADD;
-import masg.dd.cpt.CondProbDDContext;
+import masg.dd.context.CondProbDDContext;
+import masg.dd.context.DecisionDiagramContext;
+import masg.dd.context.ProbDD;
+import masg.dd.rules.DecisionRule;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
 
 public class CondProbFunction implements DecisionDiagram{
-	ArrayList<CondProbADD> ddList = new ArrayList<CondProbADD>();
+	ArrayList<CondProbDD> ddList = new ArrayList<CondProbDD>();
 	
 	public CondProbFunction() {
 		
 	}
 	
-	public void appendDD(CondProbADD dd) throws Exception {
+	public void appendDD(CondProbDD dd) throws Exception {
 		ddList.add(dd);
 	}
 	
-	public ArrayList<CondProbADD> getDDs() {
+	public ArrayList<CondProbDD> getDDs() {
 		return ddList;
 	}
 	
 	public void compress() throws Exception {
-		for(CondProbADD dd:ddList) {
+		for(CondProbDD dd:ddList) {
 			dd.compress();
 		}
 	}
@@ -38,7 +40,7 @@ public class CondProbFunction implements DecisionDiagram{
 	public double getValue(HashMap<DDVariable,Integer> varValues) throws Exception {
 		double val = 1.0f;
 		
-		for(CondProbADD dd:ddList) {
+		for(CondProbDD dd:ddList) {
 			double retVal = dd.getValue(varValues);
 			
 			val*=retVal;
@@ -52,7 +54,7 @@ public class CondProbFunction implements DecisionDiagram{
 	
 	public CondProbFunction sumOut(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
 		CondProbFunction newFn = new CondProbFunction();
-		for(CondProbADD dd:ddList) {
+		for(CondProbDD dd:ddList) {
 			newFn.ddList.add(dd.sumOut(sumOutVars,normalize));
 		}
 		return newFn;
@@ -60,21 +62,10 @@ public class CondProbFunction implements DecisionDiagram{
 	
 	public CondProbFunction sumOutAllExcept(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
 		CondProbFunction newFn = new CondProbFunction();
-		for(CondProbADD dd:ddList) {
+		for(CondProbDD dd:ddList) {
 			newFn.ddList.add(dd.sumOutAllExcept(sumOutVars,normalize));
 		}
 		return newFn;
-	}
-	
-	//TODO: Name this properly
-	public double getWeight() throws Exception {
-		double weight = 0.0f;
-		CondProbFunction newFn = sumOutAllExcept(new ArrayList<DDVariable>(),false);
-		for(CondProbADD dd: newFn.getDDs()) {
-			weight *= dd.getRules().getRuleValueSum();
-		}
-		
-		return weight;
 	}
 	
 	protected HashMap<HashMap<DDVariable,Integer>, CondProbFunction> restrictCache = new HashMap<HashMap<DDVariable,Integer>, CondProbFunction>();
@@ -86,10 +77,11 @@ public class CondProbFunction implements DecisionDiagram{
 		}
 		
 		CondProbFunction newFn = new CondProbFunction();
-		for(CondProbADD dd:ddList) {
+		for(CondProbDD dd:ddList) {
 			newFn.ddList.add(dd.restrict(varInstances));
 		}
 		newFn = newFn.separate();
+		newFn.compress();
 		restrictCache.put(varInstances, newFn);
 		
 		return newFn;
@@ -99,14 +91,14 @@ public class CondProbFunction implements DecisionDiagram{
 		CondProbFunction newFn = new CondProbFunction();
 		
 		
-		ArrayList<CondProbADD> ddListOld = ddList;
+		ArrayList<CondProbDD> ddListOld = ddList;
 		
 		while(true) {
 			
-			ArrayList<CondProbADD> ddListNew = new ArrayList<CondProbADD>();
+			ArrayList<CondProbDD> ddListNew = new ArrayList<CondProbDD>();
 			boolean changed = false;
 			for(int i=0;i<ddListOld.size();i++) {
-				CondProbADD dd1 = ddListOld.get(i);
+				CondProbDD dd1 = ddListOld.get(i);
 				CondProbDDContext oldCtxt1 = (CondProbDDContext) dd1.getContext();
 				ArrayList<DDVariable> vars1 = oldCtxt1.getVariableSpace().getVariables();
 				
@@ -115,7 +107,7 @@ public class CondProbFunction implements DecisionDiagram{
 					if(i==j)
 						continue;
 					
-					CondProbADD dd2 = ddListOld.get(j);
+					CondProbDD dd2 = ddListOld.get(j);
 					CondProbDDContext oldCtxt2 = (CondProbDDContext) dd2.getContext();
 					ArrayList<DDVariable> vars2 = oldCtxt2.getVariableSpace().getVariables();
 					
@@ -127,10 +119,10 @@ public class CondProbFunction implements DecisionDiagram{
 						varsOutNew.removeAll(vars2);
 						CondProbDDContext newCtxt = new CondProbDDContext(new DDVariableSpace(), new DDVariableSpace(varsOutNew));
 						
-						CondProbADD ddNew = new CondProbADD(newCtxt);
+						CondProbDD ddNew = new CondProbDD(newCtxt);
 						//TODO: This could be more efficient
 						for(HashMap<DDVariable,Integer> varInstances:dd2.getContext().getVariableSpace()) {
-							AlgebraicDecisionDiagram addNew = dd1.restrict(varInstances).sumOut(varInstances.keySet());
+							ProbDD addNew = dd1.restrict(varInstances).sumOut(varInstances.keySet());
 							double mult = dd2.getValue(varInstances);
 							
 							for(DecisionRule r: addNew.getRules()) {
@@ -153,7 +145,7 @@ public class CondProbFunction implements DecisionDiagram{
 			}
 			
 			if(!changed) {
-				for(CondProbADD dd: ddListNew) {
+				for(CondProbDD dd: ddListNew) {
 					newFn.appendDD(dd);
 				}
 				return newFn;
@@ -165,14 +157,14 @@ public class CondProbFunction implements DecisionDiagram{
 	}
 	
 	public void normalize() {
-		for(CondProbADD cdd:ddList) {
+		for(CondProbDD cdd:ddList) {
 			cdd.normalize();
 		}
 	}
 	
 	public CondProbFunction times(double value){
 		CondProbFunction newFn = new CondProbFunction();
-		for(CondProbADD cddThis:ddList) {
+		for(CondProbDD cddThis:ddList) {
 			newFn.ddList.add(cddThis.times(value));
 		}
 		
@@ -181,9 +173,9 @@ public class CondProbFunction implements DecisionDiagram{
 	
 	public CondProbFunction max(CondProbFunction fnOther) throws Exception {
 		CondProbFunction newFn = new CondProbFunction();
-		for(CondProbADD cddThis:ddList) {
-			CondProbADD cddRes = null;
-			for(CondProbADD cddOther:fnOther.ddList) {
+		for(CondProbDD cddThis:ddList) {
+			CondProbDD cddRes = null;
+			for(CondProbDD cddOther:fnOther.ddList) {
 				if(cddRes == null) {
 					cddRes = cddThis.max(cddOther);
 				}
@@ -198,9 +190,9 @@ public class CondProbFunction implements DecisionDiagram{
 	
 	public CondProbFunction plus(CondProbFunction fnOther) throws Exception {
 		CondProbFunction newFn = new CondProbFunction();
-		for(CondProbADD cddThis:ddList) {
-			CondProbADD cddRes = null;
-			for(CondProbADD cddOther:fnOther.ddList) {
+		for(CondProbDD cddThis:ddList) {
+			CondProbDD cddRes = null;
+			for(CondProbDD cddOther:fnOther.ddList) {
 				if(cddRes == null) {
 					cddRes = cddThis.plus(cddOther);
 				}
@@ -215,9 +207,9 @@ public class CondProbFunction implements DecisionDiagram{
 	
 	public CondProbFunction times(CondProbFunction fnOther) throws Exception {
 		CondProbFunction newFn = new CondProbFunction();
-		for(CondProbADD cddThis:ddList) {
-			CondProbADD cddRes = null;
-			for(CondProbADD cddOther:fnOther.ddList) {
+		for(CondProbDD cddThis:ddList) {
+			CondProbDD cddRes = null;
+			for(CondProbDD cddOther:fnOther.ddList) {
 				if(cddRes == null) {
 					cddRes = cddThis.times(cddOther);
 				}
@@ -230,8 +222,32 @@ public class CondProbFunction implements DecisionDiagram{
 		return newFn;
 	}
 	
+	public RealValueFunction timesAndSumOut(RealValueFunction fnOther,Collection<DDVariable> sumOutVars) throws Exception {
+		HashSet<DDVariable> vars = new HashSet<DDVariable>();
+		
+		for(CondProbDD cddThis:ddList) {
+			vars.addAll(cddThis.getContext().getVariableSpace().getVariables());
+		}
+		
+		AlgebraicDD dd = fnOther.getDD().expandRules(vars);
+		
+		for(CondProbDD cddThis:ddList) {
+			ArrayList<DDVariable> varsTemp = new ArrayList<DDVariable>(cddThis.getContext().getVariableSpace().getVariables());
+			varsTemp.retainAll(sumOutVars);
+			dd = dd.times(cddThis);
+			System.out.println("SizeTimes:" + dd.getRules().size());
+			dd = dd.sumOut(varsTemp);
+			System.out.println("SizeSum:" + dd.getRules().size());
+			dd.compress();
+			System.out.println("SizeCompress:" + dd.getRules().size());
+			System.out.println();
+		}
+		
+		return new RealValueFunction(dd);
+	}
+	
 	public void primeAllContexts() throws Exception {
-		for(CondProbADD cddThis:ddList) {
+		for(CondProbDD cddThis:ddList) {
 			CondProbDDContext cpContext = (CondProbDDContext) cddThis.getContext();
 			if(cpContext.getInputVarSpace().getVariableCount()>0)
 				throw new Exception("Can't prime.  This is still a conditional probability.");
@@ -241,7 +257,7 @@ public class CondProbFunction implements DecisionDiagram{
 	}
 	
 	public void unprimeAllContexts() throws Exception {
-		for(CondProbADD cddThis:ddList) {
+		for(CondProbDD cddThis:ddList) {
 			CondProbDDContext cpContext = (CondProbDDContext) cddThis.getContext();
 			if(cpContext.getInputVarSpace().getVariableCount()>0)
 				throw new Exception("Can't unprime.  This is still a conditional probability.");
