@@ -40,10 +40,9 @@ public class PolicyBuilder {
 				
 				System.out.println("Iteration #" + i);
 				currAlpha.primeAllContexts();
-				RealValueFunction discTransFn = fixedTransFn.timesAndSumOut(currAlpha,p.getStates());
+				RealValueFunction discTransFn = fixedTransFn.timesAndSumOut(currAlpha,currAlpha.getDD().getContext().getVariableSpace().getVariables());
 				discTransFn = discTransFn.times(discFactor);
-				discTransFn.unprimeAllContexts();
-				
+
 				RealValueFunction newAlpha = discTransFn.plus(fixedRewFn);
 				
 				currAlpha.unprimeAllContexts();

@@ -8,8 +8,10 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import masg.util.BitMap;
 
 public class DecisionRuleCollection implements Collection<DecisionRule> {
+	static double tolerance = 0.0001f;
 	
-	ConcurrentSkipListSet<DecisionRule> rules = new ConcurrentSkipListSet<DecisionRule>();
+	//ConcurrentSkipListSet<DecisionRule> rules = new ConcurrentSkipListSet<DecisionRule>();
+	ArrayList<DecisionRule> rules = new ArrayList<DecisionRule>();
 	
 	protected int size = 0;
 	public DecisionRuleCollection(int size) {
@@ -137,7 +139,7 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 			}
 			
 			//System.out.println("isWildCardValue:" + isWildCardValue);
-			if(((currRule.value - otherRule.value)<0.001f) && wildCardTail) {
+			if(((currRule.value - otherRule.value)<tolerance) && wildCardTail) {
 				
 				double ruleVal = currRule.value;
 				

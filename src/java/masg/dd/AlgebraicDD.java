@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 
 import masg.dd.context.DecisionDiagramContext;
-import masg.dd.context.ProbDD;
 import masg.dd.rules.DecisionRule;
 import masg.dd.rules.DecisionRuleCollection;
 import masg.dd.vars.DDVariable;
@@ -73,15 +72,21 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 		
 		double maxDiff = 0.0f;
 		
+		DecisionRuleCollection rCollTrans = new DecisionRuleCollection(addOther.getContext().getVariableSpace().getBitCount());
+		
+		for(DecisionRule ruleOther:addOther.rules) {
+			DecisionRule ruleOtherTrans = context.getVariableSpace().translateRule(ruleOther, addOther.context.getVariableSpace());
+			rCollTrans.add(ruleOtherTrans);
+		}
+		
+		
 		for(DecisionRule ruleThis:rules) {
-			for(DecisionRule ruleOther:addOther.rules) {
-				DecisionRule ruleTrans = context.getVariableSpace().translateRule(ruleOther, addOther.context.getVariableSpace());
-				if(ruleThis.matches(ruleTrans)) {
+			for(DecisionRule ruleOther:rCollTrans) {
+				if(ruleThis.matches(ruleOther)) {
 					double diff = Math.abs(ruleThis.value - ruleOther.value);
 					
 					if(diff>maxDiff) {
 						maxDiff = diff;
-						System.out.println(ruleThis + " " + ruleOther + " " + ruleTrans);
 					}
 				}
 			}
@@ -93,10 +98,16 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 	public AlgebraicDD plus(AlgebraicDD addOther) throws Exception {
 		AlgebraicDD addNew = new AlgebraicDD(context);
 		
+		DecisionRuleCollection rCollTrans = new DecisionRuleCollection(addOther.getContext().getVariableSpace().getBitCount());
+		
+		for(DecisionRule ruleOther:addOther.rules) {
+			DecisionRule ruleOtherTrans = context.getVariableSpace().translateRule(ruleOther, addOther.context.getVariableSpace());
+			rCollTrans.add(ruleOtherTrans);
+		}
+		
 		ArrayList<DecisionRule> rRules = new ArrayList<DecisionRule>();
 		for(DecisionRule ruleThis:rules) {
-			for(DecisionRule ruleOther:addOther.rules) {
-				ruleOther = context.getVariableSpace().translateRule(ruleOther, addOther.context.getVariableSpace());
+			for(DecisionRule ruleOther:rCollTrans) {
 				if(ruleThis.matches(ruleOther)) {
 					DecisionRule resRule = DecisionRule.getIntersectionBitStringRule(ruleThis, ruleOther);
 					resRule.value = ruleThis.value + ruleOther.value;
@@ -215,7 +226,7 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 			DecisionRule r = new DecisionRule(newRuleValueEntry.getKey(),newRuleValueEntry.getValue());
 			newRules.add(r);
 		}
-
+		
 		resultDD.addRules(newRules);
 
 		return resultDD;

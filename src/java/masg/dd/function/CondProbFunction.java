@@ -8,10 +8,11 @@ import java.util.HashSet;
 import masg.dd.AlgebraicDD;
 import masg.dd.CondProbDD;
 import masg.dd.DecisionDiagram;
+import masg.dd.ProbDD;
 import masg.dd.context.CondProbDDContext;
 import masg.dd.context.DecisionDiagramContext;
-import masg.dd.context.ProbDD;
 import masg.dd.rules.DecisionRule;
+import masg.dd.rules.DecisionRuleCollection;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
@@ -223,27 +224,50 @@ public class CondProbFunction implements DecisionDiagram{
 	}
 	
 	public RealValueFunction timesAndSumOut(RealValueFunction fnOther,Collection<DDVariable> sumOutVars) throws Exception {
-		HashSet<DDVariable> vars = new HashSet<DDVariable>();
+		
+		
+		ArrayList<DDVariable> vars = new ArrayList<DDVariable>();
 		
 		for(CondProbDD cddThis:ddList) {
 			vars.addAll(cddThis.getContext().getVariableSpace().getVariables());
 		}
 		
-		AlgebraicDD dd = fnOther.getDD().expandRules(vars);
+		//Create function in expanded variable space
+		AlgebraicDD ddExpanded = fnOther.getDD().expandRules(vars);
 		
 		for(CondProbDD cddThis:ddList) {
-			ArrayList<DDVariable> varsTemp = new ArrayList<DDVariable>(cddThis.getContext().getVariableSpace().getVariables());
-			varsTemp.retainAll(sumOutVars);
-			dd = dd.times(cddThis);
-			System.out.println("SizeTimes:" + dd.getRules().size());
-			dd = dd.sumOut(varsTemp);
-			System.out.println("SizeSum:" + dd.getRules().size());
-			dd.compress();
-			System.out.println("SizeCompress:" + dd.getRules().size());
-			System.out.println();
+			
+			AlgebraicDD ddExpandedNew = new AlgebraicDD(new DecisionDiagramContext(new DDVariableSpace(ddExpanded.getContext().getVariableSpace().getVariables())));
+			for(DecisionRule ruleOther:ddExpanded.getRules()) {
+				
+				DecisionRule rTrans = cddThis.getContext().getVariableSpace().translateRule(ruleOther, ddExpanded.getContext().getVariableSpace());
+				
+				
+				//Find all matching rules
+				for(DecisionRule ruleThis:cddThis.getRules()) {
+					if(ruleThis.matches(rTrans)) {
+						DecisionRule rIntersect = DecisionRule.getIntersectionBitStringRule(ruleThis, rTrans);
+						
+						if(rIntersect == null)
+							throw new Exception("This shouldn't happen");
+						
+						rIntersect.value = ruleThis.value * rTrans.value;
+						
+						DecisionRule rIntersectTrans = ddExpanded.getContext().getVariableSpace().translateRule(rIntersect, cddThis.getContext().getVariableSpace());
+						rIntersectTrans = DecisionRule.getIntersectionBitStringRule(rIntersectTrans, ruleOther);
+						rIntersectTrans.value = rIntersect.value;
+						
+						ddExpandedNew.addRule(rIntersectTrans);
+					}
+				}
+			}
+			
+			ArrayList<DDVariable> varsToSumOut = new ArrayList<DDVariable>(cddThis.getContext().getVariableSpace().getVariables());
+			varsToSumOut.retainAll(sumOutVars);
+			ddExpanded = ddExpandedNew.sumOut(varsToSumOut);
 		}
 		
-		return new RealValueFunction(dd);
+		return new RealValueFunction(ddExpanded);
 	}
 	
 	public void primeAllContexts() throws Exception {

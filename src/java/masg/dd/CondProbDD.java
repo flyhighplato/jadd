@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import masg.dd.context.CondProbDDContext;
-import masg.dd.context.ProbDD;
 import masg.dd.rules.DecisionRule;
 import masg.dd.rules.DecisionRuleCollection;
 import masg.dd.vars.DDVariable;

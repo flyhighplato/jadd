@@ -1,11 +1,11 @@
-package masg.dd.context;
+package masg.dd;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import masg.dd.AlgebraicDD;
+import masg.dd.context.DecisionDiagramContext;
 import masg.dd.rules.DecisionRule;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
@@ -19,7 +19,7 @@ public class ProbDD extends AlgebraicDD {
 	public ProbDD sumOutAllExcept(Collection<DDVariable> values) throws Exception {
 		ArrayList<DDVariable> sumOutValues = new ArrayList<DDVariable>();
 		
-		ArrayList<DDVariable> currVariables = context.varSpace.getVariables();
+		ArrayList<DDVariable> currVariables = context.getVariableSpace().getVariables();
 		for(DDVariable val:currVariables) {
 			if(!values.contains(val)) {
 				sumOutValues.add(val);
@@ -32,7 +32,7 @@ public class ProbDD extends AlgebraicDD {
 	public ProbDD sumOutAllExcept(Collection<DDVariable> values, boolean normalize) throws Exception {
 		ArrayList<DDVariable> sumOutValues = new ArrayList<DDVariable>();
 		
-		ArrayList<DDVariable> currVariables = context.varSpace.getVariables();
+		ArrayList<DDVariable> currVariables = context.getVariableSpace().getVariables();
 		for(DDVariable val:currVariables) {
 			if(!values.contains(val)) {
 				sumOutValues.add(val);
@@ -51,7 +51,7 @@ public class ProbDD extends AlgebraicDD {
 		
 		DDVariableSpace ignoreVarSpace = new DDVariableSpace();
 		
-		ArrayList<DDVariable> currVariables = context.varSpace.getVariables();
+		ArrayList<DDVariable> currVariables = context.getVariableSpace().getVariables();
 		for(DDVariable var:currVariables) {
 			if(!sumOutVars.contains(var)) {
 				newVarSpace.addVariable(var);
@@ -72,7 +72,7 @@ public class ProbDD extends AlgebraicDD {
 		
 		if(newVarSpace.getVariableCount()>0) {
 			for(HashMap<DDVariable,Integer> newVarSpacePoint: newVarSpace){
-				DecisionRule ruleNewInOldContext = context.varSpace.generateRule(newVarSpacePoint, 0);
+				DecisionRule ruleNewInOldContext = context.getVariableSpace().generateRule(newVarSpacePoint, 0);
 				
 				for(DecisionRule ruleThis:rules) {
 					if(ruleThis.matches(ruleNewInOldContext)) {
@@ -164,6 +164,17 @@ public class ProbDD extends AlgebraicDD {
 		}
 
 		return addNew;
+	}
+	
+	public double getProbability(DecisionRule ruleOther) {
+		double val = 0.0f;
+		for(DecisionRule ruleThis:rules) {
+			if(ruleThis.matches(ruleOther)) {
+				 val+=ruleThis.value;
+			}
+		}
+		
+		return val;
 	}
 
 }
