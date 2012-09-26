@@ -291,39 +291,65 @@ public class DecisionRule implements Comparable<DecisionRule> {
 		if(r1.numBits!=r2.numBits)
 			return null;
 		
-		DecisionRule rRes = getSubsetBitStringRule(r1,r2);
-		if(rRes!=null)
-			return rRes;
-		else {
-			rRes = new DecisionRule(size, Double.NaN);
-			for(int currBitIx=0;currBitIx<size;currBitIx++) {
-				
-				if(!r1.setValues.get(currBitIx) && !r2.setValues.get(currBitIx)) {
-					rRes.setBit(currBitIx, '*');
+		boolean covers = true;
+		for(int currBitIx=0;currBitIx<size;currBitIx++) {
+			if( (r1.setValues.get(currBitIx) && !r2.setValues.get(currBitIx)) || 
+				(r1.setValues.get(currBitIx) && r1.truthValues.get(currBitIx) != r2.truthValues.get(currBitIx))) {
+				covers = false;
+				break;
+			}
+		}
+		
+		if(covers) {
+			//Return subset
+			return new DecisionRule(r2);
+		}
+		
+		covers = true;
+		for(int currBitIx=0;currBitIx<size;currBitIx++) {
+			if( (r2.setValues.get(currBitIx) && !r1.setValues.get(currBitIx)) || 
+				(r2.setValues.get(currBitIx) && r2.truthValues.get(currBitIx) != r1.truthValues.get(currBitIx))) {
+				covers = false;
+				break;
+			}
+		}
+		
+		if(covers) {
+			//Return subset
+			return new DecisionRule(r1);	
+		}
+
+		
+		DecisionRule rRes = new DecisionRule(size, Double.NaN);
+		for(int currBitIx=0;currBitIx<size;currBitIx++) {
+			
+			if(!r1.setValues.get(currBitIx) && !r2.setValues.get(currBitIx)) {
+				rRes.setBit(currBitIx, '*');
+			}
+			else if(r1.setValues.get(currBitIx) && r2.setValues.get(currBitIx)){
+				if(r1.truthValues.get(currBitIx)!=r2.truthValues.get(currBitIx)) {
+					return null;
 				}
-				else if(r1.setValues.get(currBitIx) && r2.setValues.get(currBitIx)){
-					if(r1.truthValues.get(currBitIx)!=r2.truthValues.get(currBitIx)) {
-						return null;
-					}
-					else {
-						if(r1.truthValues.get(currBitIx))
-							rRes.setBit(currBitIx, '1');
-						else
-							rRes.setBit(currBitIx, '0');
-					}
-				}
-				else if(r1.setValues.get(currBitIx) != r2.setValues.get(currBitIx)) {
-					boolean setVal = r1.setValues.get(currBitIx)?r1.truthValues.get(currBitIx):r2.truthValues.get(currBitIx);
-					
-					if(setVal)
+				else {
+					if(r1.truthValues.get(currBitIx))
 						rRes.setBit(currBitIx, '1');
 					else
 						rRes.setBit(currBitIx, '0');
 				}
 			}
+			else if(r1.setValues.get(currBitIx) != r2.setValues.get(currBitIx)) {
+				boolean setVal = r1.setValues.get(currBitIx)?r1.truthValues.get(currBitIx):r2.truthValues.get(currBitIx);
+				
+				if(setVal)
+					rRes.setBit(currBitIx, '1');
+				else
+					rRes.setBit(currBitIx, '0');
+			}
 		}
-		
 		return rRes;
+		
+		
+		
 	}
 	
 	public boolean equals(Object o) {

@@ -3,7 +3,6 @@ package masg.dd.function;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 
 import masg.dd.AlgebraicDD;
 import masg.dd.CondProbDD;
@@ -12,7 +11,6 @@ import masg.dd.ProbDD;
 import masg.dd.context.CondProbDDContext;
 import masg.dd.context.DecisionDiagramContext;
 import masg.dd.rules.DecisionRule;
-import masg.dd.rules.DecisionRuleCollection;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 

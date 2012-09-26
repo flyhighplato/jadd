@@ -36,6 +36,10 @@ public class RealValueFunction implements DecisionDiagram{
 		return new RealValueFunction(dd.sumOut(sumOutVar));
 	}
 	
+	public boolean dominates(RealValueFunction fnOther, double tolerance) throws Exception {
+		return dd.dominates(fnOther.getDD(), tolerance);
+	}
+	
 	public double maxDiff(RealValueFunction fnOther) throws Exception {
 		return dd.maxDiff(fnOther.getDD());
 	}

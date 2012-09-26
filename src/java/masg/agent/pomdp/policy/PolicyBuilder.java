@@ -23,7 +23,7 @@ public class PolicyBuilder {
 		DDVariableSpace actSpace = new DDVariableSpace(new ArrayList<DDVariable>(p.getActions()));
 		
 		double discFactor = 0.9f;
-		
+		double tolerance = 0.001f;
 		
 		HashMap<HashMap<DDVariable,Integer>,RealValueFunction> pureAlphas = new HashMap<HashMap<DDVariable,Integer>,RealValueFunction>();
 		
@@ -48,12 +48,26 @@ public class PolicyBuilder {
 				currAlpha.unprimeAllContexts();
 				bellmanError = newAlpha.maxDiff(currAlpha);
 				System.out.println("Bellman error:" + bellmanError);
-				if(bellmanError<0.001f) {
+				if(bellmanError<tolerance) {
 					break;
 				}
 				currAlpha = newAlpha;
 			}
-			pureAlphas.put(actSpacePt, currAlpha);
+			
+			boolean isDominated = false;
+			for(RealValueFunction otherAlpha:pureAlphas.values()) {
+				if(otherAlpha.dominates(currAlpha, tolerance)) {
+					isDominated = true;
+					break;
+				}
+			}
+			if(!isDominated) {
+				System.out.println("Adding alpha vector for " + actSpacePt);
+				pureAlphas.put(actSpacePt, currAlpha);
+			}
+			else {
+				System.out.println("Not adding alpha vector for " + actSpacePt + " (dominated)");
+			}
 		}
 			
 			

@@ -95,6 +95,30 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 		return maxDiff;
 	}
 	
+	public boolean dominates(AlgebraicDD addOther, double tolerance) throws Exception {
+		
+		DecisionRuleCollection rCollTrans = new DecisionRuleCollection(addOther.getContext().getVariableSpace().getBitCount());
+		
+		for(DecisionRule ruleOther:addOther.rules) {
+			DecisionRule ruleOtherTrans = context.getVariableSpace().translateRule(ruleOther, addOther.context.getVariableSpace());
+			rCollTrans.add(ruleOtherTrans);
+		}
+		
+		
+		for(DecisionRule ruleThis:rules) {
+			for(DecisionRule ruleOther:rCollTrans) {
+				if(ruleThis.matches(ruleOther)) {
+					double diff = ruleOther.value - ruleThis.value ;
+					
+					if(diff > tolerance)
+						return false;
+				}
+			}
+		}
+		
+		return true;
+	}
+	
 	public AlgebraicDD plus(AlgebraicDD addOther) throws Exception {
 		AlgebraicDD addNew = new AlgebraicDD(context);
 		
