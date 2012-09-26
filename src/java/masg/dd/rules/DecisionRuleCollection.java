@@ -3,14 +3,12 @@ package masg.dd.rules;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 import masg.util.BitMap;
 
 public class DecisionRuleCollection implements Collection<DecisionRule> {
 	static double tolerance = 0.0001f;
 	
-	//ConcurrentSkipListSet<DecisionRule> rules = new ConcurrentSkipListSet<DecisionRule>();
 	ArrayList<DecisionRule> rules = new ArrayList<DecisionRule>();
 	
 	protected int size = 0;

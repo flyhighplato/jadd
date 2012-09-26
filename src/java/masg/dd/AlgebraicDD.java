@@ -4,16 +4,24 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import masg.dd.context.DecisionDiagramContext;
 import masg.dd.rules.DecisionRule;
 import masg.dd.rules.DecisionRuleCollection;
+import masg.dd.rules.operations.AbstractDecisionRuleTwoCollectionsOperator;
+import masg.dd.rules.operations.DecisionRuleAddOp;
+import masg.dd.rules.operations.DecisionRuleMaxDiffOp;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
 public class AlgebraicDD extends AbstractDecisionDiagram {
 	protected DecisionRuleCollection rules;
 
+	protected static final ExecutorService execService = Executors.newCachedThreadPool();
+	
 	public AlgebraicDD(DecisionDiagramContext ctx) {
 		super(ctx);
 		rules = new DecisionRuleCollection(ctx.getVariableSpace().getBitCount());
@@ -79,16 +87,44 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 			rCollTrans.add(ruleOtherTrans);
 		}
 		
+
+		int i = 0;
+		ArrayList<DecisionRule> ruleSubset = new ArrayList<DecisionRule>();
+		ArrayList<Future<DecisionRuleMaxDiffOp>> futures = new ArrayList<Future<DecisionRuleMaxDiffOp>>();
 		
 		for(DecisionRule ruleThis:rules) {
-			for(DecisionRule ruleOther:rCollTrans) {
-				if(ruleThis.matches(ruleOther)) {
-					double diff = Math.abs(ruleThis.value - ruleOther.value);
-					
-					if(diff>maxDiff) {
-						maxDiff = diff;
-					}
-				}
+			i++;
+			
+			if(i%1000==0) {
+				DecisionRuleMaxDiffOp addRunner = new DecisionRuleMaxDiffOp(ruleSubset,rCollTrans);
+				Future<DecisionRuleMaxDiffOp> f = execService.submit(addRunner,addRunner);
+
+				futures.add(f);
+				ruleSubset = new ArrayList<DecisionRule>();
+			}
+			
+			ruleSubset.add(ruleThis);
+		}
+		
+		if(ruleSubset.size()>0) {
+			DecisionRuleMaxDiffOp addRunner = new DecisionRuleMaxDiffOp(ruleSubset,rCollTrans);
+			Future<DecisionRuleMaxDiffOp> f = execService.submit(addRunner,addRunner);
+
+			futures.add(f);
+			ruleSubset = null;
+		}
+		
+		
+		while(!futures.isEmpty()) {
+			if(futures.get(futures.size()-1).isDone()) {
+				DecisionRuleMaxDiffOp addRunner = futures.get(futures.size()-1).get();
+				if(addRunner.e!=null)
+					throw addRunner.e;
+				
+				if(addRunner.maxDiff>maxDiff)
+					maxDiff = addRunner.maxDiff;
+				
+				futures.remove(futures.size()-1);
 			}
 		}
 		
@@ -129,22 +165,47 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 			rCollTrans.add(ruleOtherTrans);
 		}
 		
-		ArrayList<DecisionRule> rRules = new ArrayList<DecisionRule>();
+		
+		int i = 0;
+		ArrayList<DecisionRule> ruleSubset = new ArrayList<DecisionRule>();
+		ArrayList<Future<AbstractDecisionRuleTwoCollectionsOperator>> futures = new ArrayList<Future<AbstractDecisionRuleTwoCollectionsOperator>>();
+		
 		for(DecisionRule ruleThis:rules) {
-			for(DecisionRule ruleOther:rCollTrans) {
-				if(ruleThis.matches(ruleOther)) {
-					DecisionRule resRule = DecisionRule.getIntersectionBitStringRule(ruleThis, ruleOther);
-					resRule.value = ruleThis.value + ruleOther.value;
-					rRules.add(resRule);
-				}
+			i++;
+			
+			if(i%1000==0) {
+				DecisionRuleAddOp addRunner = new DecisionRuleAddOp(ruleSubset,rCollTrans);
+				Future<AbstractDecisionRuleTwoCollectionsOperator> f = execService.submit(addRunner,(AbstractDecisionRuleTwoCollectionsOperator)addRunner);
+
+				futures.add(f);
+				ruleSubset = new ArrayList<DecisionRule>();
+			}
+			
+			ruleSubset.add(ruleThis);
+		}
+		
+		if(ruleSubset.size()>0) {
+			DecisionRuleAddOp addRunner = new DecisionRuleAddOp(ruleSubset,rCollTrans);
+			Future<AbstractDecisionRuleTwoCollectionsOperator> f = execService.submit(addRunner,(AbstractDecisionRuleTwoCollectionsOperator)addRunner);
+
+			futures.add(f);
+			ruleSubset = null;
+		}
+		
+		
+		while(!futures.isEmpty()) {
+			if(futures.get(futures.size()-1).isDone()) {
+				AbstractDecisionRuleTwoCollectionsOperator addRunner = futures.get(futures.size()-1).get();
+				if(addRunner.e!=null)
+					throw addRunner.e;
+				addNew.addRules(addRunner.resultRules);
+				futures.remove(futures.size()-1);
 			}
 		}
 		
-		addNew.addRules(rRules);
-		
 		return addNew;
 	}
-	
+		
 	public AlgebraicDD restrict(HashMap<DDVariable,Integer> varInstances) throws Exception {
 		
 		boolean willChange = false;
