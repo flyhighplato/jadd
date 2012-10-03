@@ -355,14 +355,27 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 			totalWeight  += ruleThis.value;
 		}
 		
-		for(DecisionRule ruleThis:rules) {
-			ruleThis.value = ruleThis.value/totalWeight;
+		if(totalWeight>0.0f) {
+			for(DecisionRule ruleThis:rules) {
+				ruleThis.value = ruleThis.value/totalWeight;
+			}
 		}
+	}
+	
+	public void prime() throws Exception {
+		context = new DecisionDiagramContext(new DDVariableSpace(context.getVariableSpace().getVariables()));
+		context.getVariableSpace().prime();
+	}
+	
+	public void unprime() throws Exception {
+		context = new DecisionDiagramContext(new DDVariableSpace(context.getVariableSpace().getVariables()));
+		context.getVariableSpace().unprime();
 	}
 	
 	public String toString() {
 		String str = "";
 		str += context.getVariableSpace().getVariables() + "\n";
+		str += "(" + rules.size() + ")\n";
 		
 		int i = 0;
 		for(DecisionRule rule:rules) {

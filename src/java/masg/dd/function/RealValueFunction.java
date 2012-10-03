@@ -53,11 +53,11 @@ public class RealValueFunction implements DecisionDiagram{
 	}
 	
 	public void primeAllContexts() throws Exception {
-		dd.getContext().getVariableSpace().prime();
+		dd.prime();
 	}
 	
 	public void unprimeAllContexts() throws Exception {
-		dd.getContext().getVariableSpace().unprime();
+		dd.unprime();
 	}
 	
 	public final AlgebraicDD getDD() {
