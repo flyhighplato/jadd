@@ -71,25 +71,16 @@ public class ProbDD extends AlgebraicDD {
 		double totalSum = 0.0f;
 		
 		if(newVarSpace.getVariableCount()>0) {
-			for(HashMap<DDVariable,Integer> newVarSpacePoint: newVarSpace){
-				DecisionRule ruleNewInOldContext = context.getVariableSpace().generateRule(newVarSpacePoint, 0);
+			for(DecisionRule ruleThis:rules) {
+				DecisionRule rNew = newCtx.getVariableSpace().translateRule(ruleThis, context.getVariableSpace());
 				
-				for(DecisionRule ruleThis:rules) {
-					if(ruleThis.matches(ruleNewInOldContext)) {
-						DecisionRule ruleNewInNewContext = newVarSpace.generateRule(newVarSpacePoint, ruleThis.value);
-						
-						totalSum += ruleThis.value;
-						
-						String newRuleStr = ruleNewInNewContext.toBitString();
-						if(newRuleNonnormValues.containsKey(newRuleStr)) {
-							newRuleNonnormValues.put(newRuleStr, newRuleNonnormValues.get(newRuleStr) + ruleThis.value);
-						}
-						else {
-							newRuleNonnormValues.put(newRuleStr, ruleThis.value);
-						}
-					}
+				String newRuleStr = rNew.toBitString();
+				if(newRuleNonnormValues.containsKey(newRuleStr)) {
+					newRuleNonnormValues.put(newRuleStr, newRuleNonnormValues.get(newRuleStr) + ruleThis.value);
 				}
-				
+				else {
+					newRuleNonnormValues.put(newRuleStr, ruleThis.value);
+				}
 			}
 		}
 		else {
