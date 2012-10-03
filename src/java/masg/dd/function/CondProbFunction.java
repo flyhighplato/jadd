@@ -80,7 +80,6 @@ public class CondProbFunction implements DecisionDiagram{
 			newFn.ddList.add(dd.restrict(varInstances));
 		}
 		newFn = newFn.separate();
-		newFn.compress();
 		restrictCache.put(varInstances, newFn);
 		
 		return newFn;
@@ -131,7 +130,6 @@ public class CondProbFunction implements DecisionDiagram{
 							}
 						}
 						
-						ddNew.compress();
 						ddNew.normalize();
 						ddListNew.add(ddNew);
 						break;
