@@ -32,4 +32,24 @@ public class POMDPUtils {
 		
 		return currBeliefFn;
 	}
+	
+	static public CondProbFunction getObservationProbs(POMDP p, CondProbFunction belief, HashMap<DDVariable,Integer> acts) throws Exception {
+		HashMap<DDVariable, Integer> fixAt = new HashMap<DDVariable, Integer>();
+		
+		for(Entry<DDVariable,Integer> e: acts.entrySet()) {
+			fixAt.put(e.getKey(), e.getValue());
+		}
+		
+		CondProbFunction fixedObsFn = p.getObsFns().restrict(fixAt);
+		
+		CondProbFunction fixedTransFn = p.getTransFn().restrict(fixAt);
+		CondProbFunction temp = fixedTransFn.times(belief);	
+		temp = temp.sumOut(p.getStates(),false);
+		
+		CondProbFunction obsProbs = fixedObsFn.times(temp);
+		obsProbs = obsProbs.sumOutAllExcept(p.getObservations(), false);
+		obsProbs.normalize();
+		
+		return obsProbs;
+	}
 }
