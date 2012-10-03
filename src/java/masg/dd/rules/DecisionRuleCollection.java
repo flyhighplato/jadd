@@ -2,6 +2,7 @@ package masg.dd.rules;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 
 import masg.util.BitMap;
@@ -17,6 +18,7 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 	}
 	
 	public void compress() {
+		Collections.sort(rules);
 		
 		int oldRuleSize = Integer.MAX_VALUE;
 		
@@ -64,12 +66,14 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 				
 				rules.clear();
 				rules.addAll(rulesNew);
+				Collections.sort(rules);
 			}
 			
 			
 			Collection<DecisionRule> compressedRules = compressOnFirstCol(rules);
 			rules.clear();
 			rules.addAll(compressedRules);
+			Collections.sort(rules);
 		}
 	}
 	
