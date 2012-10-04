@@ -11,7 +11,7 @@ public class DecisionDiagramContext {
 	}
 	
 	public DecisionDiagramContext(DDVariableSpace varSpace) {
-		this.varSpace = varSpace;
+		this.varSpace = new DDVariableSpace(varSpace.getVariables());
 	}
 	
 	public final DDVariableSpace getVariableSpace() {

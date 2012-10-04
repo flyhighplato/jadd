@@ -4,7 +4,7 @@ import masg.util.BitMap;
 
 public class DecisionRule implements Comparable<DecisionRule> {
 	
-	
+	double tolerance = 0.001f;
 	protected BitMap truthValues;
 	protected BitMap setValues;
 	protected String bitString = null;
@@ -12,6 +12,9 @@ public class DecisionRule implements Comparable<DecisionRule> {
 	int numBits = 0;
 	public double value = 0;
 	
+	public int getNumBits() {
+		return numBits;
+	}
 	
 	public DecisionRule(int numBits, double value) {
 		this.numBits = numBits;
@@ -352,12 +355,19 @@ public class DecisionRule implements Comparable<DecisionRule> {
 		
 	}
 	
+	public boolean bitStringEquals(DecisionRule other) {
+		if(other.numBits == numBits && other.setValues.equals(setValues) && other.truthValues.equals(truthValues)) {
+			return true;
+		}
+		return false;
+	}
+	
 	public boolean equals(Object o) {
 		
 		if(o instanceof DecisionRule) {
 			DecisionRule other = (DecisionRule) o;
 			
-			if(other.numBits == numBits && other.value == value && other.setValues.equals(setValues) && other.truthValues.equals(truthValues)) {
+			if(other.numBits == numBits && Math.abs(other.value - value) < tolerance && other.setValues.equals(setValues) && other.truthValues.equals(truthValues)) {
 				
 				return true;
 			}

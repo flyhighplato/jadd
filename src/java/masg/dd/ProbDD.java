@@ -11,7 +11,8 @@ import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
 public class ProbDD extends AlgebraicDD {
-
+	double tolerance = 0.0001f;
+	
 	public ProbDD(DecisionDiagramContext ctx) {
 		super(ctx);
 	}
@@ -116,7 +117,62 @@ public class ProbDD extends AlgebraicDD {
 		}
 		
 		
-
+		//Remove duplicate matches
+		for(int i=0;i<newRules.size();++i) {
+			DecisionRule r1 = newRules.get(i);
+			for(int j=i+1;j<newRules.size();++j) {
+				DecisionRule r2 = newRules.get(j);
+				
+				if(r1.bitStringEquals(r2)) {
+					r1.value += r2.value;
+					newRules.remove(j);
+					j--;
+				}
+				else {
+					DecisionRule rSup = DecisionRule.getSupersetBitStringRule(r1, r2);
+					
+					if(rSup!=null) {
+						DecisionRule rOther;
+						if(rSup.equals(r1)) {
+							rSup = r1;
+							rOther = r2;
+						}
+						else {
+							rSup = r2;
+							rOther = r1;
+						}
+						
+						if(Math.abs(r1.value-r2.value)>tolerance) {
+							for(int currBitIx=rSup.getNumBits()-1;currBitIx>=0;currBitIx--) {
+								if(rSup.getBit(currBitIx)=='*') {
+									if(rOther.getBit(currBitIx)=='0') {
+										rSup.setBit(currBitIx, '1');
+										break;
+									}
+									else if(rOther.getBit(currBitIx)=='1') {
+										rSup.setBit(currBitIx, '0');
+										break;
+									}
+								}
+							}
+						}
+						else {
+							if(rSup==r1) {
+								newRules.remove(j);
+								j--;
+							}
+							else {
+								newRules.remove(i);
+								i--;
+								break;
+							}
+						}
+					}
+				}
+				
+			}
+		}
+			
 		resultDD.addRules(newRules);
 
 		return resultDD;
