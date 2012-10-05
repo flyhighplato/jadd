@@ -1,6 +1,7 @@
 package masg.agent.pomdp.policy;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 
 import masg.agent.pomdp.POMDPUtils;
@@ -39,8 +40,9 @@ public class PolicyBuilder {
 			
 			double bellmanError = 0.0f;
 			
-			for(int i=0;i<1;i++) {
+			for(int i=0;i<10;i++) {
 				
+				long milliStart = new Date().getTime();
 				System.out.println("Iteration #" + i);
 				currAlphaFn.primeAllContexts();
 				RealValueFunction discTransFn = fixedTransFn.timesAndSumOut(currAlphaFn,currAlphaFn.getDD().getContext().getVariableSpace().getVariables());
@@ -50,10 +52,13 @@ public class PolicyBuilder {
 				
 				currAlphaFn.unprimeAllContexts();
 				bellmanError = newAlphaFn.maxDiff(currAlphaFn);
-				System.out.println("Bellman error:" + bellmanError);
+				System.out.println(" Bellman error:" + bellmanError);
 				if(bellmanError<tolerance) {
 					break;
 				}
+				
+				long milliTook = new Date().getTime() - milliStart;
+				System.out.println(" Iteration took " + milliTook + " milliseconds");
 				currAlphaFn = newAlphaFn;
 			}
 			
@@ -95,7 +100,7 @@ public class PolicyBuilder {
 		DDVariableSpace obsSpace = new DDVariableSpace(new ArrayList<DDVariable>(p.getObservations()));
 		
 		for(HashMap<DDVariable,Integer> actSpacePt:actSpace) {
-			
+			long milliStart = new Date().getTime();
 			//Get reward for this action
 			RealValueFunction rewFn = p.getRewardFn().restrict(actSpacePt);
 			double immediateActionValue = belief.timesAndSumOut(rewFn, rewFn.getDD().getContext().getVariableSpace().getVariables()).getDD().getRules().getRuleValueSum();
@@ -188,6 +193,9 @@ public class PolicyBuilder {
 			else {
 				System.out.println("Not adding alpha vector for " + actSpacePt + " (dominated)");
 			}
+			long milliTook = new Date().getTime() - milliStart;
+			System.out.println("  Took " + milliTook + " milliseconds");
+			System.out.println();
 		}
 		
 		

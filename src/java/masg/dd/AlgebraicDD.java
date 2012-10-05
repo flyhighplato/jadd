@@ -3,6 +3,7 @@ package masg.dd;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -11,6 +12,7 @@ import java.util.concurrent.Future;
 import masg.dd.context.DecisionDiagramContext;
 import masg.dd.rules.DecisionRule;
 import masg.dd.rules.DecisionRuleCollection;
+import masg.dd.rules.DecisionRuleCollectionIndex;
 import masg.dd.rules.operations.AbstractDecisionRuleTwoCollectionsOperator;
 import masg.dd.rules.operations.DecisionRuleAddOp;
 import masg.dd.rules.operations.DecisionRuleMaxDiffOp;
@@ -165,9 +167,8 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 			rCollTrans.add(ruleOtherTrans);
 		}
 		
-		
 		int i = 0;
-		ArrayList<DecisionRule> ruleSubset = new ArrayList<DecisionRule>();
+		ArrayList<DecisionRule> ruleSubset = new ArrayList<DecisionRule>(1000);
 		ArrayList<Future<AbstractDecisionRuleTwoCollectionsOperator>> futures = new ArrayList<Future<AbstractDecisionRuleTwoCollectionsOperator>>();
 		
 		for(DecisionRule ruleThis:rules) {
@@ -178,7 +179,7 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 				Future<AbstractDecisionRuleTwoCollectionsOperator> f = execService.submit(addRunner,(AbstractDecisionRuleTwoCollectionsOperator)addRunner);
 
 				futures.add(f);
-				ruleSubset = new ArrayList<DecisionRule>();
+				ruleSubset = new ArrayList<DecisionRule>(1000);
 			}
 			
 			ruleSubset.add(ruleThis);

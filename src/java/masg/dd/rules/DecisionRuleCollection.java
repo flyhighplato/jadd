@@ -10,11 +10,15 @@ import masg.util.BitMap;
 public class DecisionRuleCollection implements Collection<DecisionRule> {
 	static double tolerance = 0.0001f;
 	
-	ArrayList<DecisionRule> rules = new ArrayList<DecisionRule>();
+	protected ArrayList<DecisionRule> rules = new ArrayList<DecisionRule>();
 	
 	protected int size = 0;
 	public DecisionRuleCollection(int size) {
 		this.size = size;
+	}
+
+	public DecisionRuleCollectionIndex getIndex() throws Exception {
+		return DecisionRuleCollectionIndex.index(rules);
 	}
 	
 	public void compress() {

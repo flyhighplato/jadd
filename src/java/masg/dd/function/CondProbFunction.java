@@ -3,6 +3,7 @@ package masg.dd.function;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 
 import masg.dd.AlgebraicDD;
 import masg.dd.CondProbDD;
@@ -11,6 +12,7 @@ import masg.dd.ProbDD;
 import masg.dd.context.CondProbDDContext;
 import masg.dd.context.DecisionDiagramContext;
 import masg.dd.rules.DecisionRule;
+import masg.dd.rules.DecisionRuleCollectionIndex;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
@@ -222,45 +224,66 @@ public class CondProbFunction implements DecisionDiagram{
 	public RealValueFunction timesAndSumOut(RealValueFunction fnOther,Collection<DDVariable> sumOutVars) throws Exception {
 		
 		
-		ArrayList<DDVariable> vars = new ArrayList<DDVariable>();
+		AlgebraicDD ddExpanded = fnOther.getDD();
+		
+		AlgebraicDD ddExpandedNew;
 		
 		for(CondProbDD cddThis:ddList) {
-			vars.addAll(cddThis.getContext().getVariableSpace().getVariables());
-		}
-		
-		//Create function in expanded variable space
-		AlgebraicDD ddExpanded = fnOther.getDD().expandRules(vars);
-		
-		for(CondProbDD cddThis:ddList) {
+
 			
-			AlgebraicDD ddExpandedNew = new AlgebraicDD(new DecisionDiagramContext(new DDVariableSpace(ddExpanded.getContext().getVariableSpace().getVariables())));
-			for(DecisionRule ruleOther:ddExpanded.getRules()) {
+			ddExpanded = ddExpanded.expandRules(cddThis.getContext().getVariableSpace().getVariables());
+			ddExpandedNew = new AlgebraicDD(new DecisionDiagramContext(new DDVariableSpace(ddExpanded.getContext().getVariableSpace().getVariables())));
+			
+			DecisionRuleCollectionIndex ddExpandedIndex = ddExpanded.getRules().getIndex();
+			
+			for(DecisionRule ruleOther:cddThis.getRules() ) {
 				
-				DecisionRule rTrans = cddThis.getContext().getVariableSpace().translateRule(ruleOther, ddExpanded.getContext().getVariableSpace());
 				
 				
+				DecisionRule rTrans = ddExpanded.getContext().getVariableSpace().translateRule(ruleOther, cddThis.getContext().getVariableSpace());
+
 				//Find all matching rules
-				for(DecisionRule ruleThis:cddThis.getRules()) {
-					if(ruleThis.matches(rTrans)) {
-						DecisionRule rIntersect = DecisionRule.getIntersectionBitStringRule(ruleThis, rTrans);
-						
-						if(rIntersect == null)
-							throw new Exception("This shouldn't happen");
-						
-						rIntersect.value = ruleThis.value * rTrans.value;
-						
-						DecisionRule rIntersectTrans = ddExpanded.getContext().getVariableSpace().translateRule(rIntersect, cddThis.getContext().getVariableSpace());
-						rIntersectTrans = DecisionRule.getIntersectionBitStringRule(rIntersectTrans, ruleOther);
-						rIntersectTrans.value = rIntersect.value;
-						
-						ddExpandedNew.addRule(rIntersectTrans);
+				
+				if(ddExpandedIndex!=null) {
+					for(List<DecisionRule> ruleBlock: ddExpandedIndex.getCandidateMatches(rTrans)) {
+						for(DecisionRule ruleThis:ruleBlock) {
+							if(ruleThis.matches(rTrans)) {
+								DecisionRule rIntersect = DecisionRule.getIntersectionBitStringRule(ruleThis, rTrans);
+								
+								if(rIntersect == null)
+									throw new Exception("Found match between two rules, but no intersection. r1:" + ruleThis + ",r2:" + rTrans);
+								
+								rIntersect.value = ruleThis.value * rTrans.value;
+								ddExpandedNew.addRule(rIntersect);
+							}
+						}
 					}
 				}
+				else {
+					for(DecisionRule ruleThis:ddExpanded.getRules()) {
+						if(ruleThis.matches(rTrans)) {
+							DecisionRule rIntersect = DecisionRule.getIntersectionBitStringRule(ruleThis, rTrans);
+							
+							if(rIntersect == null)
+								throw new Exception("Found match between two rules, but no intersection. r1:" + ruleThis + ",r2:" + rTrans);
+							
+							rIntersect.value = ruleThis.value * rTrans.value;
+							
+							ddExpandedNew.addRule(rIntersect);
+						}
+					}
+				}
+				
+				
 			}
 			
 			ArrayList<DDVariable> varsToSumOut = new ArrayList<DDVariable>(cddThis.getContext().getVariableSpace().getVariables());
 			varsToSumOut.retainAll(sumOutVars);
 			ddExpanded = ddExpandedNew.sumOut(varsToSumOut);
+			ddExpandedIndex = ddExpanded.getRules().getIndex();
+			
+			
+			
 		}
 		
 		return new RealValueFunction(ddExpanded);

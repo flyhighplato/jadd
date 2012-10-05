@@ -12,7 +12,9 @@ import masg.dd.AlgebraicDD;
 import masg.dd.CondProbDD;
 import masg.dd.context.DecisionDiagramContext;
 import masg.dd.function.CondProbFunction
+import masg.dd.function.RealValueFunction
 import masg.dd.rules.DecisionRule;
+import masg.dd.rules.DecisionRuleCollectionIndex
 import masg.dd.vars.DDVariable
 import masg.dd.vars.DDVariableSpace
 import masg.problem.tag.TagProblem
@@ -91,6 +93,8 @@ class POMDPSpec extends Specification {
 		
 
 				currVarSpace.addVariables(p.getRewardFn().getDD().getContext().getVariableSpace().getVariables())
+				
+				RealValueFunction rewFn = p.getRewardFn();
 				
 				println "Testing varspace: ${currVarSpace.getVariables()}"
 				currVarSpace.each { HashMap<DDVariable,Integer> varSpacePoint ->
@@ -204,6 +208,26 @@ class POMDPSpec extends Specification {
 			}
 		
 	}*/
+	
+	
+	def "rule indexing works"() {
+		when:
+			DecisionRuleCollectionIndex index = p.getRewardFn().getDD().getRules().getIndex()
+			DDVariableSpace currVarSpace = new DDVariableSpace();
+		then:
+			currVarSpace.addVariables(p.getRewardFn().getDD().getContext().getVariableSpace().getVariables())
+			
+			HashMap<DDVariable,Integer> pt = currVarSpace.iterator().next()
+			DecisionRule refRule = currVarSpace.generateRule(pt,0.0f)
+			
+			
+			for(List<DecisionRule> lst:index.iterator(refRule)) {
+				for(DecisionRule r:lst) {
+					println r
+				}
+			}
+			
+	}
 	
 	def "belief updating works"() {
 		when:
