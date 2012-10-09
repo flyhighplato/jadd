@@ -103,9 +103,9 @@ public class PolicyBuilder {
 			long milliStart = new Date().getTime();
 			//Get reward for this action
 			RealValueFunction rewFn = p.getRewardFn().restrict(actSpacePt);
-			double immediateActionValue = belief.timesAndSumOut(rewFn, rewFn.getDD().getContext().getVariableSpace().getVariables()).getDD().getRules().getRuleValueSum();
+			rewFn = belief.timesAndSumOut(rewFn, new ArrayList<DDVariable>());
+			//double immediateActionValue = belief.timesAndSumOut(rewFn, rewFn.getDD().getContext().getVariableSpace().getVariables()).getDD().getRules().getRuleValueSum();
 			
-			double actionValue = immediateActionValue;
 			CondProbFunction obsProbs = POMDPUtils.getObservationProbs(p, belief, actSpacePt);
 			
 			System.out.println("Action:" + actSpacePt);
@@ -138,12 +138,8 @@ public class PolicyBuilder {
 					}
 					
 					obsBestPlan.put(obsSpacePt, maxCondPlanAlphaVector);
-					actionValue += maxCondPlanValue;
 				}
 			}
-			
-			System.out.println("Value:" + actionValue);
-			System.out.println();
 			
 			//Calculate value function for this action
 			RealValueFunction nextValFn = null;
@@ -151,13 +147,14 @@ public class PolicyBuilder {
 				AlphaVector bestAlpha = obsBestPlan.get(obsSpacePt);
 				
 				if(nextValFn == null)
-					nextValFn = bestAlpha.getFn().times(discFactor);
+					nextValFn = bestAlpha.getFn();
 				else {
-					RealValueFunction temp = bestAlpha.getFn().times(discFactor);
-					nextValFn = nextValFn.plus(temp);
+					nextValFn = nextValFn.plus(bestAlpha.getFn());
 				}
 
 			}
+			
+			nextValFn = nextValFn.times(discFactor);
 			
 			//Calculate value of this action
 			nextValFn.primeAllContexts();
@@ -193,8 +190,7 @@ public class PolicyBuilder {
 			else {
 				System.out.println("Not adding alpha vector for " + actSpacePt + " (dominated)");
 			}
-			long milliTook = new Date().getTime() - milliStart;
-			System.out.println("  Took " + milliTook + " milliseconds");
+			System.out.println("  Took " + (new Date().getTime() - milliStart) + " milliseconds");
 			System.out.println();
 		}
 		

@@ -221,7 +221,7 @@ class POMDPSpec extends Specification {
 			DecisionRule refRule = currVarSpace.generateRule(pt,0.0f)
 			
 			
-			for(List<DecisionRule> lst:index.iterator(refRule)) {
+			for(List<DecisionRule> lst:index.getCandidateMatches(refRule)) {
 				for(DecisionRule r:lst) {
 					println r
 				}

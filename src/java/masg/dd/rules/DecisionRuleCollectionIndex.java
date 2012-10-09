@@ -2,8 +2,8 @@ package masg.dd.rules;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 public class DecisionRuleCollectionIndex {
@@ -83,10 +83,13 @@ public class DecisionRuleCollectionIndex {
 		return ix;
 	}
 	
-	private static int getMaxIndexValueLength(Collection<DecisionRule> rules) {
+	private static int getMaxIndexValueLength(List<DecisionRule> rules) {
 		int maxLen = MAX_INDEX_VALUE_LEN;
 		
-		maxLen = Math.min(maxLen, rules.size()/4);
+		if(rules.get(0).getNumBits()>7)
+			maxLen = Math.min(maxLen, rules.get(0).getNumBits()-7);
+		else
+			return 0;
 		
 		for(DecisionRule rule:rules) {
 			for(int currBitIndex = maxLen; currBitIndex>=0;--currBitIndex) {
@@ -124,6 +127,107 @@ public class DecisionRuleCollectionIndex {
 				if(matches) {
 					temp.add(rules.subList(locMinIndex[i], locMaxIndex[i]+1));
 				}
+			}
+		}
+		return temp;
+	}
+	
+	public ArrayList<List<DecisionRule>> getCandidateMatches(List<DecisionRule> refRules) throws Exception {
+		ArrayList<List<DecisionRule>> temp = new ArrayList<List<DecisionRule>>();
+		
+		HashSet<Integer> usedLocMinIndices = new HashSet<Integer>();
+		for(DecisionRule refRule:refRules) {
+			for(int i=0;i<locMinIndex.length;++i) {
+				
+				if((locMinIndex[i]==-1) != (locMaxIndex[i]==-1)) {
+					throw new Exception("Index is corrupted");
+				}
+				
+				
+				if(locMinIndex[i]!=-1) {
+					boolean matches = true;
+					for(int currBitIndex = 0; currBitIndex<maxValLen;++currBitIndex) {
+						boolean setInIx = ((i & (1 << currBitIndex)) > 0);
+						if( !( (setInIx && refRule.getBit(currBitIndex)=='1') || (!setInIx && refRule.getBit(currBitIndex)=='0') || refRule.getBit(currBitIndex)=='*') ) {
+							matches = false;
+							break;
+						}
+					}
+					
+					if(matches && !usedLocMinIndices.contains(locMinIndex[i])) {
+						temp.add(rules.subList(locMinIndex[i], locMaxIndex[i]+1));
+						usedLocMinIndices.add(locMinIndex[i]);
+					}
+				}
+			}
+		}
+		return temp;
+	}
+	
+	public ArrayList<ArrayList<List<DecisionRule>>> getCandidateMatches(DecisionRuleCollectionIndex refIndex) throws Exception {
+		ArrayList<ArrayList<List<DecisionRule>>> temp = new ArrayList<ArrayList<List<DecisionRule>>>();
+		
+		DecisionRuleCollectionIndex drIxLonger = refIndex;
+		DecisionRuleCollectionIndex drIxShorter = this;
+		
+		if(maxValLen > refIndex.maxValLen) {
+			drIxLonger = this;
+			drIxShorter = refIndex;
+		}
+		
+		for(int i=0;i<drIxShorter.locMinIndex.length;++i) {
+			
+			if((drIxShorter.locMinIndex[i]==-1) != (drIxShorter.locMaxIndex[i]==-1)) {
+				throw new Exception("Index is corrupted");
+			}
+			
+			if(drIxShorter.locMinIndex[i]!=-1) {
+				
+				for(int j=0;j<drIxLonger.locMinIndex.length;++j) {
+					
+					if((drIxLonger.locMinIndex[j]==-1) != (drIxLonger.locMaxIndex[j]==-1)) {
+						throw new Exception("Index is corrupted");
+					}
+					
+					if(drIxShorter.locMinIndex[j]!=-1) {
+						
+						boolean matches = true;
+						for(int currBitIndex = 0; currBitIndex<drIxShorter.maxValLen;++currBitIndex) {
+							boolean setInShorterIx = ((i & (1 << currBitIndex)) > 0);
+							boolean setInLongerIx = ((j & (1 << currBitIndex)) > 0);
+							if( setInShorterIx!=setInLongerIx ) {
+								matches = false;
+								break;
+							}
+						}
+						
+						if(matches) {
+							ArrayList<List<DecisionRule>> matchTuple = new ArrayList<List<DecisionRule>>();
+							matchTuple.add(drIxShorter.rules.subList(drIxShorter.locMinIndex[i], drIxShorter.locMaxIndex[i]+1));
+							matchTuple.add(drIxLonger.rules.subList(drIxLonger.locMinIndex[j], drIxLonger.locMaxIndex[j]+1));
+							
+							temp.add(matchTuple);
+						}
+						
+					}
+					
+				}
+			}
+		}
+		return temp;
+	}
+	
+	public ArrayList<List<DecisionRule>> getAllPossibleMatches() throws Exception {
+		ArrayList<List<DecisionRule>> temp = new ArrayList<List<DecisionRule>>();
+		for(int i=0;i<locMinIndex.length;++i) {
+			
+			if((locMinIndex[i]==-1) != (locMaxIndex[i]==-1)) {
+				throw new Exception("Index is corrupted");
+			}
+			
+			
+			if(locMinIndex[i]!=-1) {
+				temp.add(rules.subList(locMinIndex[i], locMaxIndex[i]+1));
 			}
 		}
 		return temp;

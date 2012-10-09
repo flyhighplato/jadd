@@ -94,26 +94,39 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 		ArrayList<DecisionRule> ruleSubset = new ArrayList<DecisionRule>();
 		ArrayList<Future<DecisionRuleMaxDiffOp>> futures = new ArrayList<Future<DecisionRuleMaxDiffOp>>();
 		
-		for(DecisionRule ruleThis:rules) {
-			i++;
+		DecisionRuleCollectionIndex rCollTransIdx = rCollTrans.getIndex();
+		DecisionRuleCollectionIndex rThisIdx = getRules().getIndex();
+		
+		if(rCollTransIdx == null || rThisIdx == null) {
 			
-			if(i%1000==0) {
-				DecisionRuleMaxDiffOp addRunner = new DecisionRuleMaxDiffOp(ruleSubset,rCollTrans);
-				Future<DecisionRuleMaxDiffOp> f = execService.submit(addRunner,addRunner);
-
-				futures.add(f);
-				ruleSubset = new ArrayList<DecisionRule>();
+			for(DecisionRule ruleThis:rules) {
+				i++;
+				
+				if(i%1000==0) {
+					DecisionRuleMaxDiffOp addRunner = new DecisionRuleMaxDiffOp(ruleSubset,rCollTrans);
+					Future<DecisionRuleMaxDiffOp> f = execService.submit(addRunner,addRunner);
+	
+					futures.add(f);
+					ruleSubset = new ArrayList<DecisionRule>();
+				}
+				
+				ruleSubset.add(ruleThis);
 			}
 			
-			ruleSubset.add(ruleThis);
-		}
-		
-		if(ruleSubset.size()>0) {
-			DecisionRuleMaxDiffOp addRunner = new DecisionRuleMaxDiffOp(ruleSubset,rCollTrans);
-			Future<DecisionRuleMaxDiffOp> f = execService.submit(addRunner,addRunner);
-
-			futures.add(f);
-			ruleSubset = null;
+			if(ruleSubset.size()>0) {
+				DecisionRuleMaxDiffOp addRunner = new DecisionRuleMaxDiffOp(ruleSubset,rCollTrans);
+				Future<DecisionRuleMaxDiffOp> f = execService.submit(addRunner,addRunner);
+	
+				futures.add(f);
+				ruleSubset = null;
+			}
+		} else {
+			for(List<List<DecisionRule>> matchTuple: rThisIdx.getCandidateMatches(rCollTransIdx)) {
+				DecisionRuleMaxDiffOp addRunner = new DecisionRuleMaxDiffOp(matchTuple.get(0),matchTuple.get(1));
+				Future<DecisionRuleMaxDiffOp> f = execService.submit(addRunner,addRunner);
+	
+				futures.add(f);
+			}
 		}
 		
 		
@@ -171,28 +184,40 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 		ArrayList<DecisionRule> ruleSubset = new ArrayList<DecisionRule>(1000);
 		ArrayList<Future<AbstractDecisionRuleTwoCollectionsOperator>> futures = new ArrayList<Future<AbstractDecisionRuleTwoCollectionsOperator>>();
 		
-		for(DecisionRule ruleThis:rules) {
-			i++;
+		DecisionRuleCollectionIndex rCollTransIdx = rCollTrans.getIndex();
+		DecisionRuleCollectionIndex rThisIdx = getRules().getIndex();
+		
+		if(rCollTransIdx==null || rThisIdx == null) {
+			for(DecisionRule ruleThis:rules) {
+				i++;
+				
+				if(i%1000==0) {
+					DecisionRuleAddOp addRunner = new DecisionRuleAddOp(ruleSubset,rCollTrans);
+					Future<AbstractDecisionRuleTwoCollectionsOperator> f = execService.submit(addRunner,(AbstractDecisionRuleTwoCollectionsOperator)addRunner);
+	
+					futures.add(f);
+					ruleSubset = new ArrayList<DecisionRule>(1000);
+				}
+				
+				ruleSubset.add(ruleThis);
+			}
 			
-			if(i%1000==0) {
+			if(ruleSubset.size()>0) {
 				DecisionRuleAddOp addRunner = new DecisionRuleAddOp(ruleSubset,rCollTrans);
 				Future<AbstractDecisionRuleTwoCollectionsOperator> f = execService.submit(addRunner,(AbstractDecisionRuleTwoCollectionsOperator)addRunner);
 
 				futures.add(f);
-				ruleSubset = new ArrayList<DecisionRule>(1000);
+				ruleSubset = null;
 			}
-			
-			ruleSubset.add(ruleThis);
 		}
-		
-		if(ruleSubset.size()>0) {
-			DecisionRuleAddOp addRunner = new DecisionRuleAddOp(ruleSubset,rCollTrans);
-			Future<AbstractDecisionRuleTwoCollectionsOperator> f = execService.submit(addRunner,(AbstractDecisionRuleTwoCollectionsOperator)addRunner);
-
-			futures.add(f);
-			ruleSubset = null;
+		else {
+			for(List<List<DecisionRule>> matchTuple: rThisIdx.getCandidateMatches(rCollTransIdx)) {
+				DecisionRuleAddOp addRunner = new DecisionRuleAddOp(matchTuple.get(0),matchTuple.get(1));
+				Future<AbstractDecisionRuleTwoCollectionsOperator> f = execService.submit(addRunner,(AbstractDecisionRuleTwoCollectionsOperator)addRunner);
+	
+				futures.add(f);
+			}
 		}
-		
 		
 		while(!futures.isEmpty()) {
 			if(futures.get(futures.size()-1).isDone()) {
