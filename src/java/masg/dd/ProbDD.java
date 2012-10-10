@@ -213,6 +213,18 @@ public class ProbDD extends AlgebraicDD {
 		return addNew;
 	}
 	
+	public ProbDD times(double value) throws Exception {
+		ProbDD addNew = new ProbDD(context);
+		
+		for(DecisionRule ruleThis:rules) {
+			DecisionRule resRule = new DecisionRule(ruleThis);
+			resRule.value = ruleThis.value * value;
+			addNew.addRule(resRule);
+		}
+		
+		return addNew;
+	}
+	
 	public double getProbability(DecisionRule ruleOther) {
 		double val = 0.0f;
 		for(DecisionRule ruleThis:rules) {

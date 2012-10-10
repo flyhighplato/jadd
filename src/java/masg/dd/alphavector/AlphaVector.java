@@ -9,7 +9,7 @@ public class AlphaVector {
 	
 	final protected HashMap<DDVariable,Integer> action;
 	final protected RealValueFunction fn;
-	protected HashMap<HashMap<DDVariable,Integer>,AlphaVector> condPlan = new HashMap<HashMap<DDVariable,Integer>,AlphaVector>();
+	protected HashMap<HashMap<DDVariable,Integer>,HashMap<DDVariable,Integer>> condPlan = new HashMap<HashMap<DDVariable,Integer>,HashMap<DDVariable,Integer>>();
 	
 	public AlphaVector(HashMap<DDVariable,Integer> action, RealValueFunction val) {
 		this.action = action;
@@ -19,7 +19,10 @@ public class AlphaVector {
 	public AlphaVector(HashMap<DDVariable,Integer> action, RealValueFunction val,HashMap<HashMap<DDVariable,Integer>,AlphaVector> condPlan) {
 		this.action = action;
 		this.fn = val;
-		this.condPlan = condPlan;
+		
+		for(HashMap<DDVariable,Integer> obs:condPlan.keySet()) {
+			this.condPlan.put(obs, condPlan.get(obs).action);
+		}
 	}
 	
 	public final RealValueFunction getFn() {
@@ -27,6 +30,6 @@ public class AlphaVector {
 	}
 	
 	public void setCondPlanForObs(HashMap<DDVariable,Integer> obs, AlphaVector plan) {
-		condPlan.put(obs, plan);
+		this.condPlan.put(obs, plan.action);
 	}
 }

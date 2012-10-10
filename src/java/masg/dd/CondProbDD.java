@@ -145,6 +145,7 @@ public class CondProbDD extends ProbDD {
 		CondProbDDContext cpContext = new CondProbDDContext((CondProbDDContext) context);
 		
 		add = add.sumOutAllExcept(cpContext.getVariableSpace().getVariables());
+		add.normalize();
 		
 		DecisionRuleCollection newRules = new DecisionRuleCollection(cpContext.getVariableSpace().getBitCount());
 		for(DecisionRule otherRule:add.getRules()) {

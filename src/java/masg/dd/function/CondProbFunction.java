@@ -120,16 +120,17 @@ public class CondProbFunction implements DecisionDiagram{
 						CondProbDDContext newCtxt = new CondProbDDContext(new DDVariableSpace(), new DDVariableSpace(varsOutNew));
 						
 						CondProbDD ddNew = new CondProbDD(newCtxt);
+						ddNew.addRule(newCtxt.getVariableSpace().generateRule(new HashMap<DDVariable,Integer>(), 0.0f));
+						
 						//TODO: This could be more efficient
 						for(HashMap<DDVariable,Integer> varInstances:dd2.getContext().getVariableSpace()) {
 							ProbDD addNew = dd1.restrict(varInstances).sumOut(varInstances.keySet());
 							double mult = dd2.getValue(varInstances);
 							
-							for(DecisionRule r: addNew.getRules()) {
-								r.value = r.value * mult;
-								ddNew.getRules().add(r);
-									
-							}
+							addNew = addNew.times(mult);
+							addNew.normalize();
+							
+							ddNew = ddNew.plus(addNew);
 						}
 						
 						ddNew.normalize();
@@ -281,7 +282,6 @@ public class CondProbFunction implements DecisionDiagram{
 			varsToSumOut.retainAll(sumOutVars);
 			ddExpanded = ddExpandedNew.sumOut(varsToSumOut);
 			ddExpandedIndex = ddExpanded.getRules().getIndex();
-			
 			
 			
 		}

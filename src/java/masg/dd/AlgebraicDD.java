@@ -16,6 +16,7 @@ import masg.dd.rules.DecisionRuleCollectionIndex;
 import masg.dd.rules.operations.AbstractDecisionRuleTwoCollectionsOperator;
 import masg.dd.rules.operations.DecisionRuleAddOp;
 import masg.dd.rules.operations.DecisionRuleMaxDiffOp;
+import masg.dd.rules.operations.DecisionRuleMaxOp;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
@@ -159,9 +160,9 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 		for(DecisionRule ruleThis:rules) {
 			for(DecisionRule ruleOther:rCollTrans) {
 				if(ruleThis.matches(ruleOther)) {
-					double diff = ruleOther.value - ruleThis.value ;
+					double diff = Math.abs(ruleOther.value - ruleThis.value) ;
 					
-					if(diff > tolerance)
+					if(ruleThis.value < ruleOther.value && diff > tolerance)
 						return false;
 				}
 			}
@@ -350,6 +351,68 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 			DecisionRule resRule = new DecisionRule(ruleThis);
 			resRule.value = ruleThis.value * value;
 			addNew.addRule(resRule);
+		}
+		
+		return addNew;
+	}
+	
+	public AlgebraicDD max(AlgebraicDD addOther) throws Exception {
+		AlgebraicDD addNew = new AlgebraicDD(context);
+		
+		DecisionRuleCollection rCollTrans = new DecisionRuleCollection(addOther.getContext().getVariableSpace().getBitCount());
+		
+		for(DecisionRule ruleOther:addOther.rules) {
+			DecisionRule ruleOtherTrans = context.getVariableSpace().translateRule(ruleOther, addOther.context.getVariableSpace());
+			rCollTrans.add(ruleOtherTrans);
+		}
+		
+		int i = 0;
+		ArrayList<DecisionRule> ruleSubset = new ArrayList<DecisionRule>(1000);
+		ArrayList<Future<AbstractDecisionRuleTwoCollectionsOperator>> futures = new ArrayList<Future<AbstractDecisionRuleTwoCollectionsOperator>>();
+		
+		DecisionRuleCollectionIndex rCollTransIdx = rCollTrans.getIndex();
+		DecisionRuleCollectionIndex rThisIdx = getRules().getIndex();
+		
+		if(rCollTransIdx==null || rThisIdx == null) {
+			for(DecisionRule ruleThis:rules) {
+				i++;
+				
+				if(i%1000==0) {
+					DecisionRuleMaxOp addRunner = new DecisionRuleMaxOp(ruleSubset,rCollTrans);
+					Future<AbstractDecisionRuleTwoCollectionsOperator> f = execService.submit(addRunner,(AbstractDecisionRuleTwoCollectionsOperator)addRunner);
+	
+					futures.add(f);
+					ruleSubset = new ArrayList<DecisionRule>(1000);
+				}
+				
+				ruleSubset.add(ruleThis);
+			}
+			
+			if(ruleSubset.size()>0) {
+				DecisionRuleMaxOp addRunner = new DecisionRuleMaxOp(ruleSubset,rCollTrans);
+				Future<AbstractDecisionRuleTwoCollectionsOperator> f = execService.submit(addRunner,(AbstractDecisionRuleTwoCollectionsOperator)addRunner);
+
+				futures.add(f);
+				ruleSubset = null;
+			}
+		}
+		else {
+			for(List<List<DecisionRule>> matchTuple: rThisIdx.getCandidateMatches(rCollTransIdx)) {
+				DecisionRuleMaxOp addRunner = new DecisionRuleMaxOp(matchTuple.get(0),matchTuple.get(1));
+				Future<AbstractDecisionRuleTwoCollectionsOperator> f = execService.submit(addRunner,(AbstractDecisionRuleTwoCollectionsOperator)addRunner);
+	
+				futures.add(f);
+			}
+		}
+		
+		while(!futures.isEmpty()) {
+			if(futures.get(futures.size()-1).isDone()) {
+				AbstractDecisionRuleTwoCollectionsOperator addRunner = futures.get(futures.size()-1).get();
+				if(addRunner.e!=null)
+					throw addRunner.e;
+				addNew.addRules(addRunner.resultRules);
+				futures.remove(futures.size()-1);
+			}
 		}
 		
 		return addNew;

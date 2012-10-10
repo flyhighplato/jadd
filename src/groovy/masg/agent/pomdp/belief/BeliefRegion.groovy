@@ -9,8 +9,11 @@ import masg.dd.vars.DDVariable
 
 class BeliefRegion {
 	POMDP p
-	List beliefSamples = []
+	protected List<CondProbFunction> beliefSamples = []
 	
+	public final List<CondProbFunction> getBeliefSamples() {
+		return beliefSamples;
+	}
 	
 	public BeliefRegion(int numSamples, POMDP p, RandomPolicy policy) {
 		this.p = p

@@ -263,8 +263,15 @@ class POMDPSpec extends Specification {
 	def "policy gets built"() {
 		when:
 			PolicyBuilder polBuilder = new PolicyBuilder(p)
+			RandomPolicy policy = new RandomPolicy(p)
 		then:
-			polBuilder.computePureStrategies();
+			BeliefRegion bReg = new BeliefRegion(100, p, policy)
+			//polBuilder.computePureStrategies(5);
+			bReg.getBeliefSamples().eachWithIndex { CondProbFunction b, i ->
+				println "Computing for sample #$i"
+				polBuilder.dpBackup2(b);
+			}
+			//polBuilder.dpBackup(bReg.getBeliefSamples().get(1));
 	}
 	
 }
