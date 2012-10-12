@@ -8,41 +8,77 @@ public class DominantAlphaVectorCollection {
 	protected ArrayList<AlphaVector> alphaVectors = new ArrayList<AlphaVector>();
 	protected RealValueFunction valueFunction;
 	
-	double tolerance = 0.001f;
+	double tolerance = 0.000001f;
 	
-	public boolean add(AlphaVector alphaNew) throws Exception {
+	synchronized public boolean add(AlphaVector alphaNew) throws Exception {
+		
 		if(!isDominated(alphaNew)) {
-			alphaVectors.add(alphaNew);
+			synchronized(this) {
+				alphaVectors.add(alphaNew);
+			}
 			updateValueFunction(alphaNew);
 			return true;
 		}
+
 		
 		return false;
+	}
+	
+	private void prune() throws Exception {
+		synchronized(this) {
+			if(valueFunction!=null && alphaVectors!=null) {
+				for(int i=0;i<alphaVectors.size();++i) {
+					AlphaVector alphaOld = alphaVectors.get(0);
+					if(valueFunction.dominates(alphaOld.getFn(), tolerance)) {
+						alphaVectors.remove(i);
+						--i;
+					}
+				}
+			}
+		}
 	}
 	
 	private void updateValueFunction(AlphaVector alphaNew) throws Exception {
-		if(valueFunction == null)
-			valueFunction = alphaNew.getFn();
-		else {
-			valueFunction = new RealValueFunction(valueFunction.getDD().max(alphaNew.getFn().getDD()));
+		synchronized(this) {
+			if(valueFunction == null)
+				valueFunction = alphaNew.getFn();
+			else {
+				valueFunction = new RealValueFunction(valueFunction.getDD().max(alphaNew.getFn().getDD()));
+			}
+			
+			valueFunction.getDD().compress();
+			
+			System.out.println("  Value function has " + valueFunction.getDD().getRules().size() + " rules");
+			System.out.println("  Value function total sum: " + valueFunction.getDD().getRules().getRuleValueSum());
+			
+			
+			
+			if(alphaVectors.size()%10 == 1) {
+				System.out.println("  Pruning dominated alpha vectors...");
+				prune();
+			}
 		}
-		
-		valueFunction.getDD().compress();
 	}
 	
-	public RealValueFunction getValueFunction() {
-		return valueFunction;
+	public final RealValueFunction getValueFunction() {
+		synchronized(this) {
+			return valueFunction;
+		}
 	}
 	
-	public boolean isDominated(AlphaVector alphaNew) throws Exception {
-		if(valueFunction != null && valueFunction.dominates(alphaNew.getFn(), tolerance)) {
-			return true;
+	private boolean isDominated(AlphaVector alphaNew) throws Exception {
+		synchronized(this) {
+			if(valueFunction != null && valueFunction.dominates(alphaNew.getFn(), tolerance)) {
+				return true;
+			}
+			
+			return false;
 		}
-		
-		return false;
 	}
 	
 	public final ArrayList<AlphaVector> getAlphaVectors() {
-		return alphaVectors;
+		synchronized(this) {
+			return alphaVectors;
+		}
 	}
 }

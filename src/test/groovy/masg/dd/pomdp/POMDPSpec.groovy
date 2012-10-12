@@ -10,6 +10,7 @@ import masg.agent.pomdp.policy.PolicyBuilder
 import masg.agent.pomdp.policy.RandomPolicy;
 import masg.dd.AlgebraicDD;
 import masg.dd.CondProbDD;
+import masg.dd.alphavector.DominantAlphaVectorCollection;
 import masg.dd.context.DecisionDiagramContext;
 import masg.dd.function.CondProbFunction
 import masg.dd.function.RealValueFunction
@@ -265,13 +266,20 @@ class POMDPSpec extends Specification {
 			PolicyBuilder polBuilder = new PolicyBuilder(p)
 			RandomPolicy policy = new RandomPolicy(p)
 		then:
-			BeliefRegion bReg = new BeliefRegion(100, p, policy)
-			//polBuilder.computePureStrategies(5);
-			bReg.getBeliefSamples().eachWithIndex { CondProbFunction b, i ->
-				println "Computing for sample #$i"
-				polBuilder.dpBackup2(b);
+			BeliefRegion bReg = new BeliefRegion(1000, p, policy)
+			
+			
+			
+			10.times {
+				DominantAlphaVectorCollection bestAlphas = new DominantAlphaVectorCollection();
+				
+				bReg.getBeliefSamples().eachWithIndex { CondProbFunction b, i ->
+					println "Computing for sample #$i"
+					polBuilder.dpBackup(b,bestAlphas);
+				}
+				
+				polBuilder.bestAlphas = bestAlphas;
 			}
-			//polBuilder.dpBackup(bReg.getBeliefSamples().get(1));
 	}
 	
 }

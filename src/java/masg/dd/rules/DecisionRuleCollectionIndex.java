@@ -16,8 +16,14 @@ public class DecisionRuleCollectionIndex {
 	
 	static int MAX_INDEX_VALUE_LEN = 16;
 	
+	
 	private DecisionRuleCollectionIndex(final List<DecisionRule> rules) {
 		this.rules = rules;
+	}
+	
+	public final List<DecisionRule> getRules() {
+		return rules;
+		
 	}
 	
 	public static DecisionRuleCollectionIndex index(List<DecisionRule> rules) throws Exception {
@@ -86,8 +92,12 @@ public class DecisionRuleCollectionIndex {
 	private static int getMaxIndexValueLength(List<DecisionRule> rules) {
 		int maxLen = MAX_INDEX_VALUE_LEN;
 		
+		if(rules==null || rules.size()<=0) {
+			return 0;
+		}
+		
 		if(rules.get(0).getNumBits()>7)
-			maxLen = Math.min(maxLen, rules.get(0).getNumBits()-7);
+			maxLen = Math.min(maxLen, rules.get(0).getNumBits()-10);
 		else
 			return 0;
 		
@@ -192,45 +202,6 @@ public class DecisionRuleCollectionIndex {
 				}
 			}
 		}
-		/*for(int i=0;i<drIxShorter.locMinIndex.length;++i) {
-			
-			if((drIxShorter.locMinIndex[i]==-1) != (drIxShorter.locMaxIndex[i]==-1)) {
-				throw new Exception("Index is corrupted");
-			}
-			
-			if(drIxShorter.locMinIndex[i]!=-1) {
-				
-				for(int j=0;j<drIxLonger.locMinIndex.length;++j) {
-					
-					if((drIxLonger.locMinIndex[j]==-1) != (drIxLonger.locMaxIndex[j]==-1)) {
-						throw new Exception("Index is corrupted");
-					}
-					
-					if(drIxLonger.locMinIndex[j]!=-1) {
-						
-						boolean matches = true;
-						for(int currBitIndex = 0; currBitIndex<drIxShorter.maxValLen;++currBitIndex) {
-							boolean setInShorterIx = ((i & (1 << currBitIndex)) > 0);
-							boolean setInLongerIx = ((j & (1 << currBitIndex)) > 0);
-							if( setInShorterIx!=setInLongerIx ) {
-								matches = false;
-								break;
-							}
-						}
-						
-						if(matches) {
-							ArrayList<List<DecisionRule>> matchTuple = new ArrayList<List<DecisionRule>>(2);
-							matchTuple.add(drIxShorter.rules.subList(drIxShorter.locMinIndex[i], drIxShorter.locMaxIndex[i]+1));
-							matchTuple.add(drIxLonger.rules.subList(drIxLonger.locMinIndex[j], drIxLonger.locMaxIndex[j]+1));
-							
-							temp.add(matchTuple);
-						}
-						
-					}
-					
-				}
-			}
-		}*/
 		return temp;
 	}
 	

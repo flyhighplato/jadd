@@ -3,7 +3,6 @@ package masg.dd;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -13,6 +12,8 @@ import masg.dd.context.DecisionDiagramContext;
 import masg.dd.rules.DecisionRule;
 import masg.dd.rules.DecisionRuleCollection;
 import masg.dd.rules.DecisionRuleCollectionIndex;
+import masg.dd.rules.DecisionRuleCollectionJoinIterator;
+import masg.dd.rules.JoinResult;
 import masg.dd.rules.operations.AbstractDecisionRuleTwoCollectionsOperator;
 import masg.dd.rules.operations.DecisionRuleAddOp;
 import masg.dd.rules.operations.DecisionRuleMaxDiffOp;
@@ -122,10 +123,12 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 				ruleSubset = null;
 			}
 		} else {
-			for(List<List<DecisionRule>> matchTuple: rThisIdx.getCandidateMatches(rCollTransIdx)) {
-				DecisionRuleMaxDiffOp addRunner = new DecisionRuleMaxDiffOp(matchTuple.get(0),matchTuple.get(1));
-				Future<DecisionRuleMaxDiffOp> f = execService.submit(addRunner,addRunner);
-	
+			
+			DecisionRuleCollectionJoinIterator it = new DecisionRuleCollectionJoinIterator(rCollTransIdx, rThisIdx);
+			
+			for(JoinResult jr:it) {
+				DecisionRuleMaxDiffOp addRunner = new DecisionRuleMaxDiffOp(jr.getLeftRulesList(),jr.getRightRulesList());
+				Future<DecisionRuleMaxDiffOp> f = execService.submit(addRunner,(DecisionRuleMaxDiffOp)addRunner);
 				futures.add(f);
 			}
 		}
@@ -157,13 +160,35 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 		}
 		
 		
-		for(DecisionRule ruleThis:rules) {
-			for(DecisionRule ruleOther:rCollTrans) {
-				if(ruleThis.matches(ruleOther)) {
-					double diff = Math.abs(ruleOther.value - ruleThis.value) ;
-					
-					if(ruleThis.value < ruleOther.value && diff > tolerance)
-						return false;
+		DecisionRuleCollectionIndex rCollTransIdx = rCollTrans.getIndex();
+		DecisionRuleCollectionIndex rThisIdx = getRules().getIndex();
+		
+		if(rThisIdx!=null && rCollTransIdx!=null) {
+			DecisionRuleCollectionJoinIterator it = new DecisionRuleCollectionJoinIterator(rCollTransIdx, rThisIdx);
+			
+			for(JoinResult jr:it) {
+				for(DecisionRule ruleThis:jr.getLeftRulesList()) {
+					for(DecisionRule ruleOther:jr.getRightRulesList()) {
+						if(ruleThis.matches(ruleOther)) {
+							double diff = Math.abs(ruleOther.value - ruleThis.value) ;
+							
+							if(ruleThis.value < ruleOther.value && diff > tolerance)
+								return false;
+						}
+					}
+				}
+			}
+		}
+		else {
+		
+			for(DecisionRule ruleThis:rules) {
+				for(DecisionRule ruleOther:rCollTrans) {
+					if(ruleThis.matches(ruleOther)) {
+						double diff = Math.abs(ruleOther.value - ruleThis.value) ;
+						
+						if(ruleThis.value < ruleOther.value && diff > tolerance)
+							return false;
+					}
 				}
 			}
 		}
@@ -212,12 +237,15 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 			}
 		}
 		else {
-			for(List<List<DecisionRule>> matchTuple: rThisIdx.getCandidateMatches(rCollTransIdx)) {
-				DecisionRuleAddOp addRunner = new DecisionRuleAddOp(matchTuple.get(0),matchTuple.get(1));
+			
+			DecisionRuleCollectionJoinIterator it = new DecisionRuleCollectionJoinIterator(rCollTransIdx, rThisIdx);
+			
+			for(JoinResult jr:it) {
+				DecisionRuleAddOp addRunner = new DecisionRuleAddOp(jr.getLeftRulesList(),jr.getRightRulesList());
 				Future<AbstractDecisionRuleTwoCollectionsOperator> f = execService.submit(addRunner,(AbstractDecisionRuleTwoCollectionsOperator)addRunner);
-	
 				futures.add(f);
 			}
+			
 		}
 		
 		while(!futures.isEmpty()) {
@@ -397,12 +425,15 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 			}
 		}
 		else {
-			for(List<List<DecisionRule>> matchTuple: rThisIdx.getCandidateMatches(rCollTransIdx)) {
-				DecisionRuleMaxOp addRunner = new DecisionRuleMaxOp(matchTuple.get(0),matchTuple.get(1));
+			
+			DecisionRuleCollectionJoinIterator it = new DecisionRuleCollectionJoinIterator(rCollTransIdx, rThisIdx);
+			
+			for(JoinResult jr:it) {
+				DecisionRuleMaxOp addRunner = new DecisionRuleMaxOp(jr.getLeftRulesList(),jr.getRightRulesList());
 				Future<AbstractDecisionRuleTwoCollectionsOperator> f = execService.submit(addRunner,(AbstractDecisionRuleTwoCollectionsOperator)addRunner);
-	
 				futures.add(f);
 			}
+			
 		}
 		
 		while(!futures.isEmpty()) {
