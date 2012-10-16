@@ -2,7 +2,6 @@ package masg.dd.function;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -53,7 +52,15 @@ public class CondProbFunction implements DecisionDiagram{
 		
 		return val;
 	}
-	
+	public double euclideanDistance(CondProbFunction fnOther) throws Exception {
+		double dist = 0.0f;
+		for(CondProbDD cddThis:ddList) {
+			for(CondProbDD cddOther:fnOther.ddList) {
+				dist += cddThis.euclideanDistance(cddOther);
+			}
+		}
+		return dist;
+	}
 	public CondProbFunction sumOut(Collection<DDVariable> sumOutVars, boolean normalize) throws Exception {
 		CondProbFunction newFn = new CondProbFunction();
 		for(CondProbDD dd:ddList) {
@@ -227,6 +234,7 @@ public class CondProbFunction implements DecisionDiagram{
 		AlgebraicDD ddFn = fnOther.getDD();
 		for(CondProbDD cddThis:ddList) {
 			ddFn = ddFn.times(cddThis);
+			
 		}
 		return new RealValueFunction(ddFn);
 	}

@@ -3,7 +3,6 @@ package masg.dd.rules;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 
 public class DecisionRuleCollectionIndex {
@@ -14,16 +13,17 @@ public class DecisionRuleCollectionIndex {
 	int maxValLen = 0;
 	DecisionRuleCollectionIndex[] subIndex;
 	
-	
-	static private double tolerance = 0.00001f;
-	
 	private final List<DecisionRule> rules;
 	
 	static int MAX_INDEX_VALUE_LEN = 32;
 	
+	@SuppressWarnings("unused")
 	private final int ruleIxStart;
+	@SuppressWarnings("unused")
 	private final int ruleIxEnd;
+	@SuppressWarnings("unused")
 	private final int bitIxStart;
+	@SuppressWarnings("unused")
 	private final int parentVal;
 	
 	

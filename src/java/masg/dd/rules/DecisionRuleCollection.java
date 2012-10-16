@@ -25,6 +25,18 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 		return currIndex;
 	}
 	
+	public boolean isValid() {
+		DecisionRule rPrev = null;
+		Collections.sort(rules);
+		for(DecisionRule r:rules) {
+			if(rPrev!=null && r.bitStringEquals(rPrev)) {
+				return false;
+			}
+			rPrev = r;
+		}
+		return true;
+	}
+	
 	public void compress() {
 		currIndex = null;
 		

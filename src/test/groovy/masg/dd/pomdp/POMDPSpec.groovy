@@ -10,7 +10,7 @@ import masg.agent.pomdp.policy.PolicyBuilder
 import masg.agent.pomdp.policy.RandomPolicy;
 import masg.dd.AlgebraicDD;
 import masg.dd.CondProbDD;
-import masg.dd.alphavector.DominantAlphaVectorCollection;
+import masg.dd.alphavector.BeliefAlphaVectorCollection;
 import masg.dd.context.DecisionDiagramContext;
 import masg.dd.function.CondProbFunction
 import masg.dd.function.RealValueFunction
@@ -271,7 +271,7 @@ class POMDPSpec extends Specification {
 			
 			
 			10.times {
-				DominantAlphaVectorCollection bestAlphas = new DominantAlphaVectorCollection();
+				BeliefAlphaVectorCollection bestAlphas = new BeliefAlphaVectorCollection();
 				
 				bReg.getBeliefSamples().eachWithIndex { CondProbFunction b, i ->
 					println "Computing for sample #$i"

@@ -250,6 +250,7 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 				AbstractDecisionRuleTwoCollectionsOperator addRunner = futures.get(futures.size()-1).get();
 				if(addRunner.e!=null)
 					throw addRunner.e;
+				
 				addNew.addRules(addRunner.resultRules);
 				futures.remove(futures.size()-1);
 			}
@@ -462,7 +463,6 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 		DecisionRuleCollectionIndex rCollTransIdx = rCollTrans.getIndex();
 		DecisionRuleCollectionIndex rThisIdx = getRules().getIndex();
 		
-		
 		AlgebraicDD addNew = new AlgebraicDD(context);
 		
 		ArrayList<DecisionRule> rRules = new ArrayList<DecisionRule>();
@@ -523,6 +523,80 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 		
 		addNew.addRules(rRules);
 		return addNew;
+	}
+	
+	public double euclideanDistance(AlgebraicDD addOther) throws Exception {
+		
+		DecisionRuleCollection rCollTrans = new DecisionRuleCollection(context.getVariableSpace().getBitCount());
+		
+		for(DecisionRule ruleOther:addOther.rules) {
+			DecisionRule ruleOtherTrans = context.getVariableSpace().translateRule(ruleOther, addOther.context.getVariableSpace());
+			rCollTrans.add(ruleOtherTrans);
+		}
+		
+		DecisionRuleCollectionIndex rCollTransIdx = rCollTrans.getIndex();
+		DecisionRuleCollectionIndex rThisIdx = getRules().getIndex();
+		
+		AlgebraicDD addNew = new AlgebraicDD(context);
+		
+		ArrayList<DecisionRule> rRules = new ArrayList<DecisionRule>();
+		
+		if(rThisIdx!=null && rCollTransIdx!=null) {
+			DecisionRuleCollectionJoinIterator it = new DecisionRuleCollectionJoinIterator(rCollTransIdx, rThisIdx);
+			
+			for(JoinResult jr:it) {
+				for(DecisionRule ruleThis:jr.getRightRulesList()) {
+					for(DecisionRule ruleOther:jr.getLeftRulesList()) {
+						if(ruleThis.matches(ruleOther)) {
+							DecisionRule resRule = DecisionRule.getIntersectionBitStringRule(ruleThis, ruleOther);
+							resRule.value = Math.pow(ruleThis.value - ruleOther.value,2.0);
+							rRules.add(resRule);
+						}
+					}
+				}
+			}
+		}
+		else if(rThisIdx!=null) {
+			for(DecisionRule ruleThis:rCollTrans) {
+				for(List<DecisionRule> ruleBlock:rThisIdx.getCandidateMatches(ruleThis)) {
+					for(DecisionRule ruleOther:ruleBlock) {
+						if(ruleThis.matches(ruleOther)) {
+							DecisionRule resRule = DecisionRule.getIntersectionBitStringRule(ruleThis, ruleOther);
+							resRule.value = Math.pow(ruleThis.value - ruleOther.value,2.0);
+							rRules.add(resRule);
+						}
+					}
+				}
+			}
+		}
+		else if(rCollTransIdx!=null) {
+			for(DecisionRule ruleThis:rules) {
+				for(List<DecisionRule> ruleBlock:rCollTransIdx.getCandidateMatches(ruleThis)) {
+					for(DecisionRule ruleOther:ruleBlock) {
+						if(ruleThis.matches(ruleOther)) {
+							DecisionRule resRule = DecisionRule.getIntersectionBitStringRule(ruleThis, ruleOther);
+							resRule.value = Math.pow(ruleThis.value - ruleOther.value,2.0);
+							rRules.add(resRule);
+						}
+					}
+				}
+			}
+		}
+		else {
+		
+			for(DecisionRule ruleThis:rules) {
+				for(DecisionRule ruleOther:rCollTrans) {
+					if(ruleThis.matches(ruleOther)) {
+						DecisionRule resRule = DecisionRule.getIntersectionBitStringRule(ruleThis, ruleOther);
+						resRule.value = Math.pow(ruleThis.value - ruleOther.value,2.0);
+						rRules.add(resRule);
+					}
+				}
+			}
+		}
+		
+		addNew.addRules(rRules);
+		return addNew.getRules().getRuleValueSum();
 	}
 	
 	public void normalize() {

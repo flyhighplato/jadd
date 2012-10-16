@@ -47,7 +47,6 @@ public class DecisionRuleCollectionJoinIterator implements Iterator<JoinResult>,
 					return;
 				}
 				else {
-					List<DecisionRule> rulesLeft = indexLonger.getRules().subList(indexLonger.locMinIndex[indexLongerPos], indexLonger.locMaxIndex[indexLongerPos]+1);
 					throw new Exception("Could not fully join indices");
 				}
 			}

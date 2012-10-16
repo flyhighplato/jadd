@@ -4,14 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map.Entry;
 
 import masg.dd.context.DecisionDiagramContext;
 import masg.dd.rules.DecisionRule;
-import masg.dd.rules.DecisionRuleCollectionIndex;
-import masg.dd.rules.DecisionRuleCollectionJoinIterator;
-import masg.dd.rules.JoinResult;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
@@ -86,74 +81,82 @@ public class ProbDD extends AlgebraicDD {
 			newRules.add(ruleNewInNewContext);
 		}
 		
-		Collections.sort(newRules);
+		boolean doAgain = true;
 		
-		//Remove duplicate matches
-		for(int i=0;i<newRules.size();++i) {
-			DecisionRule r1 = newRules.get(i);
+		while(doAgain) {
+			doAgain = false;
+			Collections.sort(newRules);
 			
-			for(int j=i+1;j<newRules.size();++j) {
-				DecisionRule r2 = newRules.get(j);
+			//Remove duplicate matches
+			for(int i=0;i<newRules.size();++i) {
+				DecisionRule r1 = newRules.get(i);
 				
-				boolean noMoreMatches = false;
-				for(int currBitIx=0;currBitIx<r1.getNumBits();++currBitIx) {
-					if(r1.getBit(currBitIx)=='*' || r2.getBit(currBitIx)=='*')
-						break; //We can't tell if this might be a duplicate rule
-					if(r1.getBit(currBitIx)!=r2.getBit(currBitIx)) {
-						noMoreMatches = true;
-					}
-				}
-				
-				if(noMoreMatches)
-					break;
-				
-				if(r1.bitStringEquals(r2)) {
-					r1.value += r2.value;
-					newRules.remove(j);
-					j--;
-				}
-				else {
-					DecisionRule rSup = DecisionRule.getSupersetBitStringRule(r1, r2);
+				for(int j=i+1;j<newRules.size();++j) {
+					DecisionRule r2 = newRules.get(j);
 					
-					if(rSup!=null) {
-						DecisionRule rOther;
-						if(rSup.equals(r1)) {
-							rSup = r1;
-							rOther = r2;
+					boolean noMoreMatches = false;
+					for(int currBitIx=0;currBitIx<r1.getNumBits();++currBitIx) {
+						if(r1.getBit(currBitIx)=='*' || r2.getBit(currBitIx)=='*')
+							break; //We can't tell if this might be a duplicate rule
+						if(r1.getBit(currBitIx)!=r2.getBit(currBitIx)) {
+							noMoreMatches = true;
 						}
-						else {
-							rSup = r2;
-							rOther = r1;
-						}
+					}
+					
+					if(noMoreMatches)
+						break;
+					
+					if(r1.bitStringEquals(r2)) {
+						r1.value += r2.value;
+						newRules.remove(j);
+						j--;
+					}
+					else {
+						DecisionRule rSup = DecisionRule.getSupersetBitStringRule(r1, r2);
 						
-						if(Math.abs(r1.value-r2.value)>tolerance) {
-							for(int currBitIx=rSup.getNumBits()-1;currBitIx>=0;currBitIx--) {
-								if(rSup.getBit(currBitIx)=='*') {
-									if(rOther.getBit(currBitIx)=='0') {
-										rSup.setBit(currBitIx, '1');
-										break;
-									}
-									else if(rOther.getBit(currBitIx)=='1') {
-										rSup.setBit(currBitIx, '0');
-										break;
+						if(rSup!=null) {
+							//This screws up the ordering
+							doAgain = true;
+							
+							DecisionRule rOther;
+							if(rSup.equals(r1)) {
+								rSup = r1;
+								rOther = r2;
+							}
+							else {
+								rSup = r2;
+								rOther = r1;
+							}
+							
+							if(Math.abs(r1.value-r2.value)>tolerance) {
+								for(int currBitIx=rSup.getNumBits()-1;currBitIx>=0;currBitIx--) {
+									if(rSup.getBit(currBitIx)=='*') {
+										if(rOther.getBit(currBitIx)=='0') {
+											rSup.setBit(currBitIx, '1');
+											break;
+										}
+										else if(rOther.getBit(currBitIx)=='1') {
+											rSup.setBit(currBitIx, '0');
+											break;
+										}
 									}
 								}
 							}
-						}
-						else {
-							if(rSup==r1) {
-								newRules.remove(j);
-								j--;
-							}
 							else {
-								newRules.remove(i);
-								i--;
-								break;
+								if(rSup==r1) {
+									newRules.remove(j);
+									j--;
+								}
+								else {
+									newRules.remove(i);
+									i--;
+									break;
+								}
 							}
 						}
 					}
+					
 				}
-				
 			}
 		}
 			
