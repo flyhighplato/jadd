@@ -2,11 +2,16 @@ package masg.dd;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 
 import masg.dd.context.DecisionDiagramContext;
 import masg.dd.rules.DecisionRule;
+import masg.dd.rules.DecisionRuleCollectionIndex;
+import masg.dd.rules.DecisionRuleCollectionJoinIterator;
+import masg.dd.rules.JoinResult;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
 
@@ -68,60 +73,39 @@ public class ProbDD extends AlgebraicDD {
 		DecisionDiagramContext newCtx = new DecisionDiagramContext(newVarSpace);
 		ProbDD resultDD = new ProbDD(newCtx);
 		
-		HashMap<String,Double> newRuleNonnormValues = new HashMap<String,Double>();
-		double totalSum = 0.0f;
-		
-		if(newVarSpace.getVariableCount()>0) {
-			for(DecisionRule ruleThis:rules) {
-				DecisionRule rNew = newCtx.getVariableSpace().translateRule(ruleThis, context.getVariableSpace());
-				
-				String newRuleStr = rNew.toBitString();
-				if(newRuleNonnormValues.containsKey(newRuleStr)) {
-					newRuleNonnormValues.put(newRuleStr, newRuleNonnormValues.get(newRuleStr) + ruleThis.value);
-				}
-				else {
-					newRuleNonnormValues.put(newRuleStr, ruleThis.value);
-				}
-			}
-		}
-		else {
-			for(DecisionRule ruleThis:rules) {
-
-					DecisionRule ruleNewInNewContext = new DecisionRule(0, ruleThis.value);
-					
-					totalSum += ruleThis.value;
-					
-					String newRuleStr = ruleNewInNewContext.toBitString();
-					if(newRuleNonnormValues.containsKey(newRuleStr)) {
-						newRuleNonnormValues.put(newRuleStr, newRuleNonnormValues.get(newRuleStr) + ruleThis.value);
-					}
-					else {
-						newRuleNonnormValues.put(newRuleStr, ruleThis.value);
-					}
-				
-			}
-		}
-		
-		
-		ArrayList<DecisionRule> newRules = new ArrayList<DecisionRule>();
-		
-		for(Entry<String,Double> newRuleValueEntry:newRuleNonnormValues.entrySet()) {
-			DecisionRule r;
-			if(normalize && totalSum>0.0f) {
-				r = new DecisionRule(newRuleValueEntry.getKey(),newRuleValueEntry.getValue()/totalSum);
+		ArrayList<DecisionRule> newRules = new ArrayList<DecisionRule>(rules.size());
+		for(DecisionRule ruleThis:rules) {
+			DecisionRule ruleNewInNewContext;
+			if(newVarSpace.getVariableCount()>0) {
+				ruleNewInNewContext = newCtx.getVariableSpace().translateRule(ruleThis, context.getVariableSpace());
 			}
 			else {
-				r = new DecisionRule(newRuleValueEntry.getKey(),newRuleValueEntry.getValue());
+				ruleNewInNewContext = new DecisionRule(0, ruleThis.value);
 			}
-			newRules.add(r);
+			
+			newRules.add(ruleNewInNewContext);
 		}
 		
+		Collections.sort(newRules);
 		
 		//Remove duplicate matches
 		for(int i=0;i<newRules.size();++i) {
 			DecisionRule r1 = newRules.get(i);
+			
 			for(int j=i+1;j<newRules.size();++j) {
 				DecisionRule r2 = newRules.get(j);
+				
+				boolean noMoreMatches = false;
+				for(int currBitIx=0;currBitIx<r1.getNumBits();++currBitIx) {
+					if(r1.getBit(currBitIx)=='*' || r2.getBit(currBitIx)=='*')
+						break; //We can't tell if this might be a duplicate rule
+					if(r1.getBit(currBitIx)!=r2.getBit(currBitIx)) {
+						noMoreMatches = true;
+					}
+				}
+				
+				if(noMoreMatches)
+					break;
 				
 				if(r1.bitStringEquals(r2)) {
 					r1.value += r2.value;

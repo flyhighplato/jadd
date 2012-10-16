@@ -2,6 +2,7 @@ package masg.dd.function;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -222,6 +223,13 @@ public class CondProbFunction implements DecisionDiagram{
 		return newFn;
 	}
 	
+	public RealValueFunction times(RealValueFunction fnOther) throws Exception {
+		AlgebraicDD ddFn = fnOther.getDD();
+		for(CondProbDD cddThis:ddList) {
+			ddFn = ddFn.times(cddThis);
+		}
+		return new RealValueFunction(ddFn);
+	}
 	public RealValueFunction timesAndSumOut(RealValueFunction fnOther,Collection<DDVariable> sumOutVars) throws Exception {
 		
 		
