@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
+import masg.dd.AlgebraicDDBuilder;
 import masg.dd.RealValueFunctionBuilder;
 import masg.dd.alphavector.AlphaVector;
 import masg.dd.alphavector.DominantAlphaVectorCollection;
@@ -26,12 +27,12 @@ public class PolicyBuilder {
 		DDVariableSpace actSpace = new DDVariableSpace(new ArrayList<DDVariable>(p.getActions()));
 		
 		
-		for(HashMap<DDVariable,Integer> actSpacePt:actSpace) {
+		/*for(HashMap<DDVariable,Integer> actSpacePt:actSpace) {
 			bestAlphas.add(new AlphaVector(actSpacePt,p.getInitialtBelief().timesAndSumOut(p.getRewardFn(), new ArrayList<DDVariable>())));
-		}
+		}*/
 	}
 	
-	public void computePureStrategies(int maxIterations) throws Exception {
+	/*public void computePureStrategies(int maxIterations) throws Exception {
 		CondProbFunction transFn = p.getTransFn();
 		RealValueFunction rewFn = p.getRewardFn();
 		
@@ -88,7 +89,7 @@ public class PolicyBuilder {
 			}
 		}
 		
-	}
+	}*/
 	
 	public void dpBackup(CondProbFunction belief, DominantAlphaVectorCollection newAlphas) throws Exception {
 		long milliStart = new Date().getTime();
@@ -97,36 +98,37 @@ public class PolicyBuilder {
 		CondProbFunction obsFn = p.getObsFns();
 		RealValueFunction rewFn = p.getRewardFn();
 		
-		RealValueFunction immReward = belief.timesAndSumOut(rewFn, new ArrayList<DDVariable>());
 		
-		
+		RealValueFunction immReward = belief.times(rewFn);
 		double value = immReward.getDD().getRules().getRuleValueSum();
-		
 		CondProbFunction temp = transFn.times(belief);
+		
 		temp = obsFn.times(temp);
-		
-		
+
 		DDVariableSpace actSpace = new DDVariableSpace(new ArrayList<DDVariable>(p.getActions()));
 		
-		
 		RealValueFunction currValFn = bestAlphas.getValueFunction();
+		if(currValFn==null) {
+			currValFn = new RealValueFunction(AlgebraicDDBuilder.build(p.getStates(), 0.0f));
+		}
 		currValFn.primeAllContexts();
 		
 		
 		RealValueFunction nextValFn = null;
 		double bestVal = Double.NEGATIVE_INFINITY;
 		HashMap<DDVariable,Integer> bestAct = null;
+
+		temp = temp.sumOut(p.getObservations(), false);
+
+		RealValueFunction futureGenValFn = temp.timesAndSumOut(currValFn, new ArrayList<DDVariable>());
+		
 		for(HashMap<DDVariable,Integer> actSpacePt:actSpace) {
-			CondProbFunction fixedActTemp = temp.restrict(actSpacePt);
-			fixedActTemp = fixedActTemp.sumOut(p.getObservations(), false);
-			fixedActTemp.normalize();
-			
-			RealValueFunction futureValFn = fixedActTemp.timesAndSumOut(currValFn, new ArrayList<DDVariable>());
-			
+			RealValueFunction futureValFn = futureGenValFn.restrict(actSpacePt);
 			double futureValue = futureValFn.getDD().getRules().getRuleValueSum();
 			
 			if(futureValue > bestVal) {
 				bestVal = futureValue;
+				futureValFn = futureValFn.sumOut(actSpacePt.keySet());
 				nextValFn = futureValFn;
 				bestAct = actSpacePt;
 			}
@@ -139,13 +141,12 @@ public class PolicyBuilder {
 		nextValFn = nextValFn.times(discFactor);
 		
 		nextValFn = nextValFn.plus(immReward);
-		nextValFn.getDD().compress();
 		
 		System.out.println("  Value: " + (value + bestVal));
 		System.out.println("  DP took " + (new Date().getTime() - milliStart) + " milliseconds");
 		
 		milliStart = new Date().getTime();
-		if(newAlphas.add(new AlphaVector(bestAct,nextValFn))) {
+		if(newAlphas.add(new AlphaVector(bestAct,nextValFn, belief))) {
 			System.out.println("  There are now " + newAlphas.getAlphaVectors().size() + " alpha vectors");
 		}
 		System.out.println("  Adding to alpha collection took " + (new Date().getTime() - milliStart) + " milliseconds");

@@ -11,6 +11,7 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 	static double tolerance = 0.0001f;
 	
 	protected ArrayList<DecisionRule> rules = new ArrayList<DecisionRule>();
+	protected DecisionRuleCollectionIndex currIndex = null;
 	
 	protected int size = 0;
 	public DecisionRuleCollection(int size) {
@@ -18,10 +19,15 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 	}
 
 	public DecisionRuleCollectionIndex getIndex() throws Exception {
-		return DecisionRuleCollectionIndex.index(rules);
+		if(currIndex == null) {
+			currIndex = DecisionRuleCollectionIndex.index(rules);
+		}
+		return currIndex;
 	}
 	
 	public void compress() {
+		currIndex = null;
+		
 		Collections.sort(rules);
 		
 		int oldRuleSize = Integer.MAX_VALUE;
@@ -212,6 +218,7 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 	
 	@Override
 	public boolean add(DecisionRule rule) {
+		currIndex = null;
 		if(rule.numBits != size) {
 			return false;
 		}
@@ -220,11 +227,13 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 
 	@Override
 	public boolean addAll(Collection<? extends DecisionRule> otherRules) {
+		currIndex = null;
 		return rules.addAll(otherRules);
 	}
 
 	@Override
 	public void clear() {
+		currIndex = null;
 		rules.clear();
 	}
 
@@ -250,16 +259,19 @@ public class DecisionRuleCollection implements Collection<DecisionRule> {
 
 	@Override
 	public boolean remove(Object o) {
+		currIndex = null;
 		return rules.remove(o);
 	}
 
 	@Override
 	public boolean removeAll(Collection<?> otherColl) {
+		currIndex = null;
 		return rules.removeAll(otherColl);
 	}
 
 	@Override
 	public boolean retainAll(Collection<?> otherColl) {
+		currIndex = null;
 		return rules.retainAll(otherColl);
 	}
 

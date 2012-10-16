@@ -266,7 +266,7 @@ class POMDPSpec extends Specification {
 			PolicyBuilder polBuilder = new PolicyBuilder(p)
 			RandomPolicy policy = new RandomPolicy(p)
 		then:
-			BeliefRegion bReg = new BeliefRegion(1000, p, policy)
+			BeliefRegion bReg = new BeliefRegion(100, p, policy)
 			
 			
 			

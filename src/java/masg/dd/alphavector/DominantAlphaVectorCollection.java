@@ -1,42 +1,33 @@
 package masg.dd.alphavector;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 import masg.dd.function.RealValueFunction;
 
 public class DominantAlphaVectorCollection {
 	protected ArrayList<AlphaVector> alphaVectors = new ArrayList<AlphaVector>();
-	protected RealValueFunction valueFunction;
+	protected RealValueFunction valueFunction = null;
 	
 	double tolerance = 0.000001f;
 	
-	synchronized public boolean add(AlphaVector alphaNew) throws Exception {
+	int insertsSincePrune = 0;
+	
+	public boolean add(AlphaVector alphaNew) throws Exception {
 		
-		if(!isDominated(alphaNew)) {
-			synchronized(this) {
+		if(alphaVectors.size()==0 || !isDominated(alphaNew)) {
+			synchronized(alphaVectors) {
 				alphaVectors.add(alphaNew);
+				insertsSincePrune++;
 			}
 			updateValueFunction(alphaNew);
+			
 			return true;
 		}
 
-		
 		return false;
 	}
 	
-	private void prune() throws Exception {
-		synchronized(this) {
-			if(valueFunction!=null && alphaVectors!=null) {
-				for(int i=0;i<alphaVectors.size();++i) {
-					AlphaVector alphaOld = alphaVectors.get(0);
-					if(valueFunction.dominates(alphaOld.getFn(), tolerance)) {
-						alphaVectors.remove(i);
-						--i;
-					}
-				}
-			}
-		}
-	}
 	
 	private void updateValueFunction(AlphaVector alphaNew) throws Exception {
 		synchronized(this) {
@@ -53,9 +44,8 @@ public class DominantAlphaVectorCollection {
 			
 			
 			
-			if(alphaVectors.size()%10 == 1) {
-				System.out.println("  Pruning dominated alpha vectors...");
-				prune();
+			if(insertsSincePrune > 10) {
+				//prune();
 			}
 		}
 	}
@@ -74,11 +64,10 @@ public class DominantAlphaVectorCollection {
 			
 			return false;
 		}
+		
 	}
 	
 	public final ArrayList<AlphaVector> getAlphaVectors() {
-		synchronized(this) {
-			return alphaVectors;
-		}
+		return alphaVectors;
 	}
 }
