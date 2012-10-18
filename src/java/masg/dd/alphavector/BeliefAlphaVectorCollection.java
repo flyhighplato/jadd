@@ -3,6 +3,7 @@ package masg.dd.alphavector;
 import java.util.ArrayList;
 
 import masg.dd.function.CondProbFunction;
+import masg.dd.function.RealValueFunction;
 
 public class BeliefAlphaVectorCollection {
 	protected ArrayList<BeliefAlphaVector> alphaVectors = new ArrayList<BeliefAlphaVector>();
@@ -13,25 +14,21 @@ public class BeliefAlphaVectorCollection {
 		alphaVectors.add(alphaNew);
 	}
 	
-	
-	public double getBeliefValue(CondProbFunction belief) throws Exception {
-		double closestDist = -Double.MAX_VALUE;
-		BeliefAlphaVector closestAlpha = null;
+	public BeliefAlphaVector getBestAlphaVector(CondProbFunction belief) throws Exception {
+		BeliefAlphaVector bestAlphaVector = null;
+		double bestValue = -Double.MAX_VALUE;
 		
 		for(BeliefAlphaVector alphaVector:alphaVectors) {
-			double dist = alphaVector.getBeliefPointDistance(belief);
-			if(closestAlpha == null || closestDist > dist) {
-				closestAlpha = alphaVector;
-				closestDist = dist;
+			RealValueFunction belValueFn = belief.times(alphaVector.getValueFunction());
+			
+			double totalValue = belValueFn.getDD().getRules().getRuleValueSum();
+			if(totalValue>bestValue) {
+				bestValue = totalValue;
+				bestAlphaVector = alphaVector;
 			}
 		}
 		
-		if(closestAlpha !=null) {
-			return closestAlpha.getValue();
-		}
-		else {
-			return Double.NaN;
-		}
+		return bestAlphaVector;
 	}
 	
 	public final ArrayList<BeliefAlphaVector> getAlphaVectors() {

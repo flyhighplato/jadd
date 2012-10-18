@@ -3,15 +3,16 @@ package masg.dd.alphavector;
 import java.util.HashMap;
 
 import masg.dd.function.CondProbFunction;
+import masg.dd.function.RealValueFunction;
 import masg.dd.vars.DDVariable;
 
 public class BeliefAlphaVector {
 	
 	final protected HashMap<DDVariable,Integer> action;
-	protected CondProbFunction witnessPt;
-	final protected double value;
+	final protected CondProbFunction witnessPt;
+	final protected RealValueFunction value;
 	
-	public BeliefAlphaVector(HashMap<DDVariable,Integer> action, double val, CondProbFunction witness) {
+	public BeliefAlphaVector(HashMap<DDVariable,Integer> action, RealValueFunction val, CondProbFunction witness) {
 		this.action = action;
 		this.witnessPt = witness;
 		this.value = val;
@@ -21,7 +22,8 @@ public class BeliefAlphaVector {
 		return witnessPt.euclideanDistance(beliefOther);
 	}
 	
-	public double getValue() {
+	public RealValueFunction getValueFunction() {
 		return value;
 	}
+
 }

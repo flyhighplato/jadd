@@ -26,53 +26,69 @@ public class PolicyBuilder {
 	}
 	
 	public void dpBackup(CondProbFunction belief, BeliefAlphaVectorCollection newAlphas) throws Exception {
+		
 		long milliStart = new Date().getTime();
 		
-		RealValueFunction rewFn = p.getRewardFn();
-
-		RealValueFunction immReward = belief.times(rewFn);
-		
-		double immRewardValue = immReward.getDD().getRules().getRuleValueSum();
-		
-		double bestVal = Double.NEGATIVE_INFINITY;
-		HashMap<DDVariable,Integer> bestAct = null;
-
 		DDVariableSpace actSpace = new DDVariableSpace(new ArrayList<DDVariable>(p.getActions()));
 		DDVariableSpace obsSpace = new DDVariableSpace(new ArrayList<DDVariable>(p.getObservations()));
 		
-		for(HashMap<DDVariable,Integer> actSpacePt:actSpace) {
+		RealValueFunction rewFn = p.getRewardFn();
+		RealValueFunction immRewardFn = belief.times(rewFn);
+		
+		RealValueFunction bestValFn = null;
+		
+		HashMap<DDVariable,Integer> bestAct = null;
+		
+		if(bestAlphas.getAlphaVectors().size()>0) {
 			
-			System.out.println(" Action: " + actSpacePt);
-			double futureValue = 0.0f;
-			
-			CondProbFunction obsProbs = POMDPUtils.getObservationProbs(p, belief, actSpacePt);
-			
-			for(HashMap<DDVariable,Integer> obsSpacePt:obsSpace) {
+			double bestVal = -Double.MAX_VALUE;
+			for(HashMap<DDVariable,Integer> actSpacePt:actSpace) {
 				
-				double obsProb = obsProbs.getValue(obsSpacePt);
+				System.out.println(" Action: " + actSpacePt);
+				RealValueFunction futureValue = new RealValueFunction(AlgebraicDDBuilder.build(p.getStates(), 0.0f));
 				
-				if(obsProb>0.0f) {
-					//System.out.println("  Observation: " + obsSpacePt);
-					CondProbFunction nextBelief = POMDPUtils.updateBelief(p, belief, actSpacePt, obsSpacePt);
-					double val = bestAlphas.getBeliefValue(nextBelief);
+				CondProbFunction obsProbs = POMDPUtils.getObservationProbs(p, belief, actSpacePt);
+				
+				for(HashMap<DDVariable,Integer> obsSpacePt:obsSpace) {
 					
-					if(!Double.isNaN(val)) {
-						futureValue += obsProb * val;
+					double obsProb = obsProbs.getValue(obsSpacePt);
+					
+					if(obsProb>0.0f) {
+						System.out.println("  Observation: " + obsSpacePt);
+						CondProbFunction nextBelief = POMDPUtils.updateBelief(p, belief, actSpacePt, obsSpacePt);
+						BeliefAlphaVector val = bestAlphas.getBestAlphaVector(nextBelief);
+	
+						RealValueFunction temp = val.getValueFunction().times(obsProb);
+						futureValue = futureValue.plus(temp);
+						
 					}
+				}
+				
+				double totalValue = futureValue.getDD().getRules().getRuleValueSum();
+				
+				if(totalValue > bestVal) {
+					bestValFn = futureValue;
+					bestAct = actSpacePt;
+					bestVal = totalValue;
 				}
 			}
 			
-			if(futureValue > bestVal) {
-				bestVal = futureValue;
+			bestValFn = bestValFn.times(discFactor);
+			
+		}
+		else {
+			bestValFn = new RealValueFunction(AlgebraicDDBuilder.build(p.getStates(), 0.0f));
+			for(HashMap<DDVariable,Integer> actSpacePt:actSpace) {
 				bestAct = actSpacePt;
+				break;
 			}
 		}
 		
-		//milliStart = new Date().getTime();
-		bestVal = immRewardValue + discFactor * bestVal;
-		newAlphas.add(new BeliefAlphaVector(bestAct,bestVal, belief));
+		bestValFn = bestValFn.plus(immRewardFn);
 		
-		System.out.println("  Belief point value: " + bestVal);
+		newAlphas.add(new BeliefAlphaVector(bestAct, bestValFn, belief));
+		
+		System.out.println("  Belief point value: " + bestValFn.getDD().getRules().getRuleValueSum());
 		System.out.println("  There are now " + newAlphas.getAlphaVectors().size() + " alpha vectors");	
 		System.out.println("  Update took " + (new Date().getTime() - milliStart) + " milliseconds");
 		
