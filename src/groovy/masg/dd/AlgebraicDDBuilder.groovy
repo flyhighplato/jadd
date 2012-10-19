@@ -1,7 +1,7 @@
 package masg.dd
 
 import groovy.lang.Closure;
-import masg.dd.context.DecisionDiagramContext;
+import masg.dd.context.DDContext;
 import masg.dd.rules.DecisionRule;
 import masg.dd.rules.DecisionRuleCollection;
 import masg.dd.vars.DDVariable
@@ -15,7 +15,7 @@ class AlgebraicDDBuilder {
 	
 	static AlgebraicDD build(List<DDVariable> vars, Closure<Double> c) {
 		
-		DecisionDiagramContext context = makeContext(vars)
+		DDContext context = makeContext(vars)
 		
 		AlgebraicDD resDD = initializeDD(context)
 
@@ -26,7 +26,7 @@ class AlgebraicDDBuilder {
 	
 	static AlgebraicDD build(List<DDVariable> vars, double val) {
 		
-		DecisionDiagramContext context = makeContext(vars)
+		DDContext context = makeContext(vars)
 		
 		AlgebraicDD resDD = initializeDD(context)
 
@@ -35,13 +35,13 @@ class AlgebraicDDBuilder {
 		return resDD
 	}
 	
-	protected static DecisionDiagramContext makeContext(List<DDVariable> vars) {
-		DecisionDiagramContext context = new DecisionDiagramContext();
+	protected static DDContext makeContext(List<DDVariable> vars) {
+		DDContext context = new DDContext();
 		context.getVariableSpace().addVariables(vars)
 		return context;
 	}
 	
-	protected static AlgebraicDD initializeDD(DecisionDiagramContext context) {
+	protected static AlgebraicDD initializeDD(DDContext context) {
 		return new AlgebraicDD(context);
 	}
 	

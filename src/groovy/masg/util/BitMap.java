@@ -148,4 +148,8 @@ public class BitMap implements Comparable<BitMap>{
 		
 		return 0;
 	}
+	
+	public int hashCode() {
+		return (int) bitMap[0];
+	}
 }

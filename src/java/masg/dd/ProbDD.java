@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 
-import masg.dd.context.DecisionDiagramContext;
+import masg.dd.context.DDContext;
 import masg.dd.rules.DecisionRule;
 import masg.dd.vars.DDVariable;
 import masg.dd.vars.DDVariableSpace;
@@ -13,7 +13,7 @@ import masg.dd.vars.DDVariableSpace;
 public class ProbDD extends AlgebraicDD {
 	double tolerance = 0.0001f;
 	
-	public ProbDD(DecisionDiagramContext ctx) {
+	public ProbDD(DDContext ctx) {
 		super(ctx);
 	}
 	
@@ -65,7 +65,7 @@ public class ProbDD extends AlgebraicDD {
 		if(ignoreVarSpace.getVariables().size()<=0)
 			return this;
 		
-		DecisionDiagramContext newCtx = new DecisionDiagramContext(newVarSpace);
+		DDContext newCtx = new DDContext(newVarSpace);
 		ProbDD resultDD = new ProbDD(newCtx);
 		
 		ArrayList<DecisionRule> newRules = new ArrayList<DecisionRule>(rules.size());

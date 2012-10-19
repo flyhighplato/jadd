@@ -1,7 +1,7 @@
 package masg.dd;
 
-import masg.dd.context.DecisionDiagramContext;
+import masg.dd.context.DDContext;
 
 public interface DecisionDiagram {
-	public DecisionDiagramContext getContext();
+	public DDContext getContext();
 }

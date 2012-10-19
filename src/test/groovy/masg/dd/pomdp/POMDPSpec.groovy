@@ -11,7 +11,7 @@ import masg.agent.pomdp.policy.RandomPolicy;
 import masg.dd.AlgebraicDD;
 import masg.dd.CondProbDD;
 import masg.dd.alphavector.BeliefAlphaVectorCollection;
-import masg.dd.context.DecisionDiagramContext;
+import masg.dd.context.DDContext;
 import masg.dd.function.CondProbFunction
 import masg.dd.function.RealValueFunction
 import masg.dd.rules.DecisionRule;

@@ -1,12 +1,12 @@
 package masg.dd
 
-import masg.dd.context.DecisionDiagramContext;
+import masg.dd.context.DDContext;
 import masg.dd.rules.DecisionRule;
 import spock.lang.Specification
 
 
 class AlgebraicDecisionDiagramSpec extends Specification {
-	DecisionDiagramContext ctx = new DecisionDiagramContext(['a','b','c']);
+	DDContext ctx = new DDContext(['a','b','c']);
 	
 	def "ADD initializes correctly"() {
 		when:

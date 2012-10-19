@@ -8,7 +8,7 @@ import masg.dd.CondProbDD;
 import masg.dd.RealValueFunctionBuilder
 import masg.dd.CondProbFunctionBuilder
 import masg.dd.context.CondProbDDContext;
-import masg.dd.context.DecisionDiagramContext;
+import masg.dd.context.DDContext;
 import masg.dd.function.CondProbFunction
 import masg.dd.function.RealValueFunction
 
@@ -114,7 +114,7 @@ class POMDP{
 			out.writeLine("")
 			
 			rewFn.getDD().each{ AlgebraicDD dd ->
-				DecisionDiagramContext ddCtxt = dd.context
+				DDContext ddCtxt = dd.context
 				out.writeLine(ddCtxt.getVariableSpace().variables.collect{"${it.name}:${it.numValues}"}.join(","))
 				dd.rules.each{DecisionRule r ->
 					out.writeLine(r.toString())
@@ -231,7 +231,7 @@ class POMDP{
 			DDVariableSpace outVarSpace = new DDVariableSpace();
 			outVarSpace.addVariables(separator.trim().split(",").collect{new DDVariable(it.split(":")[0], Integer.parseInt(it.split(":")[1]))})
 			
-			DecisionDiagramContext transCtx = new DecisionDiagramContext(outVarSpace)
+			DDContext transCtx = new DDContext(outVarSpace)
 			AlgebraicDD currDD = new AlgebraicDD(transCtx)
 			
 			while(separator!="+" && separator.length()>0) {

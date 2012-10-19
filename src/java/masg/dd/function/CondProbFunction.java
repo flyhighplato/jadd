@@ -10,7 +10,7 @@ import masg.dd.CondProbDD;
 import masg.dd.DecisionDiagram;
 import masg.dd.ProbDD;
 import masg.dd.context.CondProbDDContext;
-import masg.dd.context.DecisionDiagramContext;
+import masg.dd.context.DDContext;
 import masg.dd.rules.DecisionRule;
 import masg.dd.rules.DecisionRuleCollectionIndex;
 import masg.dd.vars.DDVariable;
@@ -249,7 +249,7 @@ public class CondProbFunction implements DecisionDiagram{
 
 			
 			ddExpanded = ddExpanded.expandRules(cddThis.getContext().getVariableSpace().getVariables());
-			ddExpandedNew = new AlgebraicDD(new DecisionDiagramContext(new DDVariableSpace(ddExpanded.getContext().getVariableSpace().getVariables())));
+			ddExpandedNew = new AlgebraicDD(new DDContext(new DDVariableSpace(ddExpanded.getContext().getVariableSpace().getVariables())));
 			
 			DecisionRuleCollectionIndex ddExpandedIndex = ddExpanded.getRules().getIndex();
 			
@@ -326,7 +326,7 @@ public class CondProbFunction implements DecisionDiagram{
 	}
 
 	@Override
-	public DecisionDiagramContext getContext() {
+	public DDContext getContext() {
 		// TODO Auto-generated method stub
 		return null;
 	}

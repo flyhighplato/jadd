@@ -5,7 +5,7 @@ import java.util.HashMap;
 
 import masg.dd.AlgebraicDD;
 import masg.dd.DecisionDiagram;
-import masg.dd.context.DecisionDiagramContext;
+import masg.dd.context.DDContext;
 import masg.dd.vars.DDVariable;
 
 public class RealValueFunction implements DecisionDiagram{
@@ -65,7 +65,7 @@ public class RealValueFunction implements DecisionDiagram{
 	}
 	
 	@Override
-	public DecisionDiagramContext getContext() {
+	public DDContext getContext() {
 		return null;
 	}
 	

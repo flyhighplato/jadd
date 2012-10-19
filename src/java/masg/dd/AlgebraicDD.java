@@ -9,7 +9,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import masg.dd.context.DecisionDiagramContext;
+import masg.dd.context.DDContext;
 import masg.dd.rules.DecisionRule;
 import masg.dd.rules.DecisionRuleCollection;
 import masg.dd.rules.DecisionRuleCollectionIndex;
@@ -27,7 +27,7 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 
 	protected static final ExecutorService execService = Executors.newCachedThreadPool();
 	
-	public AlgebraicDD(DecisionDiagramContext ctx) {
+	public AlgebraicDD(DDContext ctx) {
 		super(ctx);
 		rules = new DecisionRuleCollection(ctx.getVariableSpace().getBitCount());
 	}
@@ -54,7 +54,7 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 		newVars.removeAll(oldVars);
 		oldVars.addAll(newVars);
 		
-		DecisionDiagramContext newContext = new DecisionDiagramContext(new DDVariableSpace(oldVars));
+		DDContext newContext = new DDContext(new DDVariableSpace(oldVars));
 		AlgebraicDD newDD = new AlgebraicDD(newContext);
 		
 		ArrayList<DecisionRule> newRules = new ArrayList<DecisionRule>();
@@ -326,7 +326,7 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 		if(ignoreVarSpace.getVariables().size()<=0)
 			return this;
 		
-		DecisionDiagramContext newCtx = new DecisionDiagramContext(newVarSpace);
+		DDContext newCtx = new DDContext(newVarSpace);
 		ProbDD resultDD = new ProbDD(newCtx);
 		
 		HashMap<String,Double> newRuleNonnormValues = new HashMap<String,Double>();
@@ -614,12 +614,12 @@ public class AlgebraicDD extends AbstractDecisionDiagram {
 	}
 	
 	public void prime() throws Exception {
-		context = new DecisionDiagramContext(new DDVariableSpace(context.getVariableSpace().getVariables()));
+		context = new DDContext(new DDVariableSpace(context.getVariableSpace().getVariables()));
 		context.getVariableSpace().prime();
 	}
 	
 	public void unprime() throws Exception {
-		context = new DecisionDiagramContext(new DDVariableSpace(context.getVariableSpace().getVariables()));
+		context = new DDContext(new DDVariableSpace(context.getVariableSpace().getVariables()));
 		context.getVariableSpace().unprime();
 	}
 	

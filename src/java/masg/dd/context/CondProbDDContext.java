@@ -2,7 +2,7 @@ package masg.dd.context;
 
 import masg.dd.vars.DDVariableSpace;
 
-public class CondProbDDContext extends DecisionDiagramContext {
+public class CondProbDDContext extends DDContext {
 
 	DDVariableSpace inVarSpace, outVarSpace;
 	
