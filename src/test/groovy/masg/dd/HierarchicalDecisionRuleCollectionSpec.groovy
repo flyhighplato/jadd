@@ -31,7 +31,7 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 			BitMap m = new BitMap(space.getBitCount());
 		then:
 			coll.setValue([var1,var3],m, 5.0f);
-			assert coll.getValue([var1,var3], m, false) == 5.0f;
+			assert coll.getValue([var1,var2,var3], m, false) == 5.0f;
 	}
 	
 	def "collection can be built from closure"() {
@@ -60,5 +60,30 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 	
 				assert val == immColl.getValue(vars, bm, false)
 			}
+	}
+	
+	def "collection can be compressed"() {
+		when:
+			Closure c = {
+				Map variables ->
+				int var1Value = variables[var1.name];
+				int var2Value = variables[var2.name];
+				int var3Value = variables[var3.name];
+				
+				/*if(var1Value==var3Value && var2Value==var3Value) {
+					return 999.0;
+				}*/
+				
+				return 0.0f;
+			}
+			ArrayList<DDVariable> vars = [var1,var2,var3]
+			coll = HierarchicalDecisionRuleCollectionBuilder.build(vars,c)
+			DDVariableSpace space = new DDVariableSpace(vars);
+			
+			
+		then:
+			//println coll
+			coll.compress();
+			println coll;
 	}
 }

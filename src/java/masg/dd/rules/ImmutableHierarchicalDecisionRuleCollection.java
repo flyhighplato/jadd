@@ -73,4 +73,22 @@ public class ImmutableHierarchicalDecisionRuleCollection extends BaseHierarchica
 		return null;
 	}
 	
+	private String toString(String spacer) {
+		String str = "";
+		if(subCollections!=null) {
+			for(Entry<BitMap,ImmutableHierarchicalDecisionRuleCollection> e: subCollections.entrySet()) {
+				str += e.getValue().toString(spacer + e.getKey().toString());
+			}
+		}
+		if(values!=null) {
+			for(Entry<BitMap,Double> e: values.entrySet()) {
+				str += spacer + e.getKey() + ":" + e.getValue() + "\n";
+			}
+		}
+		return str;
+	}
+	
+	public String toString() {
+		return toString("");
+	}
 }
