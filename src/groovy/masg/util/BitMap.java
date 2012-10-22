@@ -74,6 +74,13 @@ public class BitMap implements Comparable<BitMap>{
 		}
 	}
 	
+	public void or(int startIx, BitMap otherMap) {
+		for(int i=startIx;i<size;i++) {
+			if(otherMap.get(i-startIx))
+				set(i);
+		}
+	}
+	
 	public void xor(BitMap otherMap) {
 		if(otherMap.bitMap.length>bitMap.length) {
 			bitMap = Arrays.copyOf(bitMap, otherMap.bitMap.length);

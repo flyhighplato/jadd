@@ -3,6 +3,8 @@ package masg.dd;
 import masg.dd.context.DDContext
 import masg.dd.rules.HierarchicalDecisionRuleCollection
 import masg.dd.rules.ImmutableHierarchicalDecisionRuleCollection
+import masg.dd.rules.operations.ConstantMultiplicationOperation
+import masg.dd.rules.operations.MultiplicationOperation
 import masg.dd.vars.DDVariable
 import masg.dd.vars.DDVariableSpace
 import masg.util.BitMap
@@ -51,14 +53,14 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 			ArrayList<DDVariable> vars = [var1,var2,var3]
 			coll = HierarchicalDecisionRuleCollectionBuilder.build(vars,c)
 			DDVariableSpace space = new DDVariableSpace(vars);
-			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll);
+			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll, false);
 			
 		then:
 			space.each{ HashMap<DDVariable,Integer> varSpacePoint ->
 				double val = c(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
 				BitMap bm = HierarchicalDecisionRuleCollectionBuilder.varSpacePointToBitMap(vars,varSpacePoint);
 	
-				assert val == immColl.getValue(vars, bm, false)
+				assert val == immColl.getValue(vars, bm)
 			}
 	}
 	
@@ -70,9 +72,9 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 				int var2Value = variables[var2.name];
 				int var3Value = variables[var3.name];
 				
-				/*if(var1Value==var3Value && var2Value==var3Value) {
+				if(var3Value==var2Value || var3Value == var1Value) {
 					return 999.0;
-				}*/
+				}
 				
 				return 0.0f;
 			}
@@ -82,8 +84,69 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 			
 			
 		then:
-			//println coll
 			coll.compress();
+	}
+	
+	def "unary operations work"() {
+		when:
+			Closure c = {
+				Map variables ->
+				int var1Value = variables[var1.name];
+				int var2Value = variables[var2.name];
+				int var3Value = variables[var3.name];
+				
+				if(var3Value==var2Value) {
+					return 10.0f;
+				}
+				
+				if(var3Value == var1Value) {
+					return 5.0f;
+				}
+				
+				return 0.0f;
+			}
+			ArrayList<DDVariable> vars = [var1,var2,var3]
+			coll = HierarchicalDecisionRuleCollectionBuilder.build(vars,c)
+			DDVariableSpace space = new DDVariableSpace(vars);
+			
+			coll.compress();
+			
+			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll, false);
+			ConstantMultiplicationOperation multOp = new ConstantMultiplicationOperation(5.0f);
+		then:
+			HierarchicalDecisionRuleCollection coll2 = immColl.apply(multOp);
+			println coll2;
+	}
+	
+	def "binary operations work"() {
+		when:
+			Closure c = {
+				Map variables ->
+				int var1Value = variables[var1.name];
+				int var2Value = variables[var2.name];
+				int var3Value = variables[var3.name];
+				
+				if(var3Value==var2Value) {
+					return 10.0f;
+				}
+				
+				if(var3Value == var1Value) {
+					return 5.0f;
+				}
+				
+				return 0.0f;
+			}
+			ArrayList<DDVariable> vars = [var1,var2,var3]
+			coll = HierarchicalDecisionRuleCollectionBuilder.build(vars,c)
+			DDVariableSpace space = new DDVariableSpace(vars);
+			
+			coll.compress();
+			
+			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll, false);
+			MultiplicationOperation multOp = new MultiplicationOperation();
+		then:
 			println coll;
+			HierarchicalDecisionRuleCollection coll2 = immColl.apply(multOp,immColl);
+			println coll2;
 	}
 }
