@@ -95,6 +95,19 @@ public class HierarchicalDecisionRuleCollection extends BaseHierarchicalRuleColl
 		}
 	}
 	
+	public void setIsMeasure(ArrayList<DDVariable> vars, boolean isMeasure) {
+		if(vars.contains(this.var)) {
+			this.isMeasure = isMeasure;
+		}
+		
+		if(subCollections!=null) {
+			for(HierarchicalDecisionRuleCollection hdrc:subCollections.values()) {
+				hdrc.setIsMeasure(vars, isMeasure);
+			}
+		}
+		
+	}
+	
 	public Double getValue(ArrayList<DDVariable> vars, BitMap r) {
 		BitMap rVar = extractPivot(vars, r);
 		
