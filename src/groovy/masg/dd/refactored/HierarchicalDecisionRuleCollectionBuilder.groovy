@@ -1,14 +1,14 @@
-package masg.dd
+package masg.dd.refactored
 
 import groovy.lang.Closure;
-import masg.dd.rules.HierarchicalDecisionRuleCollection
+import masg.dd.rules.refactored.HierarchicalDecisionRuleCollection;
 import masg.dd.vars.DDVariable
 import masg.dd.vars.DDVariableSpace
 import masg.util.BitMap
 
 class HierarchicalDecisionRuleCollectionBuilder {
-	public static HierarchicalDecisionRuleCollection build(ArrayList<DDVariable> vars, Closure c) {
-		HierarchicalDecisionRuleCollection hdrc = new HierarchicalDecisionRuleCollection(vars);
+	public static HierarchicalDecisionRuleCollection build(ArrayList<DDVariable> vars, Closure c, boolean isMeasure) {
+		HierarchicalDecisionRuleCollection hdrc = new HierarchicalDecisionRuleCollection(vars, isMeasure);
 		
 		int totalBitCount = 0;
 		vars.each{totalBitCount+=it.getBitCount()}

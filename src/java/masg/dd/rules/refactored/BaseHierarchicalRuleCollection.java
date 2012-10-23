@@ -1,4 +1,4 @@
-package masg.dd.rules;
+package masg.dd.rules.refactored;
 
 import java.util.ArrayList;
 

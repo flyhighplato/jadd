@@ -1,10 +1,11 @@
-package masg.dd.rules;
+package masg.dd.rules.refactored;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
 import masg.dd.context.DDContext;
+import masg.dd.rules.operations.refactored.BinaryOperation;
 import masg.dd.vars.DDVariable;
 import masg.util.BitMap;
 
@@ -13,9 +14,10 @@ public class HierarchicalDecisionRuleCollection extends BaseHierarchicalRuleColl
 	public HashMap<BitMap,Double> values = null;
 	
 	private DDVariable var;
+	boolean isMeasure;
 	
-	public HierarchicalDecisionRuleCollection(ArrayList<DDVariable> vars) {
-		
+	public HierarchicalDecisionRuleCollection(ArrayList<DDVariable> vars, boolean isMeasure) {
+		this.isMeasure = isMeasure;
 		ArrayList<DDVariable> nextVariables = new ArrayList<DDVariable>(vars);
 		
 		
@@ -31,7 +33,7 @@ public class HierarchicalDecisionRuleCollection extends BaseHierarchicalRuleColl
 		if(nextVariables.size()>0) {
 			subCollections = new HashMap<BitMap,HierarchicalDecisionRuleCollection>();
 			for(BitMap bm:variableValuesToBitMapValues(var)) {
-				subCollections.put(bm, new HierarchicalDecisionRuleCollection(nextVariables));
+				subCollections.put(bm, new HierarchicalDecisionRuleCollection(nextVariables, isMeasure));
 			}
 		}
 		else {
@@ -47,6 +49,28 @@ public class HierarchicalDecisionRuleCollection extends BaseHierarchicalRuleColl
 		return var;
 	}
 	
+	public void applySetValue(ArrayList<DDVariable> vars, BitMap r, double value, BinaryOperation oper) {
+		BitMap rVar = extractPivot(vars, r);
+		
+		if(rVar!=null) {	
+			if(subCollections!=null) {
+				subCollections.get(rVar).applySetValue(vars, r, value, oper);
+			}
+			else {
+				values.put(rVar, oper.invoke(values.get(rVar), value));
+			}
+		}
+		else if(subCollections!=null) {
+			for(HierarchicalDecisionRuleCollection hdrc:subCollections.values()) {
+				hdrc.applySetValue(vars, r, value, oper);
+			}
+		}
+		else {
+			for(BitMap bm:values.keySet()) {
+				values.put(bm, oper.invoke(values.get(bm), value));
+			}
+		}
+	}
 	
 	public void setValue(ArrayList<DDVariable> vars, BitMap r, double value) {
 		BitMap rVar = extractPivot(vars, r);
@@ -71,22 +95,22 @@ public class HierarchicalDecisionRuleCollection extends BaseHierarchicalRuleColl
 		}
 	}
 	
-	public Double getValue(ArrayList<DDVariable> vars, BitMap r, boolean sumOverMissing) {
+	public Double getValue(ArrayList<DDVariable> vars, BitMap r) {
 		BitMap rVar = extractPivot(vars, r);
 		
 		if(rVar!=null) {	
 			if(subCollections!=null && subCollections.containsKey(rVar)) {
-				return subCollections.get(rVar).getValue(vars, r, sumOverMissing);
+				return subCollections.get(rVar).getValue(vars, r);
 			}
 			if(values!=null && values.containsKey(rVar)) {
 				return new Double(values.get(rVar));
 			}
 		}
-		else if(sumOverMissing){
+		else if(isMeasure){
 			double val = 0.0f;
 			if(subCollections!=null) {
 				for(HierarchicalDecisionRuleCollection hdrc:subCollections.values()) {
-					val += hdrc.getValue(vars, r, sumOverMissing);
+					val += hdrc.getValue(vars, r);
 				}
 			}
 			if(values!=null) {

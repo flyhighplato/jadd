@@ -1,4 +1,4 @@
-package masg.dd.rules.operations;
+package masg.dd.rules.operations.refactored;
 
 public class ConstantMultiplicationOperation implements UnaryOperation {
 	final double constant;
