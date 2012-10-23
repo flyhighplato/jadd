@@ -1,13 +1,12 @@
 package masg.dd.refactored
 
-import groovy.lang.Closure;
 import masg.dd.rules.refactored.HierarchicalDecisionRuleCollection;
 import masg.dd.vars.DDVariable
 import masg.dd.vars.DDVariableSpace
 import masg.util.BitMap
 
 class HierarchicalDecisionRuleCollectionBuilder {
-	public static HierarchicalDecisionRuleCollection build(ArrayList<DDVariable> vars, Closure c, boolean isMeasure) {
+	public static HierarchicalDecisionRuleCollection build(ArrayList<DDVariable> vars, Closure<Double> c, boolean isMeasure) {
 		HierarchicalDecisionRuleCollection hdrc = new HierarchicalDecisionRuleCollection(vars, isMeasure);
 		
 		int totalBitCount = 0;
@@ -23,6 +22,19 @@ class HierarchicalDecisionRuleCollectionBuilder {
 		}
 		
 		return hdrc;
+	}
+	
+	
+	public static HierarchicalDecisionRuleCollection buildProbability(ArrayList<DDVariable> vars, Closure<Double>... closures) {
+		Closure<Double> c = { Map variables ->
+			double val = 1.0f;
+			closures.each{ Closure<Double> c ->
+				val*=c(variables)
+			}
+			return val;
+		}
+		
+		return build(vars,c,true);
 	}
 	
 	public static BitMap varSpacePointToBitMap(ArrayList<DDVariable> vars, HashMap<DDVariable,Integer> varSpacePoint) {
