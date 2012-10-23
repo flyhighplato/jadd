@@ -3,6 +3,7 @@ package masg.dd.rules.refactored;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import masg.dd.rules.operations.refactored.BinaryOperation;
@@ -17,14 +18,14 @@ public class ImmutableHierarchicalDecisionRuleCollection extends BaseHierarchica
 	private final DDVariable var;
 	private final boolean isMeasure;
 	
-	public ImmutableHierarchicalDecisionRuleCollection(HierarchicalDecisionRuleCollection mutableCollection, boolean isMeasure) {
-		this.isMeasure = isMeasure;
+	public ImmutableHierarchicalDecisionRuleCollection(HierarchicalDecisionRuleCollection mutableCollection) {
+		this.isMeasure = mutableCollection.isMeasure;
 		var = mutableCollection.getVariable();
 		
 		if(mutableCollection.subCollections!=null) {
 			subCollections = new HashMap<BitMap,ImmutableHierarchicalDecisionRuleCollection>();
 			for(Entry<BitMap,HierarchicalDecisionRuleCollection> e:mutableCollection.subCollections.entrySet()) {
-				subCollections.put(e.getKey(), new ImmutableHierarchicalDecisionRuleCollection(e.getValue(), isMeasure));
+				subCollections.put(e.getKey(), new ImmutableHierarchicalDecisionRuleCollection(e.getValue()));
 			}
 		}
 		else {
@@ -58,7 +59,7 @@ public class ImmutableHierarchicalDecisionRuleCollection extends BaseHierarchica
 		vars.add(var);
 		return vars;
 	}
-	
+
 	public Double getValue(ArrayList<DDVariable> vars, BitMap r) {
 		BitMap rVar = extractPivot(vars, r);
 		
@@ -90,20 +91,6 @@ public class ImmutableHierarchicalDecisionRuleCollection extends BaseHierarchica
 		return null;
 	}
 	
-	private BitMap joinKeys(BitMap prefix, BitMap suffix) {
-		BitMap bm;
-		if(prefix!=null) {
-			bm = new BitMap(prefix.size() + suffix.size());
-			bm.or(prefix);
-			bm.or(prefix.size(),suffix);
-		}
-		else {
-			bm = new BitMap(suffix.size());
-			bm.or(suffix);
-		}
-		
-		return bm;
-	}
 	
 	private void apply(ArrayList<DDVariable> prefixVars, BitMap prefix, UnaryOperation oper, HierarchicalDecisionRuleCollection newCollection) {
 		
@@ -166,11 +153,59 @@ public class ImmutableHierarchicalDecisionRuleCollection extends BaseHierarchica
 		}
 	}
 	
+	private void restrict(ArrayList<DDVariable> prefixVars, BitMap prefix, ArrayList<DDVariable> restrictVars, BitMap restrictKey, HierarchicalDecisionRuleCollection newCollection) {
+		
+		BitMap rVar = extractPivot(restrictVars, restrictKey);
+		ArrayList<DDVariable> newPrefixVars = new ArrayList<DDVariable>(prefixVars);
+		if(rVar==null) {
+			newPrefixVars.add(getVariable());
+			
+			if(subCollections!=null) {
+				for(Entry<BitMap,ImmutableHierarchicalDecisionRuleCollection> e: subCollections.entrySet()) {
+					BitMap bm = joinKeys(prefix, e.getKey());
+					e.getValue().restrict(newPrefixVars, bm, restrictVars, restrictKey, newCollection);
+				}
+			}
+			if(values!=null) {
+				for(Entry<BitMap,Double> e: values.entrySet()) {
+					BitMap bm = joinKeys(prefix, e.getKey());
+					newCollection.setValue(newPrefixVars, bm, e.getValue());
+				}
+			}
+		}
+		else {
+			if(subCollections!=null) {
+				subCollections.get(rVar).restrict(newPrefixVars, prefix, restrictVars, restrictKey, newCollection);
+			}
+			if(values!=null) {
+				newCollection.setValue(newPrefixVars, prefix,values.get(rVar));
+			}
+		}
+	}
+	
+	
+	
 	public HierarchicalDecisionRuleCollection eliminateVariables(ArrayList<DDVariable> elimVars, BinaryOperation oper){
 		HashSet<DDVariable> haveVars = new HashSet<DDVariable>(getVariables());
 		haveVars.removeAll(elimVars);
 		HierarchicalDecisionRuleCollection coll = new HierarchicalDecisionRuleCollection(new ArrayList<DDVariable>(haveVars), isMeasure);
 		copy(new ArrayList<DDVariable>(),null,oper,coll);
+		return coll;
+	}
+	
+	public HierarchicalDecisionRuleCollection restrict(Map<DDVariable,Integer> elimVarValues){
+		HashSet<DDVariable> haveVars = new HashSet<DDVariable>(getVariables());
+		haveVars.removeAll(elimVarValues.keySet());
+		HierarchicalDecisionRuleCollection coll = new HierarchicalDecisionRuleCollection(new ArrayList<DDVariable>(haveVars), isMeasure);
+		
+		BitMap restrictKey = null;
+		ArrayList<DDVariable> restrictVars = new ArrayList<DDVariable>(elimVarValues.keySet());
+		for(DDVariable elimVar:restrictVars) {
+			BitMap suffix = variableValuetoBitMap(elimVar,elimVarValues.get(elimVar));
+			restrictKey = joinKeys(restrictKey,suffix);
+		}
+		
+		restrict(new ArrayList<DDVariable>(),null,restrictVars,restrictKey,coll);
 		return coll;
 	}
 	

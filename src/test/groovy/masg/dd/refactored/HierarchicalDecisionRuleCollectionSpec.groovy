@@ -54,7 +54,7 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 			ArrayList<DDVariable> vars = [var1,var2,var3]
 			coll = HierarchicalDecisionRuleCollectionBuilder.build(vars,c,false)
 			DDVariableSpace space = new DDVariableSpace(vars);
-			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll, false);
+			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll);
 			
 		then:
 			space.each{ HashMap<DDVariable,Integer> varSpacePoint ->
@@ -112,7 +112,7 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 			
 			coll.compress();
 			
-			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll, false);
+			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll);
 			ConstantMultiplicationOperation multOp = new ConstantMultiplicationOperation(5.0f);
 		then:
 			HierarchicalDecisionRuleCollection coll2 = immColl.apply(multOp);
@@ -143,7 +143,7 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 			
 			coll.compress();
 			
-			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll, false);
+			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll);
 			MultiplicationOperation multOp = new MultiplicationOperation();
 		then:
 			HierarchicalDecisionRuleCollection coll2 = immColl.apply(multOp,immColl);
@@ -174,12 +174,47 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 			
 			coll.compress();
 			
-			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll, false);
+			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll);
 			AdditionOperation addOp = new AdditionOperation();
 			ArrayList<DDVariable> elimVars = [var2,var3]
 		then:
 			println immColl;
 			HierarchicalDecisionRuleCollection coll2 = immColl.eliminateVariables(elimVars,addOp);
+			println coll2;
+	}
+	
+	def "variable restriction works"() {
+		when:
+			Closure c = {
+				Map variables ->
+				int var1Value = variables[var1.name];
+				int var2Value = variables[var2.name];
+				int var3Value = variables[var3.name];
+				
+				if(var3Value==var2Value) {
+					return 10.0f;
+				}
+				
+				if(var3Value == var1Value) {
+					return 5.0f;
+				}
+				
+				return 0.0f;
+			}
+			ArrayList<DDVariable> vars = [var1,var2,var3]
+			coll = HierarchicalDecisionRuleCollectionBuilder.build(vars,c,false)
+			DDVariableSpace space = new DDVariableSpace(vars);
+			
+			coll.compress();
+			
+			ImmutableHierarchicalDecisionRuleCollection immColl = new ImmutableHierarchicalDecisionRuleCollection(coll);
+			
+			HashMap<DDVariable,Integer> elimVars = new HashMap<DDVariable,Integer>();
+			elimVars[var1]=1;
+			elimVars[var2]=1;
+		then:
+			println immColl;
+			HierarchicalDecisionRuleCollection coll2 = immColl.restrict(elimVars)
 			println coll2;
 	}
 }
