@@ -3,8 +3,11 @@ package masg.problem.tag.refactored
 import java.util.List;
 import java.util.Map;
 
+import masg.dd.context.DDContext;
+import masg.dd.pomdp.refactored.POMDP
 import masg.dd.refactored.AlgebraicDD
 import masg.dd.refactored.CondProbDD
+import masg.dd.refactored.ProbDD
 import masg.dd.vars.DDVariable
 
 class TagProblem {
@@ -18,6 +21,27 @@ class TagProblem {
 	DDVariable wRowPrimeVar, wColPrimeVar
 	DDVariable wPresenceObsVar, a1RowObsVar, a1ColObsVar
 	DDVariable actVar
+	
+	Closure initBeliefClosure = {
+		return 1.0f/Math.pow(gridWidth*gridHeight,3.0f)
+	}
+	
+	Closure rewardFunctionClosure = { Map variables ->
+			int w_row = variables["w_row"]
+			int w_col = variables["w_col"]
+			int a1_row = variables["a1_row"]
+			int a1_col = variables["a1_col"]
+			
+			if(a1_col == w_col && a1_row == w_row)
+				return 10.0f
+			
+			return -1.0f
+	}
+	
+	List transnFunctionClosures = []
+	List obervnFunctionClosures = []
+	
+	POMDP p;
 	
 	public TagProblem() {
 		actVar = new DDVariable("act",4)
@@ -42,13 +66,16 @@ class TagProblem {
 		wRowPrimeVar = new DDVariable((wRowVar.name + "'").toString(), wRowVar.getValueCount())
 		wColPrimeVar = new DDVariable((wColVar.name + "'").toString(), wColVar.getValueCount())
 		
-		AlgebraicDD initBelief = AlgebraicDD.build([a1RowVar,a1ColVar,a2RowVar,a2ColVar,wRowVar,wColVar]) {
-			return 1.0f/Math.pow(gridWidth*gridHeight,3.0f)
-		};
+		DDContext.canonicalVariableOrdering = [actVar,wPresenceObsVar,a1RowObsVar,a1ColObsVar,a1RowVar,a1ColVar,a2RowVar,a2ColVar,wRowVar,wColVar,a1RowPrimeVar,a1ColPrimeVar,a2RowPrimeVar,a2ColPrimeVar,wRowPrimeVar,wColPrimeVar]
+		
+		println "Building initial belief..."
+		ProbDD initBelief = ProbDD.buildProbability([a1RowVar,a1ColVar,a2RowVar,a2ColVar,wRowVar,wColVar], initBeliefClosure) 
 	
-		CondProbDD transFn = CondProbDD.build(
-			[a1RowVar,a1ColVar,a2RowVar,a2ColVar,wRowVar,wColVar,actVar],[a1RowPrimeVar,a1ColPrimeVar,a2RowPrimeVar,a2ColPrimeVar,wRowPrimeVar,wColPrimeVar],
-			{ Map variables ->
+		def vars = []
+		def closures = []
+		
+		vars << [[a2RowVar,a2ColVar,actVar],[a2RowPrimeVar,a2ColPrimeVar]]
+		closures << { Map variables ->
 				int row = variables["a2_row"]
 				int col = variables["a2_col"]
 				int act = variables["act"]
@@ -71,8 +98,10 @@ class TagProblem {
 				}
 				
 				return 0.0f;
-			},
-			{ Map variables ->
+			}
+		
+		vars << [[a1ColVar,actVar],[a1ColPrimeVar]]
+		closures << { Map variables ->
 				int col = variables["a1_col"]
 				int act = variables["act"]
 				int colPrime = variables["a1_col'"]
@@ -97,32 +126,37 @@ class TagProblem {
 					return 1.0f;
 				
 				return 0.0f;
-			},
-			{ Map variables ->
-				int row = variables["a2_row"]
-				int col = variables["a2_col"]
+			}
+		
+		vars << [[a1RowVar,actVar],[a1RowPrimeVar]]
+		closures << { Map variables ->
+				int row = variables["a1_row"]
 				int act = variables["act"]
-				int rowPrime = variables["a2_row'"]
-				int colPrime = variables["a2_col'"]
+				int rowPrime = variables["a1_row'"]
+				assert act<4
 				
-				int moveDistance = Math.abs(rowPrime - row) + Math.abs(colPrime - col)
-				
-				if(moveDistance<2) {
-					Map locProb = [:]
-					Map possMoves = getPossibleMoves(col,row,["N","S","E","W"])
-					possMoves.each{a,loc ->
-						if(locProb[loc])
-							locProb[loc] += 1.0f/possMoves.size()
-						else
-							locProb[loc] = 1.0f/possMoves.size()
-					}
-					
-					return locProb.get([colPrime,rowPrime])?locProb.get([colPrime,rowPrime]):0.0f
+				//N
+				if(act==0){
+					if(row<gridHeight-1 && rowPrime==row+1)
+						return 1.0f;
+					else if(row==gridHeight-1 && rowPrime==row)
+						return 1.0f;
 				}
+				//S
+				else if(act==1){
+					if(row>0 && rowPrime==row-1)
+						return 1.0f;
+					else if(row==0 && rowPrime==row)
+						return 1.0f;
+				}
+				else if(act!=0 && act!=1 && row==rowPrime)
+					return 1.0f;
 				
 				return 0.0f;
-			},
-			{ Map variables ->
+			}
+		
+		vars << [[wRowVar,wColVar,actVar],[wRowPrimeVar,wColPrimeVar]]
+		closures << { Map variables ->
 				int row = variables["w_row"]
 				int col = variables["w_col"]
 				int act = variables["act"]
@@ -146,7 +180,67 @@ class TagProblem {
 				
 				return 0.0f;
 			}
-		)
+		println "Building transition function..."
+		CondProbDD transFn = CondProbDD.build(vars,closures)
+		
+		transnFunctionClosures.addAll(closures);
+		
+		vars = []
+		closures = []
+		
+		vars << [[wRowPrimeVar,wColPrimeVar,a1ColPrimeVar,a1RowPrimeVar],[wPresenceObsVar]]
+		closures << { Map variables ->
+				int w_row = variables["w_row'"]
+				int w_col = variables["w_col'"]
+				int a1_row = variables["a1_row'"]
+				int a1_col = variables["a1_col'"]
+				int w_pres = variables["w_pres"]
+				
+				int distance = Math.abs(w_row - a1_row) + Math.abs(w_col - a1_col)
+				
+				if((distance<2 && w_pres==1) || (distance>=2 && w_pres==0)) {
+					return 1.0f
+				}
+				
+				return 0.0f
+			}
+		
+		vars << [[a1ColPrimeVar],[a1ColObsVar]]
+		closures <<  { Map variables ->
+				
+			int a1_col = variables["a1_col'"]
+			int a1_col_loc = variables["a1_col_loc"]
+			
+			if(a1_col == a1_col_loc)
+				return 1.0f;
+			
+			return 0.0f;
+		}
+		
+		
+		vars << [[a1RowPrimeVar],[a1RowObsVar]]
+		closures << { Map variables ->
+				
+				int a1_row = variables["a1_row'"]
+				int a1_row_loc = variables["a1_row_loc"]
+				
+				if(a1_row == a1_row_loc)
+					return 1.0f;
+				
+				return 0.0f;
+			}
+		
+		println "Building observation function..."
+		CondProbDD obsFn = CondProbDD.build(vars, closures)
+		obervnFunctionClosures.addAll(closures);
+		
+		AlgebraicDD rewFn = AlgebraicDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],rewardFunctionClosure) 
+		
+		p = new POMDP(initBelief,rewFn,transFn,obsFn,[a1RowVar,a1ColVar,a2RowVar,a2ColVar,wRowVar,wColVar],[wPresenceObsVar,a1RowObsVar,a1ColObsVar],[actVar]);
+	}
+	
+	public POMDP getPOMDP() {
+		return p;
 	}
 	
 	Map getPossibleMoves(int col, int row, List acts) {

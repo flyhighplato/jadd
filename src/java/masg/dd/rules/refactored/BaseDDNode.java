@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import masg.dd.vars.DDVariable;
 import masg.util.BitMap;
 
-abstract public class BaseHierarchicalRuleCollection {
+abstract public class BaseDDNode {
 	abstract public DDVariable getVariable();
 	
 	protected ArrayList<BitMap> variableValuesToBitMapValues(DDVariable var) {

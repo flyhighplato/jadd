@@ -1,13 +1,15 @@
 package masg.dd.refactored
 
-import masg.dd.rules.refactored.HierarchicalDecisionRuleCollection;
+import masg.dd.rules.refactored.MutableDDElement
+import masg.dd.rules.refactored.MutableDDLeaf
+import masg.dd.rules.refactored.MutableDDNode
 import masg.dd.vars.DDVariable
 import masg.dd.vars.DDVariableSpace
 import masg.util.BitMap
 
-class HierarchicalDecisionRuleCollectionBuilder {
-	public static HierarchicalDecisionRuleCollection build(ArrayList<DDVariable> vars, Closure<Double> c, boolean isMeasure) {
-		HierarchicalDecisionRuleCollection hdrc = new HierarchicalDecisionRuleCollection(vars, isMeasure);
+class MutableDDElementBuilder {
+	public static MutableDDElement build(ArrayList<DDVariable> vars, Closure<Double> c, boolean isMeasure) {
+		MutableDDNode hdrc = new MutableDDNode(vars, isMeasure);
 		
 		int totalBitCount = 0;
 		vars.each{totalBitCount+=it.getBitCount()}
@@ -21,11 +23,16 @@ class HierarchicalDecisionRuleCollectionBuilder {
 			hdrc.setValue(vars, bm, val)
 		}
 		
-		return hdrc;
+		if(hdrc.compressIntoDouble() == null) {
+			return hdrc;
+		}
+		else {
+			return new MutableDDLeaf(hdrc.compressIntoDouble());
+		}
 	}
 	
 	
-	public static HierarchicalDecisionRuleCollection buildProbability(ArrayList<DDVariable> vars, Closure<Double>... closures) {
+	public static MutableDDElement buildProbability(ArrayList<DDVariable> vars, Closure<Double>... closures) {
 		Closure<Double> c = { Map variables ->
 			double val = 1.0f;
 			closures.each{ Closure<Double> c ->
