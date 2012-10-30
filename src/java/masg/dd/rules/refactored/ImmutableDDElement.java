@@ -9,7 +9,7 @@ import masg.dd.rules.operations.refactored.UnaryOperation;
 import masg.dd.vars.DDVariable;
 import masg.util.BitMap;
 
-public interface ImmutableDDElement {
+public interface ImmutableDDElement  {
 	public void getIsMeasure(HashMap<DDVariable,Boolean> map);
 	public HashMap<DDVariable,Boolean> getIsMeasure();
 	public boolean isMeasure();
@@ -25,6 +25,10 @@ public interface ImmutableDDElement {
 	public void apply(ArrayList<DDVariable> prefixVars, BitMap prefix, UnaryOperation oper, MutableDDElement newCollection);
 	public void apply(ArrayList<DDVariable> prefixVars, BitMap prefix, BinaryOperation oper, ArrayList<ImmutableDDElement> otherCollections, MutableDDElement newCollection);
 	public void copy(ArrayList<DDVariable> prefixVars, BitMap prefix, BinaryOperation oper, MutableDDElement newCollection);
+	public MutableDDElement unprimeVariables();
+	public void unprimeVariables(ArrayList<DDVariable> prefixVars, BitMap prefix,MutableDDElement newColl);
+	public MutableDDElement primeVariables();
+	public void primeVariables(ArrayList<DDVariable> prefixVars, BitMap prefix,MutableDDElement newColl);
 	public void restrict(ArrayList<DDVariable> prefixVars, BitMap prefix, ArrayList<DDVariable> restrictVars, BitMap restrictKey, MutableDDElement newCollection);
 	public MutableDDElement restrict(Map<DDVariable,Integer> elimVarValues);
 	public MutableDDElement eliminateVariables(ArrayList<DDVariable> elimVars, BinaryOperation oper);

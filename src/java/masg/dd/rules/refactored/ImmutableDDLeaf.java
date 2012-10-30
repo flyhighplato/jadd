@@ -145,5 +145,38 @@ public class ImmutableDDLeaf extends BaseDDNode implements ImmutableDDElement{
 		}
 	}
 
+	@Override
+	public MutableDDElement primeVariables() {
+		return new MutableDDLeaf(value);
+	}
+
+	@Override
+	public void primeVariables(ArrayList<DDVariable> prefixVars, BitMap prefix,
+			MutableDDElement newColl) {
+		ArrayList<DDVariable> primedPrefixVars = new ArrayList<DDVariable>();
+		for(DDVariable v:prefixVars) {
+			primedPrefixVars.add(v.getPrimed());
+		}
+		newColl.setValue(primedPrefixVars, prefix, value);
+		
+	}
+	
+	@Override
+	public MutableDDElement unprimeVariables() {
+		return new MutableDDLeaf(value);
+	}
+
+	@Override
+	public void unprimeVariables(ArrayList<DDVariable> prefixVars, BitMap prefix,
+			MutableDDElement newColl) {
+		ArrayList<DDVariable> unprimedPrefixVars = new ArrayList<DDVariable>();
+		for(DDVariable v:prefixVars) {
+			unprimedPrefixVars.add(v.getUnprimed());
+		}
+		//System.out.println(unprimedPrefixVars + "=" + value);
+		newColl.setValue(unprimedPrefixVars, prefix, value);
+		
+	}
+
 	
 }

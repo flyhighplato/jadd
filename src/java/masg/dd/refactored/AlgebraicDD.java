@@ -4,10 +4,12 @@ import groovy.lang.Closure;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 import masg.dd.rules.operations.refactored.AdditionOperation;
 import masg.dd.rules.operations.refactored.BinaryOperation;
+import masg.dd.rules.operations.refactored.ConstantMultiplicationOperation;
 import masg.dd.rules.operations.refactored.DivisionOperation;
 import masg.dd.rules.operations.refactored.MultiplicationOperation;
 import masg.dd.rules.refactored.ImmutableDDElement;
@@ -21,19 +23,23 @@ import masg.util.BitMap;
 
 public class AlgebraicDD {
 	protected ImmutableDDElement ruleCollection;
+	protected ArrayList<DDVariable> variables;
 	
 	public AlgebraicDD(ArrayList<DDVariable> vars, Closure<Double> c) {
 		MutableDDElement mutableDDElement = MutableDDElementBuilder.build(vars, c, false);
 		mutableDDElement.compress();
+		variables = vars;
 		if(mutableDDElement instanceof MutableDDNode)
 			ruleCollection = new ImmutableDDNode((MutableDDNode) mutableDDElement);
 		else if (mutableDDElement instanceof MutableDDElement)
 			ruleCollection = new ImmutableDDLeaf((MutableDDLeaf)mutableDDElement);
 	}
 	
+	
+	
 	public AlgebraicDD(MutableDDElement mutableDDElement) {
 		mutableDDElement.compress();
-		
+		variables = mutableDDElement.getVariables();
 		if(mutableDDElement instanceof MutableDDNode)
 			ruleCollection = new ImmutableDDNode((MutableDDNode) mutableDDElement);
 		else if (mutableDDElement instanceof MutableDDElement)
@@ -50,8 +56,12 @@ public class AlgebraicDD {
 	}
 	
 	public Double getValue(HashMap<DDVariable,Integer> varSpacePoint) {
-		BitMap bm = MutableDDElementBuilder.varSpacePointToBitMap(ruleCollection.getVariables(), varSpacePoint);
-		return ruleCollection.getValue(ruleCollection.getVariables(), bm);
+		BitMap bm = MutableDDElementBuilder.varSpacePointToBitMap(new ArrayList<DDVariable>(varSpacePoint.keySet()), varSpacePoint);
+		return ruleCollection.getValue(new ArrayList<DDVariable>(varSpacePoint.keySet()), bm);
+	}
+	
+	public ArrayList<DDVariable> getVariables() {
+		return variables;
 	}
 	
 	public AlgebraicDD restrict(HashMap<DDVariable,Integer> varSpacePoint) {
@@ -59,7 +69,19 @@ public class AlgebraicDD {
 	}
 	
 	public AlgebraicDD multiply(CondProbDD condProbDD) {
-		return oper(new MultiplicationOperation(), condProbDD.getComponentFunctions());
+		
+		HashSet<DDVariable> thisVars = new HashSet<DDVariable>(variables);
+		ArrayList<AlgebraicDD> pertinentFns = new ArrayList<AlgebraicDD>();
+		for(AlgebraicDD dd: condProbDD.getComponentFunctions()) {
+			for(DDVariable v:dd.getVariables()) {
+				if(thisVars.contains(v)) {
+					pertinentFns.add(dd);
+					break;
+				}
+			}
+		}
+		
+		return oper(new MultiplicationOperation(), pertinentFns);
 	}
 	
 	public AlgebraicDD multiply(ProbDD pdd) {
@@ -68,6 +90,14 @@ public class AlgebraicDD {
 	
 	public AlgebraicDD multiply(AlgebraicDD dd) {
 		return oper(new MultiplicationOperation(),dd);
+	}
+	
+	public AlgebraicDD multiply(double mult) {
+		return new AlgebraicDD(ruleCollection.apply(new ConstantMultiplicationOperation(mult)));
+	}
+	
+	public AlgebraicDD plus(AlgebraicDD dd) {
+		return oper(new AdditionOperation(),dd);
 	}
 	
 	public AlgebraicDD div(AlgebraicDD dd) {
@@ -89,6 +119,18 @@ public class AlgebraicDD {
 		}
 		
 		return new AlgebraicDD(ruleCollection.apply(oper, otherCollections));
+	}
+	
+	public AlgebraicDD prime() {
+		return new AlgebraicDD(ruleCollection.primeVariables());
+	}
+	
+	public AlgebraicDD unprime() {
+		return new AlgebraicDD(ruleCollection.unprimeVariables());
+	}
+	
+	public Double getTotalWeight() {
+		return ruleCollection.getTotalWeight();
 	}
 	
 	public String toString() {

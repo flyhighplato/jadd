@@ -48,11 +48,10 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 			this.isMeasure = isMeasure;
 		}
 		
-		if(subCollections!=null) {
-			for(ImmutableDDElement hdrc:subCollections.values()) {
-				((MutableDDElement) hdrc).setIsMeasure(vars, isMeasure);
-			}
+		for(ImmutableDDElement hdrc:subCollections.values()) {
+			((MutableDDElement) hdrc).setIsMeasure(vars, isMeasure);
 		}
+		
 		
 	}
 	
@@ -61,58 +60,34 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 			this.isMeasure = map.get(this.var);
 		}
 		
-		if(subCollections!=null) {
-			for(ImmutableDDElement hdrc:subCollections.values()) {
-				((MutableDDElement) hdrc).setIsMeasure(map);
-			}
+		for(ImmutableDDElement hdrc:subCollections.values()) {
+			((MutableDDElement) hdrc).setIsMeasure(map);
 		}
-		
-	}
 
-	/*public Double compressIntoDouble() {
-		Double val = null;
-		if(subCollections==null) {
-			for(Entry<BitMap, ImmutableDDElement> e: subCollections.entrySet()) {
-				if(e.getValue() instanceof MutableDDLeaf) {
-					MutableDDLeaf leaf = (MutableDDLeaf) e.getValue();
-					
-					if(val==null)
-						val = leaf.getValue();
-					else if(!val.equals(e.getValue())) {
-						return null;
-					}
-				}
-				else {
-					return null;
-				}
-			}
-		}
-		return val;
-	}*/
+	}
+	
 	
 	public void compress() {
-		if(subCollections!=null) {
-			HashMap<BitMap,ImmutableDDElement> newSubNodes = new HashMap<BitMap,ImmutableDDElement>();
-			
-			ImmutableDDElement sameHDRC = null;
-			
-			newSubNodes = new HashMap<BitMap,ImmutableDDElement>();
-			for(Entry<BitMap, ImmutableDDElement> e: subCollections.entrySet()) {
-				if(sameHDRC==null) {
-					sameHDRC = e.getValue();
-				}
-				else if(!sameHDRC.equals(e.getValue())) {
-					sameHDRC = null;
-					break;
-				}
-				
-				newSubNodes.put(e.getKey(), e.getValue());
+		HashMap<BitMap,ImmutableDDElement> newSubNodes = new HashMap<BitMap,ImmutableDDElement>();
+		
+		ImmutableDDElement sameHDRC = null;
+		
+		newSubNodes = new HashMap<BitMap,ImmutableDDElement>();
+		for(Entry<BitMap, ImmutableDDElement> e: subCollections.entrySet()) {
+			if(sameHDRC==null) {
+				sameHDRC = e.getValue();
 			}
-
-			if(sameHDRC!=null) {
-				System.out.println("Compressed more");
-				subCollections = newSubNodes;
+			else if(!sameHDRC.equals(e.getValue())) {
+				sameHDRC = null;
+				break;
 			}
+			
+			newSubNodes.put(e.getKey(), e.getValue());
 		}
+
+		if(sameHDRC!=null) {
+			subCollections = newSubNodes;
+		}
+
 	}
 }

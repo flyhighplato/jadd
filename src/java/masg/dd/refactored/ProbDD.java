@@ -17,17 +17,39 @@ public class ProbDD {
 		dd = new AlgebraicDD(rulesTemp);
 	}
 	
+	public ProbDD(AlgebraicDD dd,ArrayList<DDVariable> variables) {
+		this.dd = dd;
+		this.variables = variables;
+	}
+	
 	protected ProbDD() {
 		
 	}
 	
-	public CondProbDD multiply(CondProbDD condProbDD) {
-		return condProbDD.multiply(this);
+	public ProbDD multiply(CondProbDD condProbDD) {
+		return new ProbDD(dd.multiply(condProbDD),variables);
 	}
 	
+	public ProbDD multiply(CondProbDD condProbDD, ArrayList<DDVariable> resVariables) {
+		return new ProbDD(dd.multiply(condProbDD),resVariables);
+	}
+	
+	public ProbDD multiply(ProbDD probDD) {
+		return new ProbDD(dd.multiply(probDD.dd),variables);
+	}
+	
+	public ProbDD div(ProbDD probDD) {
+		return new ProbDD(dd.div(probDD.dd),variables);
+	}
+	
+	public ProbDD sumOut(ArrayList<DDVariable> vars) {
+		return new ProbDD(dd.sumOut(vars),variables);
+	}
 	public Double getValue(HashMap<DDVariable,Integer> varSpacePoint) {
 		return getDD().getValue(varSpacePoint);
 	}
+	
+	
 	public final AlgebraicDD getDD() {
 		return dd;
 	}
@@ -38,6 +60,10 @@ public class ProbDD {
 	
 	static public ProbDD buildProbability(ArrayList<DDVariable> vars, Closure<Double>... c) {
 		return new ProbDD(vars,c);
+	}
+	
+	public String toString() {
+		return dd.toString();
 	}
 
 }

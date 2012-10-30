@@ -9,26 +9,25 @@ import masg.util.BitMap
 
 class MutableDDElementBuilder {
 	public static MutableDDElement build(ArrayList<DDVariable> vars, Closure<Double> c, boolean isMeasure) {
-		MutableDDNode hdrc = new MutableDDNode(vars, isMeasure);
 		
-		int totalBitCount = 0;
-		vars.each{totalBitCount+=it.getBitCount()}
-		
-		DDVariableSpace varSpace = new DDVariableSpace(vars);
-		varSpace.each{ HashMap<DDVariable,Integer> varSpacePoint ->
-			double val = c(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
+		if(vars.size()>0) {
+			MutableDDNode hdrc = new MutableDDNode(vars, isMeasure);
 			
-			BitMap bm = varSpacePointToBitMap(vars,varSpacePoint);
-
-			hdrc.setValue(vars, bm, val)
-		}
-		
-		if(hdrc.compressIntoDouble() == null) {
+			DDVariableSpace varSpace = new DDVariableSpace(vars);
+			varSpace.each{ HashMap<DDVariable,Integer> varSpacePoint ->
+				double val = c(varSpacePoint.collectEntries{k,v -> [k.toString(),v]})
+				
+				BitMap bm = varSpacePointToBitMap(vars,varSpacePoint);
+	
+				hdrc.setValue(vars, bm, val)
+			}
+			
 			return hdrc;
 		}
 		else {
-			return new MutableDDLeaf(hdrc.compressIntoDouble());
+			return new MutableDDLeaf(c());
 		}
+		
 	}
 	
 	
@@ -52,17 +51,21 @@ class MutableDDElementBuilder {
 		
 		int varBitIndexOffset=0;
 		for(DDVariable var:vars) {
-			int varValue = varSpacePoint.get(var);
 			
-			for(int currBitIndex = varBitIndexOffset; (currBitIndex - varBitIndexOffset) <var.getBitCount();++currBitIndex) {
-				int valueBitIndex = currBitIndex - varBitIndexOffset;
-				boolean setInVarValue = ((varValue & (1 << valueBitIndex)) > 0);
-				if(setInVarValue) {
-					bm.set(currBitIndex);
+			if(varSpacePoint.get(var)!=null) {
+				int varValue = varSpacePoint.get(var);
+				
+				for(int currBitIndex = varBitIndexOffset; (currBitIndex - varBitIndexOffset) <var.getBitCount();++currBitIndex) {
+					int valueBitIndex = currBitIndex - varBitIndexOffset;
+					boolean setInVarValue = ((varValue & (1 << valueBitIndex)) > 0);
+					if(setInVarValue) {
+						bm.set(currBitIndex);
+					}
 				}
+				
+				
+				varBitIndexOffset+=var.getBitCount();
 			}
-			
-			varBitIndexOffset+=var.getBitCount();
 		}
 		
 		return bm;

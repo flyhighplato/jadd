@@ -18,6 +18,7 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 	protected DDVariable var;
 	protected boolean isMeasure;
 	
+	
 	public ImmutableDDNode(MutableDDNode mutableCollection) {
 		this.isMeasure = mutableCollection.isMeasure;
 		var = mutableCollection.getVariable();
@@ -91,6 +92,7 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 		}
 		else if(isMeasure){
 			double val = 0.0f;
+			
 			for(ImmutableDDElement hdrc:subCollections.values()) {
 				val += hdrc.getValue(vars, r);
 			}
@@ -187,6 +189,66 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 		}
 		
 		copy(new ArrayList<DDVariable>(),null,oper,coll);
+		return coll;
+		
+	}
+	
+	public void primeVariables(ArrayList<DDVariable> prefixVars, BitMap prefix,MutableDDElement newColl) {
+		ArrayList<DDVariable> newPrefixVars = new ArrayList<DDVariable>(prefixVars);
+		newPrefixVars.add(getVariable());
+		
+		for(Entry<BitMap,ImmutableDDElement> e: subCollections.entrySet()) {
+			BitMap bm = joinKeys(prefix, e.getKey());
+			e.getValue().primeVariables(newPrefixVars, bm, newColl);
+		}
+	}
+	
+	public MutableDDElement primeVariables(){
+		HashSet<DDVariable> haveVars = new HashSet<DDVariable>();
+		for(DDVariable v:getVariables()) {
+			haveVars.add(v.getPrimed());
+		}
+		
+		MutableDDElement coll;
+		if(haveVars.size()>0) {
+			coll = new MutableDDNode(new ArrayList<DDVariable>(haveVars), isMeasure);
+			
+		}
+		else {
+			coll = new MutableDDLeaf(0.0f);
+		}
+		
+		primeVariables(new ArrayList<DDVariable>(),null,coll);
+		return coll;
+		
+	}
+	
+	public void unprimeVariables(ArrayList<DDVariable> prefixVars, BitMap prefix,MutableDDElement newColl) {
+		ArrayList<DDVariable> newPrefixVars = new ArrayList<DDVariable>(prefixVars);
+		newPrefixVars.add(getVariable());
+		
+		for(Entry<BitMap,ImmutableDDElement> e: subCollections.entrySet()) {
+			BitMap bm = joinKeys(prefix, e.getKey());
+			e.getValue().unprimeVariables(newPrefixVars, bm, newColl);
+		}
+	}
+	
+	public MutableDDElement unprimeVariables(){
+		HashSet<DDVariable> haveVars = new HashSet<DDVariable>();
+		for(DDVariable v:getVariables()) {
+			haveVars.add(v.getUnprimed());
+		}
+		
+		MutableDDElement coll;
+		if(haveVars.size()>0) {
+			coll = new MutableDDNode(new ArrayList<DDVariable>(haveVars), isMeasure);
+			
+		}
+		else {
+			coll = new MutableDDLeaf(0.0f);
+		}
+		
+		unprimeVariables(new ArrayList<DDVariable>(),null,coll);
 		return coll;
 		
 	}
@@ -288,15 +350,22 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 	}
 	
 	public String toString() {
-		return getVariables() + "\n" + toString("");
+		HashSet<DDVariable> uniqVars = new HashSet<DDVariable>(getVariables());
+		ArrayList<DDVariable> varsInOrder = new ArrayList<DDVariable>();
+		for(DDVariable v:DDContext.canonicalVariableOrdering) {
+			if(uniqVars.contains(v)) {
+				varsInOrder.add(v);
+			}
+		}
+		return  varsInOrder + "\n" + toString("");
 	}
 
 	public boolean equals(Object o) {
 		if(o==this)
 			return true;
 		
-		if(o instanceof MutableDDNode) {
-			MutableDDNode otherHDRC = (MutableDDNode) o;
+		if(o instanceof ImmutableDDNode) {
+			ImmutableDDNode otherHDRC = (ImmutableDDNode) o;
 			
 			if( (subCollections==null && otherHDRC.subCollections!=null) || (subCollections!=null && otherHDRC.subCollections==null) ) {
 				return false;
@@ -312,7 +381,7 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 			return false;
 		}
 		else {
-			return o.equals(this);
+			return false;
 		}
 	}
 	
