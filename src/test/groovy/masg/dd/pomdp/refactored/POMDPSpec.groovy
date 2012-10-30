@@ -1,5 +1,7 @@
 package masg.dd.pomdp.refactored
 
+import masg.agent.pomdp.belief.refactored.BeliefRegion
+import masg.agent.pomdp.policy.refactored.RandomPolicy
 import masg.dd.pomdp.POMDP;
 import masg.dd.refactored.AlgebraicDD
 import masg.dd.refactored.CondProbDD
@@ -173,5 +175,22 @@ class POMDPSpec extends Specification {
 			
 			println "$numRewardUpdates value updates in $timeEnd milliseconds"
 	
+	}
+	
+	def "POMDP functions can be used for belief sampling"() {
+		when:
+			def timeStart = new Date().getTime()
+			
+			int numSamples = 100
+			RandomPolicy randPolicy = new RandomPolicy(problem.getPOMDP())
+			BeliefRegion belReg = new BeliefRegion(numSamples, problem.getPOMDP(), randPolicy)
+			
+			def timeEnd = new Date().getTime() - timeStart
+		then:
+			belReg.getBeliefSamples().each{ ProbDD beliefSample ->
+				println beliefSample	
+			}
+			
+			println "$numSamples beliefs sampled in $timeEnd milliseconds"
 	}
 }

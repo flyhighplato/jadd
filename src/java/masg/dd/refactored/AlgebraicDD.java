@@ -35,8 +35,6 @@ public class AlgebraicDD {
 			ruleCollection = new ImmutableDDLeaf((MutableDDLeaf)mutableDDElement);
 	}
 	
-	
-	
 	public AlgebraicDD(MutableDDElement mutableDDElement) {
 		mutableDDElement.compress();
 		variables = mutableDDElement.getVariables();
@@ -44,10 +42,6 @@ public class AlgebraicDD {
 			ruleCollection = new ImmutableDDNode((MutableDDNode) mutableDDElement);
 		else if (mutableDDElement instanceof MutableDDElement)
 			ruleCollection = new ImmutableDDLeaf((MutableDDLeaf)mutableDDElement);
-		
-	}
-	
-	protected AlgebraicDD() {
 		
 	}
 	
