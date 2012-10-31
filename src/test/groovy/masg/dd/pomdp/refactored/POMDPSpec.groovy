@@ -1,7 +1,9 @@
 package masg.dd.pomdp.refactored
 
 import masg.agent.pomdp.belief.refactored.BeliefRegion
+import masg.agent.pomdp.policy.refactored.PolicyBuilder
 import masg.agent.pomdp.policy.refactored.RandomPolicy
+import masg.dd.alphavector.refactored.BeliefAlphaVector
 import masg.dd.pomdp.POMDP;
 import masg.dd.refactored.AlgebraicDD
 import masg.dd.refactored.CondProbDD
@@ -113,14 +115,16 @@ class POMDPSpec extends Specification {
 			HashMap<DDVariable,Integer> valPoint = new HashMap<DDVariable,Integer>()
 			valPoint[problem.a1RowVar]=4
 			valPoint[problem.a1ColVar]=0
+			valPoint[problem.wRowVar]=4
+			valPoint[problem.wColVar]=0
 			belief = belief.toProbabilityFn();
 			
 		then:
 			println "$numBeliefUpdates belief updates took $timeEnd milliseconds"
-			println belief;
-			println belief.getValue(valPoint);
+			//println belief;
+			//println belief.getValue(valPoint);
 			assert numBeliefUpdates > 10000
-			assert Math.abs(belief.getValue(valPoint) - 1.0f) < 0.01f;
+			assert Math.abs(belief.getValue(valPoint) - 0.0f) < 0.01f;
 	}
 	
 	def "POMDP functions can be used for reward calculation"() {
@@ -170,8 +174,8 @@ class POMDPSpec extends Specification {
 			belief = belief.toProbabilityFn();
 			def timeEnd = new Date().getTime() - timeStart
 		then:
-			println belief
-			println valueFn
+			//println belief
+			//println valueFn
 			
 			println "$numRewardUpdates value updates in $timeEnd milliseconds"
 	
@@ -181,16 +185,41 @@ class POMDPSpec extends Specification {
 		when:
 			def timeStart = new Date().getTime()
 			
-			int numSamples = 100
+			int numSamples = 1000
 			RandomPolicy randPolicy = new RandomPolicy(problem.getPOMDP())
 			BeliefRegion belReg = new BeliefRegion(numSamples, problem.getPOMDP(), randPolicy)
 			
 			def timeEnd = new Date().getTime() - timeStart
 		then:
-			belReg.getBeliefSamples().each{ ProbDD beliefSample ->
-				println beliefSample	
-			}
+			/*belReg.getBeliefSamples().each{ CondProbDD beliefSample ->
+				println beliefSample.toProbabilityFn()
+			}*/
 			
 			println "$numSamples beliefs sampled in $timeEnd milliseconds"
+	}
+	
+	def "POMDP functions can be used for DP backup"() {
+		when:
+			
+			int numIterations = 10
+			int numSamples = 100
+			RandomPolicy randPolicy = new RandomPolicy(problem.getPOMDP())
+			BeliefRegion belReg = new BeliefRegion(numSamples, problem.getPOMDP(), randPolicy)
+			
+			ArrayList<BeliefAlphaVector> currAlphas = null;
+			
+			def timeStart = new Date().getTime()
+			
+			PolicyBuilder polBuilder = new PolicyBuilder(problem.getPOMDP())
+			
+			polBuilder.build(belReg, numIterations)
+			
+			
+			def timeEnd = new Date().getTime() - timeStart
+		then:
+			for(BeliefAlphaVector alpha:polBuilder.bestAlphas) {
+				println "${alpha.getAction()}: ${alpha.getValueFunction().getTotalWeight()}";
+			}
+			println "Took $timeEnd milliseconds to backup $numSamples samples $numIterations times"
 	}
 }

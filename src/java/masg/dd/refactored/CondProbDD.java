@@ -60,7 +60,7 @@ public class CondProbDD {
 		}
 	}
 	
-	private CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, ArrayList<AlgebraicDD> indepFns) {
+	public CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, ArrayList<AlgebraicDD> indepFns) {
 		this.condVars = new ArrayList<DDVariable>();
 		
 		HashSet<DDVariable> temp = new HashSet<DDVariable>(condVars);

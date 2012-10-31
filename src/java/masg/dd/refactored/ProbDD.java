@@ -62,6 +62,14 @@ public class ProbDD {
 		return new ProbDD(vars,c);
 	}
 	
+	public CondProbDD toConditionalProbabilityFn() {
+		ArrayList<DDVariable> condVars = new ArrayList<DDVariable>(); 
+		ArrayList<DDVariable> uncondVars = new ArrayList<DDVariable>(getVariables());
+		ArrayList<AlgebraicDD> indepFns = new ArrayList<AlgebraicDD>();
+		indepFns.add(dd);		
+		return new CondProbDD(condVars,uncondVars,indepFns);
+	}
+	
 	public String toString() {
 		return dd.toString();
 	}

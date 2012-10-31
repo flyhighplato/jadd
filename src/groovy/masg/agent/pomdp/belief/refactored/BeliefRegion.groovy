@@ -10,16 +10,16 @@ import masg.dd.vars.DDVariable
 
 class BeliefRegion {
 	POMDP p
-	protected List<ProbDD> beliefSamples = []
+	protected List<CondProbDD> beliefSamples = []
 	
-	public final List<ProbDD> getBeliefSamples() {
+	public final List<CondProbDD> getBeliefSamples() {
 		return beliefSamples;
 	}
 	
 	public BeliefRegion(int numSamples, POMDP p, RandomPolicy policy) {
 		this.p = p
 		
-		ProbDD belief = p.getInitialBelief()
+		CondProbDD belief = p.getInitialBelief().toConditionalProbabilityFn()
 		
 		Random random = new Random()
 		
@@ -65,8 +65,7 @@ class BeliefRegion {
 			
 			CondProbDD temp = restrObsFn.multiply(tempRestrTransFn);
 			temp = temp.normalize()
-			temp = temp.unprime()
-			belief = temp.toProbabilityFn()
+			belief = temp.unprime()
 			println()
 		}
 	}
