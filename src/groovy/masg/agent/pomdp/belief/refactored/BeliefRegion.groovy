@@ -10,9 +10,9 @@ import masg.dd.vars.DDVariable
 
 class BeliefRegion {
 	POMDP p
-	protected List<CondProbDD> beliefSamples = []
+	protected List<Belief> beliefSamples = []
 	
-	public final List<CondProbDD> getBeliefSamples() {
+	public final List<Belief> getBeliefSamples() {
 		return beliefSamples;
 	}
 	
@@ -23,8 +23,10 @@ class BeliefRegion {
 		
 		Random random = new Random()
 		
+		List<CondProbDD> beliefFnSamples = []
+		
 		numSamples.times{
-			beliefSamples << belief
+			beliefFnSamples << belief
 			
 			HashMap<DDVariable,Integer> actPoint = policy.getAction(belief)
 			
@@ -67,6 +69,11 @@ class BeliefRegion {
 			temp = temp.normalize()
 			belief = temp.unprime()
 			println()
+		}
+		
+		println "Initializing belief region"
+		beliefFnSamples.each{ CondProbDD beliefFn ->
+			beliefSamples << new Belief(p,beliefFn);
 		}
 	}
 }

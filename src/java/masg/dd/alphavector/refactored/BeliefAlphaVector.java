@@ -24,4 +24,6 @@ public class BeliefAlphaVector {
 	public final HashMap<DDVariable,Integer> getAction() {
 		return new HashMap<DDVariable,Integer>(action);
 	}
+	
+	
 }
