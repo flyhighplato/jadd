@@ -202,7 +202,7 @@ class POMDPSpec extends Specification {
 		when:
 			
 			int numIterations = 10
-			int numSamples = 100
+			int numSamples = 1000
 			RandomPolicy randPolicy = new RandomPolicy(problem.getPOMDP())
 			BeliefRegion belReg = new BeliefRegion(numSamples, problem.getPOMDP(), randPolicy)
 			

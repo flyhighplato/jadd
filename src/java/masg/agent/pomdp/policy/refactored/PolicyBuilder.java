@@ -27,7 +27,7 @@ public class PolicyBuilder {
 	
 	ArrayList<BeliefAlphaVector> bestAlphas = new ArrayList<BeliefAlphaVector>();
 	
-	private final ExecutorService pool = Executors.newFixedThreadPool(16);
+	private ExecutorService pool = Executors.newFixedThreadPool(16);
 	
 	POMDP p;
 	
@@ -39,7 +39,10 @@ public class PolicyBuilder {
 	
 	public void build(BeliefRegion belRegion, int numIterations) {
 		
+		
 		List<Belief> beliefs = belRegion.getBeliefSamples();
+		
+		//pool = Executors.newCachedThreadPool();
 		
 		for(int i=0;i<numIterations;++i) {
 			System.out.println("Iteration #" + i);
