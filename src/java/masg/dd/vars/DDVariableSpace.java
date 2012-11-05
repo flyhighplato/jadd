@@ -6,8 +6,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import masg.dd.rules.DecisionRule;
-
 public class DDVariableSpace implements Iterable<HashMap<DDVariable,Integer>> {
 	protected DDVariable[] variables;
 	
@@ -22,60 +20,6 @@ public class DDVariableSpace implements Iterable<HashMap<DDVariable,Integer>> {
 	@Override
 	public DDVariableSpaceIterator iterator() {
 		return new DDVariableSpaceIterator(this);
-	}
-	
-	public DecisionRule generateRule(HashMap<DDVariable,Integer> varValues, double val) throws Exception {
-		DecisionRule r = new DecisionRule(getBitCount(),val);
-		
-		int ruleOffset = 0;
-		for(DDVariable currVariable:variables) {
-			if(varValues.containsKey(currVariable)) {
-				Integer varInValue = varValues.get(currVariable);
-				String binStr = String.format("%0" + currVariable.getBitCount() + "d", Integer.parseInt(Integer.toBinaryString(varInValue)));
-				binStr = new StringBuffer(binStr).reverse().toString();
-				
-				char[] bitChars = binStr.toCharArray() ;
-				
-				int i;
-				for(i=0;i<bitChars.length;i++) {
-					r.setBit(ruleOffset+i, bitChars[i]);
-				}
-				
-				
-			}
-			
-			ruleOffset += currVariable.getBitCount();
-		}
-		
-		return r;
-	}
-	
-	public DecisionRule translateRule(DecisionRule fromRule, DDVariableSpace fromVarSpace) throws Exception {
-		DecisionRule toRule = new DecisionRule(getBitCount(),fromRule.value);
-		
-		ArrayList<DDVariable> fromVariableList = new ArrayList<DDVariable>(Arrays.asList(fromVarSpace.variables));
-		int toStartBitIx=0;
-		for(int i = 0;i<variables.length;i++) {
-			DDVariable currVar = variables[i];
-			int fromVarIx = fromVariableList.indexOf(currVar);
-			
-			if(fromVarIx>-1) {
-				
-				int fromStartBitIx = 0;
-				for(int j = 0;j<fromVarIx;j++) {
-					fromStartBitIx+=fromVariableList.get(j).getBitCount();
-				}
-				
-				for(int j = 0; j<currVar.getBitCount();j++) {
-					toRule.setBit(toStartBitIx + j, fromRule.getBit(fromStartBitIx + j));
-				}
-				
-			}
-			
-			toStartBitIx += variables[i].getBitCount();
-		}
-		
-		return toRule;
 	}
 	
 	public int getVariableCount() {

@@ -4,7 +4,6 @@ import masg.agent.pomdp.belief.refactored.BeliefRegion
 import masg.agent.pomdp.policy.refactored.PolicyBuilder
 import masg.agent.pomdp.policy.refactored.RandomPolicy
 import masg.dd.alphavector.refactored.BeliefAlphaVector
-import masg.dd.pomdp.POMDP;
 import masg.dd.refactored.AlgebraicDD
 import masg.dd.refactored.CondProbDD
 import masg.dd.refactored.ProbDD
