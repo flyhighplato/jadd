@@ -2,8 +2,8 @@ package masg.dd.context;
 
 import java.util.ArrayList;
 
-import masg.dd.vars.DDVariable;
-import masg.dd.vars.DDVariableSpace;
+import masg.dd.variables.DDVariable;
+import masg.dd.variables.DDVariableSpace;
 
 public class DDContext {
 	protected DDVariableSpace varSpace = new DDVariableSpace();
