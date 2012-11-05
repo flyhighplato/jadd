@@ -2,6 +2,7 @@ package masg.dd.rules.refactored;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map.Entry;
 
 import masg.dd.rules.operations.refactored.BinaryOperation;
@@ -43,6 +44,39 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 		
 	}
 	
+	public void setValue(HashMap<DDVariable,HashSet<BitMap>> keyMap, double value) {
+		if(keyMap.containsKey(getVariable())) {
+			if(uniqueSubElementKeys!=null && uniqueSubElements!=null) {
+				for(int i=0;i<uniqueSubElements.size();++i) {
+					HashSet<BitMap> elKeys = new HashSet<BitMap>(uniqueSubElementKeys.get(i));
+					elKeys.retainAll(keyMap.get(getVariable()));
+					
+					if(!elKeys.isEmpty()) {
+						((MutableDDNode) uniqueSubElements.get(i)).setValue(keyMap, value);
+					}
+				}
+			}
+			else {
+				for(BitMap key:keyMap.get(getVariable())) {
+					((MutableDDElement) subCollections.get(key)).setValue(keyMap, value);
+				}
+			}
+		}
+		else {
+			if(uniqueSubElementKeys!=null && uniqueSubElements!=null) {
+				for(int i=0;i<uniqueSubElements.size();++i) {
+					((MutableDDNode) uniqueSubElements.get(i)).setValue(keyMap, value);
+				}
+			}
+			else {
+				for(ImmutableDDElement hdrc:subCollections.values()) {
+					((MutableDDElement) hdrc).setValue(keyMap, value);
+				}
+			}
+			
+		}
+	}
+	
 	public void setIsMeasure(ArrayList<DDVariable> vars, boolean isMeasure) {
 		if(vars.contains(this.var)) {
 			this.isMeasure = isMeasure;
@@ -66,7 +100,6 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 
 	}
 	
-	
 	public void compress() {
 		HashMap<BitMap,ImmutableDDElement> newSubNodes = new HashMap<BitMap,ImmutableDDElement>();
 		
@@ -87,6 +120,23 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 
 		if(sameHDRC!=null) {
 			subCollections = newSubNodes;
+		}
+		
+		
+		uniqueSubElements = new ArrayList<ImmutableDDElement>();
+		uniqueSubElementKeys = new ArrayList<HashSet<BitMap>>();
+		
+		for(Entry<BitMap,ImmutableDDElement> e: subCollections.entrySet()) {
+			int ix = uniqueSubElements.indexOf(e.getValue());
+			if(ix>-1) {
+				uniqueSubElementKeys.get(ix).add(e.getKey());
+			}
+			else {
+				uniqueSubElements.add(e.getValue());
+				HashSet<BitMap> set = new HashSet<BitMap>();
+				set.add(e.getKey());
+				uniqueSubElementKeys.add(set);
+			}
 		}
 
 	}

@@ -2,6 +2,7 @@ package masg.dd.rules.refactored;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import masg.dd.rules.operations.refactored.BinaryOperation;
@@ -39,6 +40,16 @@ public class ImmutableDDLeaf extends BaseDDNode implements ImmutableDDElement{
 		return value;
 	}
 	
+
+	@Override
+	public ArrayList<Double> getValues(
+			HashMap<DDVariable, HashSet<BitMap>> keyMap) {
+		
+		ArrayList<Double> values = new ArrayList<Double>();
+		values.add(value);
+		return values;
+	}
+	
 	public Double getValue() {
 		return value;
 	}
@@ -64,6 +75,28 @@ public class ImmutableDDLeaf extends BaseDDNode implements ImmutableDDElement{
 		newCollection.setValue(prefixVars, prefix, oper.invoke(value));
 	}
 
+	@Override
+	public void apply(HashMap<DDVariable, HashSet<BitMap>> prevKeys,
+			UnaryOperation oper, MutableDDElement newCollection) {
+		newCollection.setValue(prevKeys, oper.invoke(value));
+	}
+	
+	@Override
+	public void apply(HashMap<DDVariable, HashSet<BitMap>> prevKeys,
+			BinaryOperation oper,
+			ArrayList<ImmutableDDElement> otherCollections,
+			MutableDDElement newCollection) {
+		
+		double val = value;
+		for(ImmutableDDElement otherDD:otherCollections) {
+			for(Double d:otherDD.getValues(prevKeys)) {
+				val = oper.invoke(val, d);
+			}
+		}
+		
+		newCollection.setValue(prevKeys, val);
+	}
+	
 	@Override
 	public void apply(ArrayList<DDVariable> prefixVars, BitMap prefix,
 			BinaryOperation oper,

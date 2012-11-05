@@ -29,6 +29,7 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 		
 		DDContext.canonicalVariableOrdering = [var1,var2,var3];
 		coll = new MutableDDNode(DDContext.canonicalVariableOrdering, false);
+		coll.compress()
 	}
 	
 	def "rule can be added and retrieved"() {
@@ -119,8 +120,9 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 			ImmutableDDNode immColl = new ImmutableDDNode(coll);
 			ConstantMultiplicationOperation multOp = new ConstantMultiplicationOperation(5.0f);
 		then:
+			println coll;
 			ImmutableDDNode coll2 = immColl.apply(multOp);
-			//println coll2;
+			println coll2;
 	}
 	
 	def "binary operations work"() {
@@ -150,9 +152,9 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 			ImmutableDDNode immColl = new ImmutableDDNode(coll);
 			MultiplicationOperation multOp = new MultiplicationOperation();
 		then:
-			//println coll;
+			println coll;
 			ImmutableDDNode coll2 = immColl.apply(multOp,immColl);
-			//println coll2;
+			println coll2;
 	}
 	
 	def "variable elimination works"() {
@@ -214,8 +216,8 @@ public class HierarchicalDecisionRuleCollectionSpec extends Specification{
 			elimVars[var1]=1;
 			elimVars[var2]=1;
 		then:
-			//println immColl;
+			println immColl;
 			ImmutableDDNode coll2 = immColl.restrict(elimVars)
-			//println coll2;
+			println coll2;
 	}
 }

@@ -2,6 +2,7 @@ package masg.dd.rules.refactored;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import masg.dd.rules.operations.refactored.BinaryOperation;
@@ -15,6 +16,7 @@ public interface ImmutableDDElement  {
 	public boolean isMeasure();
 	public Double getTotalWeight();
 	public Double getValue(ArrayList<DDVariable> vars, BitMap r);
+	public ArrayList<Double> getValues(HashMap<DDVariable,HashSet<BitMap>> keyMap);
 	public DDVariable getVariable();
 	public ArrayList<DDVariable> getVariables();
 	public boolean equals(Object o);
@@ -24,6 +26,8 @@ public interface ImmutableDDElement  {
 	public MutableDDElement apply(BinaryOperation oper, ArrayList<ImmutableDDElement> otherColl);
 	public void apply(ArrayList<DDVariable> prefixVars, BitMap prefix, UnaryOperation oper, MutableDDElement newCollection);
 	public void apply(ArrayList<DDVariable> prefixVars, BitMap prefix, BinaryOperation oper, ArrayList<ImmutableDDElement> otherCollections, MutableDDElement newCollection);
+	public void apply(HashMap<DDVariable,HashSet<BitMap>> prevKeys, UnaryOperation oper, MutableDDElement newCollection);
+	public void apply(HashMap<DDVariable,HashSet<BitMap>> prevKeys, BinaryOperation oper, ArrayList<ImmutableDDElement> otherCollections, MutableDDElement newCollection);
 	public void copy(ArrayList<DDVariable> prefixVars, BitMap prefix, BinaryOperation oper, MutableDDElement newCollection);
 	public MutableDDElement unprimeVariables();
 	public void unprimeVariables(ArrayList<DDVariable> prefixVars, BitMap prefix,MutableDDElement newColl);

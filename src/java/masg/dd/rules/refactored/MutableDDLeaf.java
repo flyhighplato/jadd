@@ -2,6 +2,7 @@ package masg.dd.rules.refactored;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import masg.dd.rules.operations.refactored.BinaryOperation;
 import masg.dd.vars.DDVariable;
@@ -29,10 +30,19 @@ public class MutableDDLeaf extends ImmutableDDLeaf implements MutableDDElement{
 	}
 
 	@Override
+	public void setValue(HashMap<DDVariable, HashSet<BitMap>> keyMap,
+			double value) {
+		this.value = new Double(value);
+		
+	}
+	
+	@Override
 	public void setIsMeasure(ArrayList<DDVariable> vars, boolean isMeasure) {
 	}
 
 	@Override
 	public void setIsMeasure(HashMap<DDVariable, Boolean> map) {
 	}
+
+	
 }
