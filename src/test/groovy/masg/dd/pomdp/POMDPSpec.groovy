@@ -5,6 +5,7 @@ import masg.dd.CondProbDD;
 import masg.dd.ProbDD;
 import masg.dd.alphavector.BeliefAlphaVector;
 import masg.dd.pomdp.agent.belief.BeliefRegion;
+import masg.dd.pomdp.agent.policy.Policy
 import masg.dd.pomdp.agent.policy.PolicyBuilder;
 import masg.dd.pomdp.agent.policy.RandomPolicy;
 import masg.dd.variables.DDVariable;
@@ -12,11 +13,13 @@ import masg.dd.variables.DDVariableSpace;
 import masg.problem.tag.TagProblem;
 import spock.lang.Shared;
 import spock.lang.Specification
+import spock.lang.Ignore;
 
 class POMDPSpec extends Specification {
 	@Shared
 	TagProblem problem = new TagProblem()
 
+	
 	def "POMDP initial belief is correct"() {
 		when:
 			DDVariableSpace currVarSpace = new DDVariableSpace(problem.getPOMDP().getStates());
@@ -38,6 +41,7 @@ class POMDPSpec extends Specification {
 		
 	}
 	
+	@Ignore
 	def "POMDP transition function is correct"() {
 		when:
 			ArrayList<DDVariable> vars = new ArrayList<DDVariable>(problem.getPOMDP().getStates())
@@ -56,6 +60,7 @@ class POMDPSpec extends Specification {
 		
 	}
 	
+	@Ignore
 	def "POMDP observation function is correct"() {
 		when:
 			ArrayList<DDVariable> vars = new ArrayList<DDVariable>(problem.getPOMDP().getObservations())
@@ -201,23 +206,20 @@ class POMDPSpec extends Specification {
 		when:
 			
 			int numIterations = 10
-			int numSamples = 1000
+			int numSamples = 10
 			RandomPolicy randPolicy = new RandomPolicy(problem.getPOMDP())
 			BeliefRegion belReg = new BeliefRegion(numSamples, problem.getPOMDP(), randPolicy)
-			
-			ArrayList<BeliefAlphaVector> currAlphas = null;
 			
 			def timeStart = new Date().getTime()
 			
 			PolicyBuilder polBuilder = new PolicyBuilder(problem.getPOMDP())
-			
-			polBuilder.build(belReg, numIterations)
-			
+			Policy pol = polBuilder.build(belReg, numIterations)
 			
 			def timeEnd = new Date().getTime() - timeStart
 		then:
 			for(BeliefAlphaVector alpha:polBuilder.bestAlphas) {
 				println "${alpha.getAction()}: ${alpha.getValueFunction().getTotalWeight()}";
+				println alpha.getValueFunction()
 			}
 			println "Took $timeEnd milliseconds to backup $numSamples samples $numIterations times"
 	}
