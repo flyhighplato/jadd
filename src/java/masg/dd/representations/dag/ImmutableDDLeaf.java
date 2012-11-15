@@ -171,7 +171,7 @@ public class ImmutableDDLeaf extends BaseDDNode implements ImmutableDDElement{
 		
 		if(o instanceof ImmutableDDLeaf) {
 			ImmutableDDLeaf leaf = (ImmutableDDLeaf) o;
-			return leaf.getValue().equals(getValue());
+			return Math.abs(leaf.getValue().doubleValue()-getValue().doubleValue())<0.00001f;
 		}
 		else {
 			return o.equals(this);
