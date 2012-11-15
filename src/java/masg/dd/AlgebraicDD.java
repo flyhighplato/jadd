@@ -9,9 +9,12 @@ import java.util.List;
 
 import masg.dd.operations.AdditionOperation;
 import masg.dd.operations.BinaryOperation;
+import masg.dd.operations.ConstantAdditionOperation;
 import masg.dd.operations.ConstantMultiplicationOperation;
 import masg.dd.operations.DivisionOperation;
+import masg.dd.operations.MaxOperation;
 import masg.dd.operations.MultiplicationOperation;
+import masg.dd.operations.SubtractionOperation;
 import masg.dd.representations.dag.ImmutableDDElement;
 import masg.dd.representations.dag.ImmutableDDLeaf;
 import masg.dd.representations.dag.ImmutableDDNode;
@@ -62,6 +65,10 @@ public class AlgebraicDD {
 		return new AlgebraicDD(ruleCollection.restrict(varSpacePoint));
 	}
 	
+	public AlgebraicDD minus(AlgebraicDD dd) {
+		return oper(new SubtractionOperation(),dd);
+	}
+	
 	public AlgebraicDD multiply(CondProbDD condProbDD) {
 		
 		HashSet<DDVariable> thisVars = new HashSet<DDVariable>(variables);
@@ -90,12 +97,20 @@ public class AlgebraicDD {
 		return new AlgebraicDD(ruleCollection.apply(new ConstantMultiplicationOperation(mult)));
 	}
 	
+	public AlgebraicDD plus(double val) {
+		return new AlgebraicDD(ruleCollection.apply(new ConstantAdditionOperation(val)));
+	}
+	
 	public AlgebraicDD plus(AlgebraicDD dd) {
 		return oper(new AdditionOperation(),dd);
 	}
 	
 	public AlgebraicDD div(AlgebraicDD dd) {
 		return oper(new DivisionOperation(),dd);
+	}
+	
+	public AlgebraicDD max(AlgebraicDD dd) {
+		return oper(new MaxOperation(),dd);
 	}
 	
 	public AlgebraicDD sumOut(ArrayList<DDVariable> vars) {
