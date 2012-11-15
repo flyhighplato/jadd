@@ -83,7 +83,10 @@ public class CondProbDD {
 	
 	public Double getValue(HashMap<DDVariable,Integer> varSpacePoint) {
 		double val = 1.0f;
-		val = toProbabilityFn().getValue(varSpacePoint);
+		for(AlgebraicDD dd:indepFns) {
+			val*=dd.getValue(varSpacePoint);
+		}
+		//val = toProbabilityFn().getValue(varSpacePoint);
 		return val;
 	}
 	
@@ -190,6 +193,18 @@ public class CondProbDD {
 	
 	public AlgebraicDD multiply(AlgebraicDD dd) {
 		return dd.multiply(this);
+	}
+	
+	public CondProbDD plus(double value) {
+		ArrayList<AlgebraicDD> newIndepFns = new ArrayList<AlgebraicDD>();
+		for(AlgebraicDD dd:indepFns) {
+			newIndepFns.add( dd.plus(value) );
+		}
+		
+		ArrayList<DDVariable> newCondVars = new ArrayList<DDVariable>(condVars);
+		ArrayList<DDVariable> newUncondVars = new ArrayList<DDVariable>(uncondVars);
+		
+		return new CondProbDD(newCondVars,newUncondVars,newIndepFns);
 	}
 	
 	public CondProbDD normalize() {
