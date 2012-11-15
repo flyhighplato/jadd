@@ -1,9 +1,12 @@
 package masg.dd.pomdp.agent.policy
 
+import java.util.HashMap;
+
 import masg.dd.pomdp.POMDP;
+import masg.dd.pomdp.agent.belief.Belief;
 import masg.dd.variables.DDVariable;
 
-class RandomPolicy {
+class RandomPolicy implements Policy {
 	protected POMDP p
 	Random random = new Random()
 	
@@ -11,8 +14,9 @@ class RandomPolicy {
 		assert p
 		this.p = p
 	}
-	
-	public HashMap<DDVariable,Integer> getAction(def belief) {
+
+	@Override
+	public HashMap<DDVariable, Integer> getAction(Belief belief) {
 		HashMap<DDVariable,Integer> rndActs = []
 		p.actions.each{DDVariable a ->
 			rndActs[a] = random.nextInt(a.getValueCount())
