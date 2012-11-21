@@ -12,6 +12,7 @@ import masg.dd.operations.BinaryOperation;
 import masg.dd.operations.ConstantAdditionOperation;
 import masg.dd.operations.ConstantMultiplicationOperation;
 import masg.dd.operations.DivisionOperation;
+import masg.dd.operations.IsEqualOperation;
 import masg.dd.operations.MaxOperation;
 import masg.dd.operations.MultiplicationOperation;
 import masg.dd.operations.SubtractionOperation;
@@ -107,6 +108,10 @@ public class AlgebraicDD {
 	
 	public AlgebraicDD div(AlgebraicDD dd) {
 		return oper(new DivisionOperation(),dd);
+	}
+	
+	public AlgebraicDD equalAtAnyPoint(AlgebraicDD dd) {
+		return oper(new IsEqualOperation(),dd);
 	}
 	
 	public AlgebraicDD max(AlgebraicDD dd) {

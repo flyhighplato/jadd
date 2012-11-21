@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
+import masg.dd.AlgebraicDD;
 import masg.dd.CondProbDD;
 import masg.dd.ProbDD;
 import masg.dd.alphavector.BeliefAlphaVector
+import masg.dd.pomdp.agent.belief.Belief
 import masg.dd.pomdp.agent.belief.BeliefRegion
+import masg.dd.pomdp.agent.policy.AlphaVectorPolicy
 import masg.dd.pomdp.agent.policy.Policy
 import masg.dd.pomdp.agent.policy.PolicyBuilder
 import masg.dd.pomdp.agent.policy.RandomPolicy
@@ -42,12 +45,54 @@ class TagProblemSimulatorSpec extends Specification {
 			Policy pol = new RandomPolicy(problem.getPOMDP())
 			
 			
-			int numSamples = 1000
-			int numIterations = 10
+			int numSamples = 100
+			int numIterations = 1
 			
-			BeliefRegion belReg = new BeliefRegion(numSamples, problem.getPOMDP(), pol)
-			PolicyBuilder polBuilder = new PolicyBuilder(problem.getPOMDP())
-			pol = polBuilder.build(belReg, numIterations)
+			ArrayList<BeliefAlphaVector> allAlphas = new ArrayList<BeliefAlphaVector>();
+			
+			ArrayList<Belief> witnessPoints = []
+			
+			for(int i=0;i<100;i++) {
+				BeliefRegion belReg
+				
+				if(i%2==0) {
+					belReg = new BeliefRegion(numSamples, problem.getPOMDP(), pol)
+				}
+				else {
+					belReg = new BeliefRegion(numSamples, problem.getPOMDP(), new RandomPolicy(problem.getPOMDP()))
+				}
+				belReg.beliefSamples.addAll(witnessPoints)
+				
+				double valFnTotalOld = -100.0f;
+				double valFnTotalNew = 0.0f;
+				
+				for(int j=0;j<10 && !(Math.abs(valFnTotalOld-valFnTotalNew)<0.001f);j++) {
+					PolicyBuilder polBuilder = new PolicyBuilder(problem.getPOMDP())
+					polBuilder.bestAlphas.addAll(allAlphas);
+					
+					allAlphas = new ArrayList<BeliefAlphaVector>();
+					
+					pol = polBuilder.build(belReg, numIterations)
+					allAlphas.addAll(polBuilder.bestAlphas);
+					
+					AlgebraicDD valueFnDD = allAlphas.get(0).getValueFunction();
+					for(BeliefAlphaVector alpha:allAlphas) {
+						valueFnDD = alpha.getValueFunction().max(valueFnDD);
+					}
+					println()
+					
+					valFnTotalOld = valFnTotalNew
+					valFnTotalNew = valueFnDD.getTotalWeight();
+					System.out.println("*Total value function sum:" + valFnTotalNew);
+					System.out.println("*Total # value function vectors:" + allAlphas.size());
+				}
+				
+				allAlphas.each{
+					witnessPoints << new Belief(problem.getPOMDP(),it.witnessPt)
+				}
+			}
+			
+			pol = new AlphaVectorPolicy(allAlphas)
 			
 			int numColocations = 0;
 			int totalColocations = 0;
@@ -55,7 +100,7 @@ class TagProblemSimulatorSpec extends Specification {
 			int numTrials = 10;
 			
 		then:
-			for(BeliefAlphaVector alpha:polBuilder.bestAlphas) {
+			for(BeliefAlphaVector alpha:allAlphas) {
 				println "${alpha.getAction()}: ${alpha.getValueFunction().getTotalWeight()}";
 			}
 			

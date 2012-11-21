@@ -25,7 +25,6 @@ public class Belief {
 	
 	Random random = new Random();
 	
-	
 	public Belief(POMDP p, CondProbDD fn) {
 		this.p = p;
 		this.beliefFn = fn;
@@ -64,27 +63,22 @@ public class Belief {
 		}
 	}
 	
-	private HashMap<BeliefAlphaVector,Double> alphaValue = new HashMap<BeliefAlphaVector,Double>();
-	
 	public BeliefAlphaVector pickBestAlpha(List<BeliefAlphaVector> alphas) {
 		double bestVal = -Double.MAX_VALUE;
 		BeliefAlphaVector bestAlpha = null;
 		
 		for(BeliefAlphaVector alpha:alphas) {
 			double tempVal;
-			if(alphaValue.containsKey(alpha)) {
-				tempVal = alphaValue.get(alpha).doubleValue();
-			}
-			else {
-				AlgebraicDD valFn = alpha.getValueFunction().multiply(beliefFn);
-				tempVal = valFn.getTotalWeight();
-			}
+			AlgebraicDD valFn = alpha.getValueFunction().multiply(beliefFn);
+			tempVal = valFn.getTotalWeight();
+			
 			
 			if(tempVal>=bestVal) {
 				bestVal = tempVal;
 				bestAlpha = alpha;
 			}
 		}
+		//System.out.println("action:" + bestAlpha.getAction() + "bestVal:" + bestVal);
 		return bestAlpha;
 	}
 	

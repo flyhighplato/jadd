@@ -158,6 +158,46 @@ public class DirectedAcyclicGraphDDSpec extends Specification{
 			println coll2;
 	}
 	
+	def "binary operations perform quickly"() {
+		when:
+			Closure c = {
+				Map variables ->
+				int var1Value = variables[var1.name];
+				int var2Value = variables[var2.name];
+				int var3Value = variables[var3.name];
+				
+				if(var3Value==var2Value) {
+					return 10.0f;
+				}
+				
+				if(var3Value == var1Value) {
+					return 5.0f;
+				}
+				
+				return 0.0f;
+			}
+			ArrayList<DDVariable> vars = [var1,var2,var3]
+			coll = MutableDDElementBuilder.build(vars,c,false)
+			DDVariableSpace space = new DDVariableSpace(vars);
+			
+			coll.compress();
+			
+			ImmutableDDNode immColl = new ImmutableDDNode(coll);
+			MultiplicationOperation multOp = new MultiplicationOperation();
+			
+			long timeStart = new Date().time
+			int numOps = 0
+			while(numOps < 1000000) {
+				immColl = immColl.apply(multOp,immColl);
+				++numOps;
+			}
+		then:
+			println "number of binary operations: $numOps time: ${new Date().time - timeStart}"
+		
+			println immColl
+			
+	}
+	
 	def "variable elimination works"() {
 		when:
 			Closure c = {

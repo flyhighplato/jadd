@@ -1,6 +1,7 @@
 package masg.dd.pomdp.agent.policy;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -28,7 +29,7 @@ public class PolicyBuilder {
 	
 	ArrayList<BeliefAlphaVector> bestAlphas = new ArrayList<BeliefAlphaVector>();
 	
-	private ExecutorService pool = Executors.newFixedThreadPool(16);
+	private ExecutorService pool = Executors.newFixedThreadPool(10);
 	
 	POMDP p;
 	
@@ -54,28 +55,56 @@ public class PolicyBuilder {
 		return new AlphaVectorPolicy(bestAlphas);
 	}
 	
+	private HashMap<Belief,BeliefAlphaVector> getNotImprovedValues(HashMap<Belief,BeliefAlphaVector> oldValues, BeliefAlphaVector newAlpha) {
+		
+		HashMap<Belief,BeliefAlphaVector> newValues = new HashMap<Belief,BeliefAlphaVector>();
+		
+		for(Entry<Belief, BeliefAlphaVector> e:oldValues.entrySet()) {
+
+				BeliefAlphaVector oldAlpha = e.getValue();
+				Belief b = e.getKey();
+						
+				double oldValue = oldAlpha.getValueFunction().multiply(b.getBeliefFunction()).getTotalWeight();;
+				double newValue = newAlpha.getValueFunction().multiply(b.getBeliefFunction()).getTotalWeight();
+				
+				//System.out.println(newValue + " " + oldValue + " " + (newValue-oldValue));
+				
+				if(oldValue>newValue) {
+					newValues.put(b, newAlpha);
+				}
+
+			
+		}
+		
+		return newValues;	
+	}
+	
 	public AlphaVectorPolicy build(BeliefRegion belRegion, int numIterations) {
+		if(bestAlphas.size()<=0)
+			buildPureStrategyAlphas();
 		
-		buildPureStrategyAlphas();
 		
-		List<Belief> beliefs = belRegion.getBeliefSamples();
 		
-		for(int i=0;i<numIterations;++i) {
+		for(int i=0;i<numIterations;++i){
 			System.out.println("Iteration #" + i);
 			
-			long startTime = new Date().getTime();
-			
-			ArrayList<BeliefAlphaVector> newAlphas = new ArrayList<BeliefAlphaVector>();
-			
-			ArrayList<Future<BeliefBackup>> futureBackups = new ArrayList<Future<BeliefBackup>>();
+			List<Belief> beliefs = belRegion.getBeliefSamples();
+
+			ArrayList<Future<BeliefGetBestAlpha>> futureBestPicks = new ArrayList<Future<BeliefGetBestAlpha>>();
 			for(Belief belief:beliefs) {
-				BeliefBackup getBestAlphaTask = new BeliefBackup(belief,bestAlphas);
-				futureBackups.add( pool.submit(getBestAlphaTask,getBestAlphaTask) );
+				BeliefGetBestAlpha getBestAlphaTask = new BeliefGetBestAlpha(belief,bestAlphas);
+				futureBestPicks.add( pool.submit(getBestAlphaTask,getBestAlphaTask) );
 			}
 			
-			for(Future<BeliefBackup> f:futureBackups) {
+			long startTime = new Date().getTime();
+			HashMap<Belief,BeliefAlphaVector> beliefAlphas = new HashMap<Belief,BeliefAlphaVector>();
+			System.out.println("Picking best initial alpha vectors");
+			for(Future<BeliefGetBestAlpha> f:futureBestPicks) {
 				try {
-					newAlphas.add(f.get().result);
+					BeliefGetBestAlpha task = f.get();
+					BeliefAlphaVector bestAlpha = task.result;
+					beliefAlphas.put(task.b, bestAlpha);
+					
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -84,45 +113,62 @@ public class PolicyBuilder {
 					e.printStackTrace();
 				}
 			}
+			System.out.println("Took " + ( new Date().getTime() - startTime) + " milliseconds");
 			
-			System.out.println("--Backups took " + (new Date().getTime()-startTime));
+			startTime = new Date().getTime();
 			
-			
-			if( i==numIterations-1) {
-				startTime = new Date().getTime();
+			while(!beliefAlphas.keySet().isEmpty()) {
 				
-				System.out.println("--Removing dominated alpha vectors");
+				Belief belief = beliefAlphas.keySet().iterator().next();
+				BeliefAlphaVector oldBestBeliefAlpha = beliefAlphas.get(belief);
+				double oldBeliefValue = oldBestBeliefAlpha.getValueFunction().multiply(belief.getBeliefFunction()).getTotalWeight();
 				
-				HashSet<BeliefAlphaVector> usedUniqAlphaVectors = new HashSet<BeliefAlphaVector>();
 				
-				ArrayList<Future<BeliefGetBestAlpha>> futureBestPicks = new ArrayList<Future<BeliefGetBestAlpha>>();
-				for(Belief belief:beliefs) {
-					BeliefGetBestAlpha getBestAlphaTask = new BeliefGetBestAlpha(belief,newAlphas);
-					futureBestPicks.add( pool.submit(getBestAlphaTask,getBestAlphaTask) );
-				}
+				BeliefBackup dpBackupTask = new BeliefBackup(belief,bestAlphas);
+				dpBackupTask.run();
 				
-				for(Future<BeliefGetBestAlpha> f:futureBestPicks) {
-					try {
-						usedUniqAlphaVectors.addAll(f.get().result);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} catch (ExecutionException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+				ArrayList<BeliefAlphaVector> newAlphas = new ArrayList<BeliefAlphaVector>();
+				
+				
+				double newBeliefValue = dpBackupTask.result.getValueFunction().multiply(belief.getBeliefFunction()).getTotalWeight();
+				beliefAlphas.remove(belief);
+
+				if(newBeliefValue>=oldBeliefValue) {
+					BeliefAlphaVector newAlpha = dpBackupTask.result;
+					
+					//beliefAlphas.put(belief,newAlpha);
+					beliefAlphas = getNotImprovedValues(beliefAlphas,newAlpha);
+					
+					
+					boolean isDominated = false;
+					AlgebraicDD zeroDD = new AlgebraicDD(new MutableDDLeaf(0.0f));
+					for(BeliefAlphaVector oldAlpha:bestAlphas) {
+						
+						if(!isDominated) {
+							AlgebraicDD subDD = newAlpha.getValueFunction().minus(oldAlpha.getValueFunction());
+							if(subDD.max(zeroDD).getTotalWeight() <= 0.0f) {
+								isDominated = true;
+							}
+						}
+						
+						AlgebraicDD subDD = oldAlpha.getValueFunction().minus(newAlpha.getValueFunction());
+						if(subDD.max(zeroDD).getTotalWeight() > 0.0f) {
+							newAlphas.add(oldAlpha);
+						}
+						
 					}
+					if(!isDominated) {
+						newAlphas.add(newAlpha);
+					}
+					bestAlphas = newAlphas;
 				}
 				
-				System.out.println("--Removing dominated alpha vectors took " + (new Date().getTime()-startTime));
-	
-				newAlphas.clear();
-				newAlphas.addAll(usedUniqAlphaVectors);
+				System.out.println("Number of beliefs left: " + beliefAlphas.keySet().size());
+				System.out.println("Number of alpha vectors: " + bestAlphas.size());
+				
 			}
 			
-			System.out.println("Number of new alpha vectors:" + newAlphas.size());
-			bestAlphas = newAlphas;
-			
-			
+			System.out.println("Took " + ( new Date().getTime() - startTime) + " milliseconds");
 			System.out.println();
 		}
 		
@@ -131,8 +177,7 @@ public class PolicyBuilder {
 	
 	private class BeliefGetBestAlpha implements Runnable {
 		
-		//public BeliefAlphaVector result;
-		public List<BeliefAlphaVector> result;
+		public BeliefAlphaVector result;
 		
 		final private List<BeliefAlphaVector> alphas;
 		final private Belief b;
@@ -143,8 +188,7 @@ public class PolicyBuilder {
 		}
 		@Override
 		public void run() {
-			result = new ArrayList<BeliefAlphaVector>();
-			result.add(b.pickBestAlpha(alphas));
+			result= b.pickBestAlpha(alphas);
 		}
 		
 	}
@@ -170,39 +214,39 @@ public class PolicyBuilder {
 
 				CondProbDD belFn = b.getBeliefFunction();
 				belFn = belFn.plus(tolerance);
-				actionAlpha = p.getRewardFunction(actSpacePt).multiply(belFn);
 				
+				actionAlpha = p.getRewardFunction(actSpacePt).multiply(belFn);
 				
 				for(Entry<HashMap<DDVariable, Integer>, Double> e:b.getObservationProbabilities(actSpacePt).entrySet()) {
 					HashMap<DDVariable,Integer> obsSpacePt = e.getKey();
 					double obsProb = e.getValue();
 					
+					
 					if(obsProb>0.0f) {
-						
 						CondProbDD nextBelief = b.getNextBeliefFunction(actSpacePt, obsSpacePt);
 						
 						double bestNextVal = -Double.MAX_VALUE;
 						AlgebraicDD bestNextAlpha = null;
 						
 						for(BeliefAlphaVector alpha:alphas) {
-							AlgebraicDD tempNextAlpha = alpha.getValueFunction().multiply(nextBelief);
+							AlgebraicDD tempNextAlpha = alpha.getValueFunction().multiply(nextBelief).multiply(obsProb);
+							
 							double expectedValue = tempNextAlpha.getTotalWeight();
 							
 							if(expectedValue>=bestNextVal) {
 								bestNextVal = expectedValue;
-								bestNextAlpha = alpha.getValueFunction();
+								bestNextAlpha = tempNextAlpha;
 							}
+							
 						}
 						
 						if(bestNextAlpha!=null) {
-							bestNextAlpha = bestNextAlpha.multiply(obsProb);
-							bestNextAlpha = bestNextAlpha.multiply(discFactor);
 							actionAlpha = actionAlpha.plus(bestNextAlpha);
 						}
 					}
 				}
 				
-				double expectedActionValue = actionAlpha.getTotalWeight();
+				double expectedActionValue = actionAlpha.multiply(discFactor).getTotalWeight();
 				
 				if(expectedActionValue>=bestActionValue) {
 					bestActionValue = expectedActionValue;
