@@ -26,8 +26,6 @@ public interface ImmutableDDElement  {
 	public MutableDDElement apply(BinaryOperation oper, ArrayList<ImmutableDDElement> otherColl);
 	public void apply(ArrayList<DDVariable> prefixVars, BitMap prefix, UnaryOperation oper, MutableDDElement newCollection);
 	public void apply(ArrayList<DDVariable> prefixVars, BitMap prefix, BinaryOperation oper, ArrayList<ImmutableDDElement> otherCollections, MutableDDElement newCollection);
-	public void apply(HashMap<DDVariable,HashSet<BitMap>> prevKeys, UnaryOperation oper, MutableDDElement newCollection);
-	public void apply(HashMap<DDVariable,HashSet<BitMap>> prevKeys, BinaryOperation oper, ArrayList<ImmutableDDElement> otherCollections, MutableDDElement newCollection);
 	public void copy(ArrayList<DDVariable> prefixVars, BitMap prefix, BinaryOperation oper, MutableDDElement newCollection);
 	public MutableDDElement unprimeVariables();
 	public void unprimeVariables(ArrayList<DDVariable> prefixVars, BitMap prefix,MutableDDElement newColl);

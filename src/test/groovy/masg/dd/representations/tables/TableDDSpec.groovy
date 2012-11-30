@@ -1,6 +1,9 @@
 package masg.dd.representations.tables
 
 import masg.dd.context.DDContext
+import masg.dd.representations.dag.ImmutableDDElement
+import masg.dd.representations.dag.ImmutableDDLeaf
+import masg.dd.representations.dag.ImmutableDDNode
 import masg.dd.variables.DDVariable;
 import masg.dd.variables.DDVariableSpace;
 import spock.lang.Specification
@@ -16,9 +19,6 @@ class TableDDSpec extends Specification {
 	def setup() {
 		a1RowVar = new DDVariable("a1_row",gridHeight)
 		a1ColVar = new DDVariable("a1_col",gridWidth)
-		
-		//a2RowVar = new DDVariable("a2_row",gridHeight)
-		//a2ColVar = new DDVariable("a2_col",gridWidth)
 		
 		wRowVar = new DDVariable("w_row",gridHeight)
 		wColVar = new DDVariable("w_col",gridWidth)
@@ -40,8 +40,16 @@ class TableDDSpec extends Specification {
 					return new Double(-1.0f)
 			}
 			
-			TableDD dd = new TableDD(new ArrayList<DDVariable>([a1RowVar,a1ColVar,wRowVar,wColVar]),c);
+			TableDD tableDD = new TableDD(new ArrayList<DDVariable>([a1RowVar,a1ColVar,wRowVar,wColVar]),c);
+			ImmutableDDElement immColl = null;
+			if(tableDD.getRootNode() instanceof TableDDNode) {
+				immColl = new ImmutableDDNode((TableDDNode)tableDD.getRootNode(), null);
+			}
+			else if(tableDD.getRootNode() instanceof TableDDLeaf) {
+				immColl = new ImmutableDDLeaf((TableDDLeaf)tableDD.getRootNode(), null);
+			}
 		then:
-			println dd
+			println tableDD
+			println immColl
 	}
 }
