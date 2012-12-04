@@ -12,7 +12,7 @@ import masg.dd.pomdp.agent.belief.Belief
 import masg.dd.pomdp.agent.belief.BeliefRegion
 import masg.dd.pomdp.agent.policy.AlphaVectorPolicy
 import masg.dd.pomdp.agent.policy.Policy
-import masg.dd.pomdp.agent.policy.PolicyBuilder
+import masg.dd.pomdp.agent.policy.AlphaVectorPolicyBuilder
 import masg.dd.pomdp.agent.policy.RandomPolicy
 import masg.dd.variables.DDVariable
 import masg.problem.tag.TagProblem;
@@ -52,7 +52,7 @@ class TagProblemSimulatorSpec extends Specification {
 			
 			ArrayList<Belief> witnessPoints = []
 			
-			for(int i=0;i<100;i++) {
+			for(int i=0;i<50;i++) {
 				BeliefRegion belReg
 				
 				if(i%2==0) {
@@ -67,7 +67,7 @@ class TagProblemSimulatorSpec extends Specification {
 				double valFnTotalNew = 0.0f;
 				
 				for(int j=0;j<10 && !(Math.abs(valFnTotalOld-valFnTotalNew)<0.001f);j++) {
-					PolicyBuilder polBuilder = new PolicyBuilder(problem.getPOMDP())
+					AlphaVectorPolicyBuilder polBuilder = new AlphaVectorPolicyBuilder(problem.getPOMDP())
 					polBuilder.bestAlphas.addAll(allAlphas);
 					
 					allAlphas = new ArrayList<BeliefAlphaVector>();
@@ -87,6 +87,7 @@ class TagProblemSimulatorSpec extends Specification {
 					System.out.println("*Total # value function vectors:" + allAlphas.size());
 				}
 				
+				witnessPoints = []
 				allAlphas.each{
 					witnessPoints << new Belief(problem.getPOMDP(),it.witnessPt)
 				}

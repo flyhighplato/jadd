@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.List;
 
 import masg.dd.context.DDContext;
-import masg.dd.representations.dag.MutableDDElement;
 import masg.dd.variables.DDVariable;
 
 public class CondProbDD {
@@ -46,14 +45,7 @@ public class CondProbDD {
 			ArrayList<DDVariable> allVariables = new ArrayList<DDVariable>(vars);
 			allVariables.addAll(conditionalVars);
 			
-			MutableDDElement rulesTemp = MutableDDElementBuilder.build(allVariables, closures.get(i), true);
-			
-			//This is only a measure given conditional variables are set
-			//rulesTemp.setIsMeasure(conditionalVars, false);
-			
-			
-			AlgebraicDD dd = new AlgebraicDD(rulesTemp);
-			System.out.println(dd.ruleCollection.getIsMeasure());
+			AlgebraicDD dd = new AlgebraicDD(allVariables, closures.get(i), true);
 			indepFns.add(dd);
 			
 			
@@ -93,7 +85,7 @@ public class CondProbDD {
 	public ProbDD toProbabilityFn() {
 		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(condVars);
 		vars.addAll(uncondVars);
-		ProbDD prob  = new ProbDD(new AlgebraicDD(MutableDDElementBuilder.buildProbability(vars, (Closure<Double>[])null)), vars);
+		ProbDD prob  = new ProbDD(vars, (Closure<Double>[])null);
 		prob = prob.multiply(this);
 		
 		prob = prob.div(prob.sumOut(vars));

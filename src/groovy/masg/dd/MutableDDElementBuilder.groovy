@@ -30,6 +30,12 @@ class MutableDDElementBuilder {
 		
 	}
 	
+	public static MutableDDElement build(ArrayList<DDVariable> vars, double allVal, boolean isMeasure) {
+		
+		return build(vars, {allVal}, isMeasure)
+		
+	}
+	
 	
 	public static MutableDDElement buildProbability(ArrayList<DDVariable> vars, Closure<Double>... closures) {
 		Closure<Double> c = { Map variables ->

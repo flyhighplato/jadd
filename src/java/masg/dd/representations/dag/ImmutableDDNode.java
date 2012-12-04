@@ -3,12 +3,9 @@ package masg.dd.representations.dag;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import masg.dd.context.DDContext;
-import masg.dd.operations.BinaryOperation;
-import masg.dd.operations.UnaryOperation;
 import masg.dd.representations.tables.TableDDLeaf;
 import masg.dd.representations.tables.TableDDNode;
 import masg.dd.variables.DDVariable;
@@ -20,7 +17,9 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 	protected DDVariable var;
 	protected boolean isMeasure;
 	
-	public ImmutableDDNode(MutableDDNode mutableCollection) {
+	HashSet<DDVariable> treeVars;
+	
+	/*public ImmutableDDNode(MutableDDNode mutableCollection) {
 		this.isMeasure = mutableCollection.isMeasure;
 		var = mutableCollection.getVariable();
 		
@@ -35,12 +34,15 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 			subCollections.put(e.getKey(), newElem);
 		}
 
-	}
-	public ImmutableDDNode(TableDDNode mutableCollection, HashMap<Long,ImmutableDDElement> processedNodes) {
+	}*/
+	
+	public ImmutableDDNode(HashSet<DDVariable> allVars, TableDDNode mutableCollection, HashMap<Long,ImmutableDDElement> processedNodes, boolean isMeasure) {
 		if(processedNodes==null) {
 			processedNodes = new HashMap<Long,ImmutableDDElement>();
 		}
 		var = mutableCollection.getVariable();
+		treeVars = allVars;
+		this.isMeasure = isMeasure;
 		
 		for(int i = 0; i<var.getValueCount(); i++) {
 			BitMap key = variableValuetoBitMap(var,i);
@@ -48,10 +50,10 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 			
 			if(!processedNodes.containsKey(mutableCollection.getId())) {
 				if(mutableCollection.getChildren()[i] instanceof TableDDNode) {
-					newElem = new ImmutableDDNode((TableDDNode)mutableCollection.getChildren()[i], processedNodes);
+					newElem = new ImmutableDDNode(allVars, (TableDDNode)mutableCollection.getChildren()[i], processedNodes, isMeasure);
 				}
 				else if(mutableCollection.getChildren()[i] instanceof TableDDLeaf) {
-					newElem = new ImmutableDDLeaf((TableDDLeaf)mutableCollection.getChildren()[i], processedNodes);
+					newElem = new ImmutableDDLeaf(allVars, (TableDDLeaf)mutableCollection.getChildren()[i], processedNodes);
 				}
 			}
 			else {
@@ -87,8 +89,8 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 		return var;
 	}
 	
-	public ArrayList<DDVariable> getVariables() {
-		ArrayList<DDVariable> vars = new ArrayList<DDVariable>();
+	public HashSet<DDVariable> getVariables() {
+		/*ArrayList<DDVariable> vars = new ArrayList<DDVariable>();
 		vars.add(var);
 		if(subCollections!=null) {
 			HashSet<DDVariable> uniqueVars = new HashSet<DDVariable>(vars);
@@ -96,9 +98,9 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 				uniqueVars.addAll(v.getVariables());
 			}
 			vars = new ArrayList<DDVariable>(uniqueVars);
-		}
+		}*/
 		
-		return vars;
+		return treeVars;
 	}
 
 	public Double getValue(ArrayList<DDVariable> vars, BitMap r) {
@@ -135,7 +137,8 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 		return null;
 	}
 	
-	public ArrayList<Double> getValues(HashMap<DDVariable,HashSet<BitMap>> keyMap) {
+	
+	/*public ArrayList<Double> getValues(HashMap<DDVariable,HashSet<BitMap>> keyMap) {
 		HashSet<BitMap> keys = keyMap.get(getVariable());
 		
 		ArrayList<Double> values = new ArrayList<Double>();
@@ -152,25 +155,25 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 			}
 		}
 		return values;
-	}
+	}*/
 	
-	public void getIsMeasure(HashMap<DDVariable,Boolean> map) {
+	/*public void getIsMeasure(HashMap<DDVariable,Boolean> map) {
 		map.put(var, isMeasure);
 		
 		for(ImmutableDDElement hdrc:subCollections.values()) {
 			hdrc.getIsMeasure(map);
 		}
 		
-	}
+	}*/
 	
-	public HashMap<DDVariable,Boolean> getIsMeasure() {
+	/*public HashMap<DDVariable,Boolean> getIsMeasure() {
 		HashMap<DDVariable,Boolean> temp = new HashMap<DDVariable,Boolean>();
 		temp.put(var, isMeasure);
 		getIsMeasure(temp);
 		return temp;
-	}
+	}*/
 	
-	public void apply(ArrayList<DDVariable> prefixVars, BitMap prefix, UnaryOperation oper, MutableDDElement newCollection) {
+	/*public void apply(ArrayList<DDVariable> prefixVars, BitMap prefix, UnaryOperation oper, MutableDDElement newCollection) {
 		
 		ArrayList<DDVariable> newPrefixVars = new ArrayList<DDVariable>(prefixVars);
 		newPrefixVars.add(getVariable());
@@ -244,9 +247,9 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 		copy(new ArrayList<DDVariable>(),null,oper,coll);
 		return coll;
 		
-	}
+	}*/
 	
-	public void primeVariables(ArrayList<DDVariable> prefixVars, BitMap prefix,MutableDDElement newColl) {
+	/*public void primeVariables(ArrayList<DDVariable> prefixVars, BitMap prefix,MutableDDElement newColl) {
 		ArrayList<DDVariable> newPrefixVars = new ArrayList<DDVariable>(prefixVars);
 		newPrefixVars.add(getVariable());
 		
@@ -304,9 +307,9 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 		unprimeVariables(new ArrayList<DDVariable>(),null,coll);
 		return coll;
 		
-	}
+	}*/
 	
-	public MutableDDElement restrict(Map<DDVariable,Integer> elimVarValues){
+	/*public MutableDDElement restrict(Map<DDVariable,Integer> elimVarValues){
 		HashSet<DDVariable> haveVars = new HashSet<DDVariable>(getVariables());
 		haveVars.removeAll(elimVarValues.keySet());
 		
@@ -360,7 +363,7 @@ public class ImmutableDDNode extends BaseDDNode implements ImmutableDDElement {
 		MutableDDNode coll = new MutableDDNode(getVariables(), isAllMeasure);
 		apply(new ArrayList<DDVariable>(),null,oper,otherColl,coll);
 		return coll;
-	}
+	}*/
 	
 	@Override
 	public boolean isMeasure() {

@@ -12,12 +12,16 @@ public class TableDDLeaf extends TableDDElement {
 		return value==null?"null":value.toString();
 	}
 	
+	public Double getValue() {
+		return value;
+	}
+	
 	
 	public boolean equals(Object o) {
 		if(o instanceof TableDDLeaf) {
 			TableDDLeaf otherLeaf = (TableDDLeaf) o;
 			
-			return Math.abs(otherLeaf.value - value)<0.001f;
+			return Math.abs(otherLeaf.value - value)<Double.MIN_VALUE;
 		}
 		
 		return false;

@@ -1,19 +1,38 @@
 package masg.dd.representations.tables
 
 import masg.dd.context.DDContext
+import masg.dd.operations.ConstantMultiplicationOperation
+import masg.dd.operations.MultiplicationOperation
 import masg.dd.representations.dag.ImmutableDDElement
 import masg.dd.representations.dag.ImmutableDDLeaf
 import masg.dd.representations.dag.ImmutableDDNode
 import masg.dd.variables.DDVariable;
 import masg.dd.variables.DDVariableSpace;
 import spock.lang.Specification
+import spock.lang.Shared
 
 class TableDDSpec extends Specification {
 	DDVariable a1RowVar, a1ColVar
-	//DDVariable a2RowVar, a2ColVar
+	DDVariable a1RowPrimeVar, a1ColPrimeVar
+	
 	DDVariable wRowVar, wColVar
+	DDVariable wRowPrimeVar, wColPrimeVar
+	
 	int gridHeight = 5;
 	int gridWidth = 5;
+	
+	@Shared
+	Closure<Double> c = { Map variables ->
+			int w_row = variables["w_row"]
+			int w_col = variables["w_col"]
+			int a1_row = variables["a1_row"]
+			int a1_col = variables["a1_col"]
+			
+			if(a1_col == w_col && a1_row == w_row)
+				return 10.0d
+			
+			return -1.0d
+	}
 	
 	DDVariableSpace space;
 	def setup() {
@@ -23,31 +42,144 @@ class TableDDSpec extends Specification {
 		wRowVar = new DDVariable("w_row",gridHeight)
 		wColVar = new DDVariable("w_col",gridWidth)
 		
-		DDContext.canonicalVariableOrdering = [a1RowVar,a1ColVar,wRowVar,wColVar];
+		a1RowPrimeVar = new DDVariable((a1RowVar.name + "'").toString(), a1RowVar.getValueCount())
+		a1ColPrimeVar = new DDVariable((a1ColVar.name + "'").toString(), a1ColVar.getValueCount())
+		wRowPrimeVar = new DDVariable((wRowVar.name + "'").toString(), wRowVar.getValueCount())
+		wColPrimeVar = new DDVariable((wColVar.name + "'").toString(), wColVar.getValueCount())
+		
+		DDContext.canonicalVariableOrdering = [a1RowVar,a1ColVar,wRowVar,wColVar,a1RowPrimeVar,a1ColPrimeVar,wRowPrimeVar,wColPrimeVar];
 	}
 	
-	def "can be populated"() {
+	def "collection can be built from closure"() {
 		when:
-			Closure<Double> c = { Map variables ->
-					int w_row = variables["w_row"]
-					int w_col = variables["w_col"]
-					int a1_row = variables["a1_row"]
-					int a1_col = variables["a1_col"]
-					
-					if(a1_col == w_col && a1_row == w_row)
-						return new Double(10.0f)
-					
-					return new Double(-1.0f)
-			}
+			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
 			
-			TableDD tableDD = new TableDD(new ArrayList<DDVariable>([a1RowVar,a1ColVar,wRowVar,wColVar]),c);
-			ImmutableDDElement immColl = null;
-			if(tableDD.getRootNode() instanceof TableDDNode) {
-				immColl = new ImmutableDDNode((TableDDNode)tableDD.getRootNode(), null);
+			ImmutableDDElement immColl = tableDD.asDagDD()
+			
+		then:
+			println tableDD
+			println immColl
+	}
+	
+	def "unary operations work"() {
+		when:
+			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			
+			ImmutableDDElement immColl = tableDD.asDagDD()
+			ConstantMultiplicationOperation multOp = new ConstantMultiplicationOperation(5.0f);
+			
+			tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],immColl,multOp) 
+			immColl = tableDD.asDagDD()
+		then:
+			println tableDD
+			println immColl
+	}
+	
+	def "binary operations work"() {
+		when:
+			TableDD tableDD1 = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			ImmutableDDElement immColl1 = tableDD1.asDagDD()
+			TableDD tableDD2 = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			ImmutableDDElement immColl2 = tableDD2.asDagDD()
+			
+			
+			MultiplicationOperation multOp = new MultiplicationOperation();
+			
+			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],[immColl1,immColl2],multOp)
+			
+			ImmutableDDElement immColl = tableDD.asDagDD();
+			
+		then:
+			println tableDD
+			println immColl
+	}
+	
+	def "binary operations perform quickly"() {
+		when:
+			TableDD tableDD1 = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			ImmutableDDElement immColl1 = tableDD1.asDagDD()
+			TableDD tableDD2 = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			ImmutableDDElement immColl2 = tableDD2.asDagDD()
+			
+			
+			
+			MultiplicationOperation multOp = new MultiplicationOperation();
+			
+			
+			TableDD tableDD;
+			ImmutableDDElement immColl;
+			
+			long timeStart = new Date().time
+			int numOps = 0
+			while(numOps < 1000) {
+				 tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],[immColl1,immColl2],multOp)
+			
+				 immColl = tableDD.asDagDD();
+				++numOps;
 			}
-			else if(tableDD.getRootNode() instanceof TableDDLeaf) {
-				immColl = new ImmutableDDLeaf((TableDDLeaf)tableDD.getRootNode(), null);
-			}
+		then:
+			println "number of binary operations: $numOps time: ${new Date().time - timeStart}"
+			println tableDD
+			println immColl
+	}
+	
+	def "variable restriction works"() {
+		when:
+			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			
+			ImmutableDDElement immColl = tableDD.asDagDD()
+			
+			HashMap<DDVariable,Integer> restrictVarValues = [:]
+			restrictVarValues.put(a1RowVar, 1);
+			tableDD = TableDD.restrict(restrictVarValues, immColl)
+			immColl = tableDD.asDagDD()
+			
+		then:
+			println tableDD
+			println immColl
+	}
+	
+	def "variable elimination works"() {
+		when:
+			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar],{return 1d/25d})
+			
+			ImmutableDDElement immColl = tableDD.asDagDD()
+			
+			tableDD = TableDD.eliminate([a1RowVar], immColl)
+			immColl = tableDD.asDagDD()
+			
+		then:
+			assert (immColl.getTotalWeight() - 1.0d)<0.0001d;
+			//println tableDD
+			//println immColl
+	}
+	
+	def "variable priming works"() {
+		when:
+			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			
+			ImmutableDDElement immColl = tableDD.asDagDD()
+			
+			tableDD = TableDD.prime(immColl)
+			immColl = tableDD.asDagDD()
+			
+		then:
+			println tableDD
+			println immColl
+	}
+	
+	def "variable unpriming works"() {
+		when:
+			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			
+			ImmutableDDElement immColl = tableDD.asDagDD()
+			
+			tableDD = TableDD.prime(immColl)
+			immColl = tableDD.asDagDD()
+			
+			tableDD = TableDD.unprime(immColl)
+			immColl = tableDD.asDagDD()
+			
 		then:
 			println tableDD
 			println immColl

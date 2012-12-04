@@ -44,7 +44,7 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 		
 	}
 	
-	public void setValue(HashMap<DDVariable,HashSet<BitMap>> keyMap, double value) {
+	/*public void setValue(HashMap<DDVariable,HashSet<BitMap>> keyMap, double value) {
 		if(keyMap.containsKey(getVariable())) {
 			if(uniqueSubElementKeys!=null && uniqueSubElements!=null) {
 				for(int i=0;i<uniqueSubElements.size();++i) {
@@ -75,7 +75,7 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 			}
 			
 		}
-	}
+	}*/
 	
 	public void setIsMeasure(ArrayList<DDVariable> vars, boolean isMeasure) {
 		if(vars.contains(this.var)) {
@@ -123,7 +123,7 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 		}
 		
 		
-		uniqueSubElements = new ArrayList<ImmutableDDElement>();
+		/*uniqueSubElements = new ArrayList<ImmutableDDElement>();
 		uniqueSubElementKeys = new ArrayList<HashSet<BitMap>>();
 		
 		for(Entry<BitMap,ImmutableDDElement> e: subCollections.entrySet()) {
@@ -137,7 +137,7 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 				set.add(e.getKey());
 				uniqueSubElementKeys.add(set);
 			}
-		}
+		}*/
 
 	}
 }

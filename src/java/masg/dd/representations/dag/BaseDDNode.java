@@ -8,7 +8,7 @@ import masg.util.BitMap;
 abstract public class BaseDDNode {
 	abstract public DDVariable getVariable();
 	
-	protected ArrayList<BitMap> variableValuesToBitMapValues(DDVariable var) {
+	public static ArrayList<BitMap> variableValuesToBitMapValues(DDVariable var) {
 		ArrayList<BitMap> bitMaps = new ArrayList<BitMap>();
 		for(int varValue=0;varValue<var.getValueCount();++varValue) {
 			bitMaps.add(variableValuetoBitMap(var,varValue));
@@ -16,7 +16,7 @@ abstract public class BaseDDNode {
 		return bitMaps;
 	}
 	
-	protected BitMap variableValuetoBitMap(DDVariable var, int varValue) {
+	public static BitMap variableValuetoBitMap(DDVariable var, int varValue) {
 		BitMap bm = new BitMap(var.getBitCount());
 		for(int currBitIndex = 0; currBitIndex<var.getBitCount();++currBitIndex) {
 			boolean setInVarValue = ((varValue & (1 << currBitIndex)) > 0);
@@ -27,7 +27,7 @@ abstract public class BaseDDNode {
 		return bm;
 	}
 	
-	protected BitMap extractPivot(ArrayList<DDVariable> vars, BitMap r) {
+	public BitMap extractPivot(ArrayList<DDVariable> vars, BitMap r) {
 		int startBitIx = 0;
 		
 		int ixOfVar = vars.indexOf(getVariable());
@@ -42,7 +42,7 @@ abstract public class BaseDDNode {
 		return null;
 	}
 	
-	protected BitMap joinKeys(BitMap prefix, BitMap suffix) {
+	public static BitMap joinKeys(BitMap prefix, BitMap suffix) {
 		BitMap bm;
 		if(prefix!=null) {
 			bm = new BitMap(prefix.size() + suffix.size());

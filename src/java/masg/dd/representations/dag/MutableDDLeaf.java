@@ -29,12 +29,12 @@ public class MutableDDLeaf extends ImmutableDDLeaf implements MutableDDElement{
 		this.value = new Double(value);
 	}
 
-	@Override
+	/*@Override
 	public void setValue(HashMap<DDVariable, HashSet<BitMap>> keyMap,
 			double value) {
 		this.value = new Double(value);
 		
-	}
+	}*/
 	
 	@Override
 	public void setIsMeasure(ArrayList<DDVariable> vars, boolean isMeasure) {

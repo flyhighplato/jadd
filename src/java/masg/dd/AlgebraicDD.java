@@ -16,12 +16,14 @@ import masg.dd.operations.IsEqualOperation;
 import masg.dd.operations.MaxOperation;
 import masg.dd.operations.MultiplicationOperation;
 import masg.dd.operations.SubtractionOperation;
+import masg.dd.operations.UnaryOperation;
 import masg.dd.representations.dag.ImmutableDDElement;
 import masg.dd.representations.dag.ImmutableDDLeaf;
 import masg.dd.representations.dag.ImmutableDDNode;
 import masg.dd.representations.dag.MutableDDElement;
 import masg.dd.representations.dag.MutableDDLeaf;
 import masg.dd.representations.dag.MutableDDNode;
+import masg.dd.representations.tables.TableDD;
 import masg.dd.variables.DDVariable;
 import masg.util.BitMap;
 
@@ -29,28 +31,19 @@ public class AlgebraicDD {
 	protected ImmutableDDElement ruleCollection;
 	protected ArrayList<DDVariable> variables;
 	
-	public AlgebraicDD(ArrayList<DDVariable> vars, Closure<Double> c) {
-		MutableDDElement mutableDDElement = MutableDDElementBuilder.build(vars, c, false);
-		mutableDDElement.compress();
+	public AlgebraicDD(ArrayList<DDVariable> vars, Closure<Double> c, boolean isMeasure) {
 		variables = vars;
-		if(mutableDDElement instanceof MutableDDNode)
-			ruleCollection = new ImmutableDDNode((MutableDDNode) mutableDDElement);
-		else if (mutableDDElement instanceof MutableDDElement)
-			ruleCollection = new ImmutableDDLeaf((MutableDDLeaf)mutableDDElement);
+		ruleCollection = TableDD.build(vars, c).asDagDD(isMeasure);
 	}
 	
-	public AlgebraicDD(MutableDDElement mutableDDElement) {
-		mutableDDElement.compress();
-		variables = mutableDDElement.getVariables();
-		if(mutableDDElement instanceof MutableDDNode)
-			ruleCollection = new ImmutableDDNode((MutableDDNode) mutableDDElement);
-		else if (mutableDDElement instanceof MutableDDElement)
-			ruleCollection = new ImmutableDDLeaf((MutableDDLeaf)mutableDDElement);
-		
+	public AlgebraicDD(ArrayList<DDVariable> vars, Closure<Double>... c) {
+		variables = vars;
+		ruleCollection = TableDD.build(vars, c).asDagDD(true);
 	}
 	
-	static public AlgebraicDD build(ArrayList<DDVariable> vars, Closure<Double> c) {
-		return new AlgebraicDD(vars,c);
+	public AlgebraicDD(ImmutableDDElement immutableDDElement) {
+		variables = new ArrayList<DDVariable>(immutableDDElement.getVariables());
+		ruleCollection = immutableDDElement;
 	}
 	
 	public Double getValue(HashMap<DDVariable,Integer> varSpacePoint) {
@@ -63,7 +56,7 @@ public class AlgebraicDD {
 	}
 	
 	public AlgebraicDD restrict(HashMap<DDVariable,Integer> varSpacePoint) {
-		return new AlgebraicDD(ruleCollection.restrict(varSpacePoint));
+		return new AlgebraicDD(TableDD.restrict(varSpacePoint, ruleCollection).asDagDD(ruleCollection.isMeasure()));
 	}
 	
 	public AlgebraicDD minus(AlgebraicDD dd) {
@@ -95,11 +88,11 @@ public class AlgebraicDD {
 	}
 	
 	public AlgebraicDD multiply(double mult) {
-		return new AlgebraicDD(ruleCollection.apply(new ConstantMultiplicationOperation(mult)));
+		return oper(new ConstantMultiplicationOperation(mult));
 	}
 	
 	public AlgebraicDD plus(double val) {
-		return new AlgebraicDD(ruleCollection.apply(new ConstantAdditionOperation(val)));
+		return oper(new ConstantAdditionOperation(val));
 	}
 	
 	public AlgebraicDD plus(AlgebraicDD dd) {
@@ -119,28 +112,40 @@ public class AlgebraicDD {
 	}
 	
 	public AlgebraicDD sumOut(ArrayList<DDVariable> vars) {
-		return new AlgebraicDD(ruleCollection.eliminateVariables(vars, new AdditionOperation()));
+		return new AlgebraicDD( TableDD.eliminate(vars, ruleCollection).asDagDD(ruleCollection.isMeasure()) );
+	}
+	
+	protected AlgebraicDD oper(UnaryOperation oper) {
+		return new AlgebraicDD(TableDD.build(getVariables(), ruleCollection, oper).asDagDD(ruleCollection.isMeasure()));
 	}
 	
 	protected AlgebraicDD oper(BinaryOperation oper, AlgebraicDD ddOther) {
-		return new AlgebraicDD(ruleCollection.apply(oper,ddOther.ruleCollection));
+		ArrayList<ImmutableDDElement> dDs = new ArrayList<ImmutableDDElement>();
+		dDs.add(ruleCollection);
+		dDs.add(ddOther.ruleCollection);
+		return new AlgebraicDD(TableDD.build(getVariables(), dDs, oper).asDagDD(ruleCollection.isMeasure()));
 	}
 	
+	
+	
 	protected AlgebraicDD oper(BinaryOperation oper, List<AlgebraicDD> ddOtherList) {
-		ArrayList<ImmutableDDElement> otherCollections = new ArrayList<ImmutableDDElement>();
+		ArrayList<ImmutableDDElement> dDs = new ArrayList<ImmutableDDElement>();
+		dDs.add(ruleCollection);
+		boolean isMeasure = true;
 		for(AlgebraicDD dd: ddOtherList) {
-			otherCollections.add(dd.ruleCollection);
+			dDs.add(dd.ruleCollection);
+			isMeasure = isMeasure && dd.ruleCollection.isMeasure();
 		}
 		
-		return new AlgebraicDD(ruleCollection.apply(oper, otherCollections));
+		return new AlgebraicDD(TableDD.build(getVariables(), dDs, oper).asDagDD(isMeasure));
 	}
 	
 	public AlgebraicDD prime() {
-		return new AlgebraicDD(ruleCollection.primeVariables());
+		return new AlgebraicDD(TableDD.prime(ruleCollection).asDagDD(ruleCollection.isMeasure()));
 	}
 	
 	public AlgebraicDD unprime() {
-		return new AlgebraicDD(ruleCollection.unprimeVariables());
+		return new AlgebraicDD(TableDD.unprime(ruleCollection).asDagDD(ruleCollection.isMeasure()));
 	}
 	
 	public Double getTotalWeight() {

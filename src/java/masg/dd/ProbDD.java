@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import masg.dd.representations.dag.MutableDDElement;
+import masg.dd.representations.tables.TableDD;
 import masg.dd.variables.DDVariable;
 
 public class ProbDD {
@@ -13,9 +14,9 @@ public class ProbDD {
 	protected AlgebraicDD dd;
 	protected ArrayList<DDVariable> variables;
 	public ProbDD(ArrayList<DDVariable> vars, Closure<Double>... c) {
-		variables = new ArrayList<DDVariable>(vars);
-		MutableDDElement rulesTemp = MutableDDElementBuilder.buildProbability(vars, c);
-		dd = new AlgebraicDD(rulesTemp);
+		
+		variables = vars;
+		dd = new AlgebraicDD(vars, c);
 	}
 	
 	public ProbDD(AlgebraicDD dd,ArrayList<DDVariable> variables) {

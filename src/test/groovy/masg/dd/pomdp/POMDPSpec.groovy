@@ -6,7 +6,7 @@ import masg.dd.ProbDD;
 import masg.dd.alphavector.BeliefAlphaVector;
 import masg.dd.pomdp.agent.belief.BeliefRegion;
 import masg.dd.pomdp.agent.policy.Policy
-import masg.dd.pomdp.agent.policy.PolicyBuilder;
+import masg.dd.pomdp.agent.policy.AlphaVectorPolicyBuilder;
 import masg.dd.pomdp.agent.policy.RandomPolicy;
 import masg.dd.variables.DDVariable;
 import masg.dd.variables.DDVariableSpace;
@@ -98,20 +98,22 @@ class POMDPSpec extends Specification {
 			
 			CondProbDD restrObsFn = problem.getPOMDP().getObservationFunction().restrict(actPoint).restrict(obsPoint);
 			
-			def timeLimit = 60000
+			def timeLimit = 100
 			def timeStart = new Date().getTime()
 			int numBeliefUpdates = 0;
 			
 			def belief = problem.getPOMDP().getInitialBelief();
 			
-			while(new Date().getTime()-timeStart<timeLimit) {
+			//while(new Date().getTime()-timeStart<timeLimit) {
+			while(true) {
 				CondProbDD tempRestrTransFn = restrTransFn.multiply(belief)
 				tempRestrTransFn = tempRestrTransFn.sumOut(problem.getPOMDP().getStates())
-				
+				tempRestrTransFn = tempRestrTransFn.normalize()
 				CondProbDD temp = restrObsFn.multiply(tempRestrTransFn);
 				temp = temp.normalize()
 				belief = temp.unprime();
 				numBeliefUpdates++;
+				
 			}
 			
 			def timeEnd = new Date().getTime() - timeStart
@@ -125,7 +127,7 @@ class POMDPSpec extends Specification {
 			
 		then:
 			println "$numBeliefUpdates belief updates took $timeEnd milliseconds"
-			//println belief;
+			println belief;
 			//println belief.getValue(valPoint);
 			assert numBeliefUpdates > 10000
 			assert Math.abs(belief.getValue(valPoint) - 0.0f) < 0.01f;
@@ -212,7 +214,7 @@ class POMDPSpec extends Specification {
 			
 			def timeStart = new Date().getTime()
 			
-			PolicyBuilder polBuilder = new PolicyBuilder(problem.getPOMDP())
+			AlphaVectorPolicyBuilder polBuilder = new AlphaVectorPolicyBuilder(problem.getPOMDP())
 			Policy pol = polBuilder.build(belReg, numIterations)
 			
 			def timeEnd = new Date().getTime() - timeStart

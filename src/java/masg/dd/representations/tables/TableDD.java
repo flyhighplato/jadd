@@ -9,6 +9,11 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import masg.dd.context.DDContext;
+import masg.dd.operations.BinaryOperation;
+import masg.dd.operations.UnaryOperation;
+import masg.dd.representations.dag.ImmutableDDElement;
+import masg.dd.representations.dag.ImmutableDDLeaf;
+import masg.dd.representations.dag.ImmutableDDNode;
 import masg.dd.variables.DDVariable;
 
 public class TableDD {
@@ -16,9 +21,11 @@ public class TableDD {
 	HashMap<Double, TableDDLeaf> leaves = new HashMap<Double, TableDDLeaf>();
 	HashMap<DDVariable, ArrayList< HashMap<TableDDElement, HashSet<TableDDNode>> > >  nodes = new HashMap<DDVariable, ArrayList< HashMap<TableDDElement, HashSet<TableDDNode>> > >();
 	
-	TableDDElement topNode = null;
+	TableDDElement rootNode = null;
+	HashSet<DDVariable> vars;
 	
-	public TableDD(ArrayList<DDVariable> vars, Closure<Double> c) {
+	protected TableDD(ArrayList<DDVariable> vars ) {
+		this.vars = new HashSet<DDVariable>(vars);
 		
 		for(DDVariable var:vars) {
 			ArrayList< HashMap<TableDDElement, HashSet<TableDDNode>> > temp = new ArrayList< HashMap<TableDDElement, HashSet<TableDDNode>> >();
@@ -29,11 +36,115 @@ public class TableDD {
 			
 			nodes.put(var, temp);
 		}
-		
-		topNode = makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, new HashSet<DDVariable>(vars),c);
 	}
 	
-	public TableDDLeaf makeLeaf(Double value) {
+	public ImmutableDDElement asDagDD() {
+		if(rootNode instanceof TableDDNode) {
+			return new ImmutableDDNode(vars, (TableDDNode)rootNode, null, false);
+		}
+		else if(rootNode instanceof TableDDLeaf) {
+			return new ImmutableDDLeaf(vars, (TableDDLeaf)rootNode, null);
+		}
+		
+		return null;
+	}
+	
+	public ImmutableDDElement asDagDD(boolean isMeasure) {
+		if(rootNode instanceof TableDDNode) {
+			return new ImmutableDDNode(vars, (TableDDNode)rootNode, null, isMeasure);
+		}
+		else if(rootNode instanceof TableDDLeaf) {
+			return new ImmutableDDLeaf(vars, (TableDDLeaf)rootNode, null);
+		}
+		
+		return null;
+	}
+	
+	public static TableDD build(ArrayList<DDVariable> vars, Closure<Double>... closures) {
+		TableDD dd = new TableDD(vars);
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new ProbabilityClosuresFunction(closures));
+		return dd;
+	}
+	
+	public static TableDD build(ArrayList<DDVariable> vars, Closure<Double> c) {
+		TableDD dd = new TableDD(vars);
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new ClosureFunction(c));
+		return dd;
+	}
+	
+	public static TableDD build(ArrayList<DDVariable> vars, double constVal) {
+		TableDD dd = new TableDD(vars);
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new ConstantFunction(constVal));
+		return dd;
+	}
+	
+	public static TableDD build(ArrayList<DDVariable> vars, ArrayList<ImmutableDDElement> dags, BinaryOperation op) {
+		TableDD dd = new TableDD(vars);
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new DagDDBinaryOperationFunction(dags,op));
+		return dd;
+	}
+	
+	public static TableDD build(ArrayList<DDVariable> vars, ImmutableDDElement dag, UnaryOperation op) {
+		TableDD dd = new TableDD(vars);
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new DagDDUnaryOperationFunction(dag,op));
+		return dd;
+	}
+	
+	public static TableDD restrict(HashMap<DDVariable,Integer> restrictVarValues, ImmutableDDElement dag) {
+		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(dag.getVariables());
+		vars.removeAll(restrictVarValues.keySet());
+		
+		TableDD dd = new TableDD(vars);
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new DagDDRestrictFunction(dag,restrictVarValues));
+		return dd;
+	}
+	
+	public static TableDD eliminate(ArrayList<DDVariable> elimVars, ImmutableDDElement dag) {
+		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(dag.getVariables());
+		vars.removeAll(elimVars);
+		
+		TableDD dd = new TableDD(vars);
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new DagDDElimFunction(dag,elimVars));
+		return dd;
+	}
+	
+	public static TableDD prime(ImmutableDDElement dag) {
+		HashMap<DDVariable,DDVariable> translation = new HashMap<DDVariable,DDVariable>();
+		
+		ArrayList<DDVariable> vars = new ArrayList<DDVariable>();
+		for(DDVariable var:dag.getVariables()) {
+			DDVariable varPrimed = var.getPrimed();
+			vars.add(varPrimed);
+			translation.put(varPrimed, var);
+		}
+		
+		TableDD dd = new TableDD(vars);
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new DagDDTranslateFunction(dag,translation));
+		return dd;
+		
+	}
+	
+	public static TableDD unprime(ImmutableDDElement dag) {
+		HashMap<DDVariable,DDVariable> translation = new HashMap<DDVariable,DDVariable>();
+		
+		ArrayList<DDVariable> vars = new ArrayList<DDVariable>();
+		for(DDVariable var:dag.getVariables()) {
+			DDVariable varUnprimed = var.getUnprimed();
+			vars.add(varUnprimed);
+			translation.put(varUnprimed, var);
+		}
+		
+		TableDD dd = new TableDD(vars);
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new DagDDTranslateFunction(dag,translation));
+		return dd;
+		
+	}
+	
+	public TableDDElement getRootNode() {
+		return rootNode;
+	}
+	
+	protected TableDDLeaf makeLeaf(Double value) {
 		TableDDLeaf l = leaves.get(value);
 		
 		if(l==null) {
@@ -44,7 +155,7 @@ public class TableDD {
 		return l;
 	}
 	
-	public TableDDNode makeNode(DDVariable var, TableDDElement[] children) {
+	protected TableDDNode makeNode(DDVariable var, TableDDElement[] children) {
 		HashSet<TableDDNode> possDupes = nodes.get(var).get(0).get(children[0]);
 		
 		for(int i=1;i<var.getValueCount() && possDupes!=null && possDupes.size()>0;++i) {
@@ -85,21 +196,14 @@ public class TableDD {
 				nodes.get(var).get(i).get(n.children[i]).add(n);
 			}
 		}
-		
-		
-		
+
 		return n;
 	}
 	
-	private TableDDElement makeSubGraph(HashMap<DDVariable,Integer> path, List<DDVariable> varOrder, HashSet<DDVariable> vars, Closure<Double> c) {
+	protected TableDDElement makeSubGraph(HashMap<DDVariable,Integer> path, List<DDVariable> varOrder, HashSet<DDVariable> vars, DDBuilderFunction fn) {
 		
 		if(varOrder.size()==0) {
-			HashMap<String,Integer> args = new HashMap<String,Integer>();
-			for(Entry<DDVariable,Integer> e:path.entrySet()) {
-				args.put(e.getKey().getName(), e.getValue());
-			}
-			double result = c.call(args);
-			return makeLeaf(result);
+			return makeLeaf(fn.invoke(path));
 		}
 		
 		DDVariable currVar = varOrder.get(0);
@@ -109,7 +213,7 @@ public class TableDD {
 			
 			for(int i=0;i<currVar.getValueCount();i++) {
 				path.put(currVar, i);
-				children[i] = makeSubGraph(path, nextVarOrder, vars, c );
+				children[i] = makeSubGraph(path, nextVarOrder, vars, fn );
 			}
 			
 			boolean allEqual = true;
@@ -127,7 +231,7 @@ public class TableDD {
 			return makeNode(currVar, children);
 		}
 		else {
-			return makeSubGraph(path,nextVarOrder, vars, c);
+			return makeSubGraph(path,nextVarOrder, vars, fn);
 		}
 	}
 	
@@ -135,14 +239,17 @@ public class TableDD {
 	public String toString(TableDDElement el, HashSet<Long> processed) {
 		String str = "";
 		
+		if(processed.contains(el.id)) {
+			return str;
+		}
+		processed.add(el.id);
+		
+		
+		
 		if(el instanceof TableDDNode) {
 			TableDDNode n = (TableDDNode) el;
-			if(processed.contains(n.id)) {
-				return str;
-			}
-			processed.add(n.id);
 			
-			String parentLabel = "	\"" + n.id + ":" + n.getKey() + "\"";
+			String parentLabel = "	\"" + n.getKey() + "\"";
 			
 			HashMap<TableDDElement,HashSet<Integer>> childrenPaths = new HashMap<TableDDElement,HashSet<Integer>>();
 			for(int i=0;i<n.children.length;i++) {
@@ -163,7 +270,7 @@ public class TableDD {
 				
 				if(child instanceof TableDDNode) {
 					TableDDNode nChild = (TableDDNode) child;
-					childLabel = nChild.getId() + ":" + nChild.getKey();
+					childLabel = nChild.getKey();
 				}
 				else if (child instanceof TableDDLeaf) {
 					TableDDLeaf lChild = (TableDDLeaf) child;
@@ -171,9 +278,15 @@ public class TableDD {
 				}
 				
 				str += parentLabel + " -> \"" + childLabel + "\" [ label = \"" + e.getValue() + "\" ];\n";
-				str += toString(child,processed);
 				
+				if(child instanceof TableDDNode) {
+					str += toString(child,processed);
+				}
 			}
+		}
+		else if (el instanceof TableDDLeaf) {
+			TableDDLeaf l = (TableDDLeaf) el;
+			str += "	\"" + l.getValue() + "\"\n";
 		}
 		
 		
@@ -186,7 +299,7 @@ public class TableDD {
 		str += "	rankdir=LR;\n";
 		str += "	node [shape = circle];\n";
 
-		str += toString(topNode, new HashSet<Long>());
+		str += toString(rootNode, new HashSet<Long>());
 		
 		str += "}\n";
 		

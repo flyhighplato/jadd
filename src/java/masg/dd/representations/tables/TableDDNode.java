@@ -21,6 +21,14 @@ public class TableDDNode extends TableDDElement {
 		this.children = children;
 	}
 	
+	public DDVariable getVariable() {
+		return v;
+	}
+	
+	public TableDDElement[] getChildren() {
+		return children;
+	}
+	
 	public String toString() {
 		return getKey();
 	}
