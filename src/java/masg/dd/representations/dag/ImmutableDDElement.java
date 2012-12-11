@@ -15,7 +15,7 @@ public interface ImmutableDDElement  {
 	//public HashMap<DDVariable,Boolean> getIsMeasure();
 	public boolean isMeasure();
 	public Double getTotalWeight();
-	public Double getValue(ArrayList<DDVariable> vars, BitMap r);
+	public Double getValue(HashMap<DDVariable,Integer> path);
 	//public ArrayList<Double> getValues(HashMap<DDVariable,HashSet<BitMap>> keyMap);
 	public DDVariable getVariable();
 	public HashSet<DDVariable> getVariables();

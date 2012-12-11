@@ -22,16 +22,11 @@ public class DagDDBinaryOperationFunction implements DDBuilderFunction {
 	
 	@Override
 	public Double invoke(HashMap<DDVariable, Integer> varValues) {
-		BitMap prefix = null;
-		for(Entry<DDVariable,Integer> e:varValues.entrySet()) {
-			prefix = BaseDDNode.joinKeys(prefix, BaseDDNode.variableValuetoBitMap(e.getKey(), e.getValue()));
-		}
-		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(varValues.keySet());
 		
-		double result = dags.get(0).getValue(vars, prefix);
+		double result = dags.get(0).getValue(varValues);
 		
 		for(int i=1;i<dags.size();i++) {
-			result = op.invoke(result, dags.get(i).getValue(vars, prefix));
+			result = op.invoke(result, dags.get(i).getValue(varValues));
 		}
 		
 		return result;

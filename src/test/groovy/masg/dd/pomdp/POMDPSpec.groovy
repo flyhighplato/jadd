@@ -98,14 +98,13 @@ class POMDPSpec extends Specification {
 			
 			CondProbDD restrObsFn = problem.getPOMDP().getObservationFunction().restrict(actPoint).restrict(obsPoint);
 			
-			def timeLimit = 100
+			def timeLimit = 10000
 			def timeStart = new Date().getTime()
 			int numBeliefUpdates = 0;
 			
 			def belief = problem.getPOMDP().getInitialBelief();
 			
-			//while(new Date().getTime()-timeStart<timeLimit) {
-			while(true) {
+			while(new Date().getTime()-timeStart<timeLimit) {
 				CondProbDD tempRestrTransFn = restrTransFn.multiply(belief)
 				tempRestrTransFn = tempRestrTransFn.sumOut(problem.getPOMDP().getStates())
 				tempRestrTransFn = tempRestrTransFn.normalize()
@@ -123,13 +122,14 @@ class POMDPSpec extends Specification {
 			valPoint[problem.a1ColVar]=0
 			valPoint[problem.wRowVar]=4
 			valPoint[problem.wColVar]=0
-			belief = belief.toProbabilityFn();
+			//belief = belief.toProbabilityFn();
 			
 		then:
 			println "$numBeliefUpdates belief updates took $timeEnd milliseconds"
 			println belief;
+			belief.getComponentFunctions().each{ println it.getTotalWeight() }
 			//println belief.getValue(valPoint);
-			assert numBeliefUpdates > 10000
+			assert numBeliefUpdates > timeLimit/6
 			assert Math.abs(belief.getValue(valPoint) - 0.0f) < 0.01f;
 	}
 	
@@ -165,7 +165,7 @@ class POMDPSpec extends Specification {
 			while(new Date().getTime()-timeStart<timeLimit) {
 				CondProbDD tempRestrTransFn = restrTransFn.multiply(belief)
 				tempRestrTransFn = tempRestrTransFn.sumOut(problem.getPOMDP().getStates())
-				
+				tempRestrTransFn = tempRestrTransFn.normalize()
 				CondProbDD temp = restrObsFn.multiply(tempRestrTransFn);
 				temp = temp.normalize()
 				belief = temp.unprime();
@@ -177,11 +177,11 @@ class POMDPSpec extends Specification {
 				
 			}
 			
-			belief = belief.toProbabilityFn();
+			//belief = belief.toProbabilityFn();
 			def timeEnd = new Date().getTime() - timeStart
 		then:
-			//println belief
-			//println valueFn
+			println belief
+			println valueFn
 			
 			println "$numRewardUpdates value updates in $timeEnd milliseconds"
 	

@@ -3,18 +3,24 @@ package masg.dd.representations.tables;
 import groovy.lang.Closure;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 
 import masg.dd.context.DDContext;
+import masg.dd.operations.AdditionOperation;
 import masg.dd.operations.BinaryOperation;
+import masg.dd.operations.ConstantMultiplicationOperation;
 import masg.dd.operations.UnaryOperation;
 import masg.dd.representations.dag.ImmutableDDElement;
 import masg.dd.representations.dag.ImmutableDDLeaf;
 import masg.dd.representations.dag.ImmutableDDNode;
 import masg.dd.variables.DDVariable;
+import masg.util.BitMap;
 
 public class TableDD {
 	
@@ -78,10 +84,35 @@ public class TableDD {
 		return dd;
 	}
 	
-	public static TableDD build(ArrayList<DDVariable> vars, ArrayList<ImmutableDDElement> dags, BinaryOperation op) {
-		TableDD dd = new TableDD(vars);
-		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new DagDDBinaryOperationFunction(dags,op));
-		return dd;
+	public static ImmutableDDElement build(ArrayList<DDVariable> vars, ArrayList<ImmutableDDElement> dags, BinaryOperation op) {
+		ArrayList<ImmutableDDElement> dagsNew = new ArrayList<ImmutableDDElement>();
+		for(ImmutableDDElement dd:dags) {
+			if(dd.isMeasure()) {
+				
+				HashSet<DDVariable> dagVars = dd.getVariables();
+				dagVars.removeAll(vars);
+				
+				if(dagVars.size()>0) {
+					dd = TableDD.eliminate(new ArrayList<DDVariable>(dagVars), dd);
+				}
+			}
+			
+			dagsNew.add(dd);
+		}
+		
+		dags = dagsNew;
+		
+		ImmutableDDElement el1 = dags.get(0); 
+		ImmutableDDElement el2 = null;
+		TableDD dd=null;
+		for(int i=1;i<dags.size();i++) {
+			el2 = dags.get(i);
+			dd = new TableDD(vars);
+			dd.rootNode = dd.applyOperation(el1, el2, op, new HashMap<ImmutableDDElement,HashMap<ImmutableDDElement,TableDDElement>>());
+			el1 = dd.asDagDD(el1.isMeasure() && el2.isMeasure());
+		}
+		
+		return el1;
 	}
 	
 	public static TableDD build(ArrayList<DDVariable> vars, ImmutableDDElement dag, UnaryOperation op) {
@@ -99,13 +130,20 @@ public class TableDD {
 		return dd;
 	}
 	
-	public static TableDD eliminate(ArrayList<DDVariable> elimVars, ImmutableDDElement dag) {
+	public static ImmutableDDElement eliminate(ArrayList<DDVariable> elimVars, ImmutableDDElement dag) {
+
 		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(dag.getVariables());
-		vars.removeAll(elimVars);
 		
-		TableDD dd = new TableDD(vars);
-		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new DagDDElimFunction(dag,elimVars));
-		return dd;
+		TableDD dd = null;
+		for(DDVariable elimVar:elimVars) {
+			if(vars.contains(elimVar)) {
+				vars.remove(elimVar);
+				dd = new TableDD(new ArrayList<DDVariable>(vars));
+				dd.rootNode = dd.sumSubtrees(dag, elimVar, new HashMap<ImmutableDDElement,TableDDElement>());
+				dag = dd.asDagDD(true);
+			}
+		}
+		return dag;
 	}
 	
 	public static TableDD prime(ImmutableDDElement dag) {
@@ -138,6 +176,31 @@ public class TableDD {
 		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new DagDDTranslateFunction(dag,translation));
 		return dd;
 		
+	}
+	
+	public static TableDD approximate(ImmutableDDElement dag, double tolerance) {
+		TableDD dd = new TableDD(new ArrayList<DDVariable>(dag.getVariables()));
+		dd.rootNode = dd.approximateSubgraph(dag, new ArrayList<TableDDLeaf>(), tolerance, new HashMap<ImmutableDDElement,TableDDElement>());
+		return dd;
+	}
+	
+	public static ImmutableDDLeaf findMaxLeaf(ImmutableDDElement dag) {
+		return findLeaf(dag,null,new MaxLeafComparator(), new HashSet<ImmutableDDElement>());
+	}
+	
+	public static TableDDLeaf findMaxLeaf(TableDD tdd) {
+		TableDDLeaf res = null;
+				
+		for(TableDDLeaf l:tdd.leaves.values()) {
+			if(res == null) {
+				res = l;
+			}
+			else if(l.getValue()>res.getValue()) {
+				res = l;
+			}
+		}
+		
+		return res;
 	}
 	
 	public TableDDElement getRootNode() {
@@ -200,6 +263,109 @@ public class TableDD {
 		return n;
 	}
 	
+	protected static ImmutableDDLeaf findLeaf(ImmutableDDElement el, ImmutableDDLeaf currFoundLeaf, Comparator<ImmutableDDLeaf> compr, HashSet<ImmutableDDElement> findCache) {
+		if(findCache.contains(el)) {
+			return currFoundLeaf;
+		}
+		
+		findCache.add(el);
+		
+		if(el instanceof ImmutableDDLeaf) {
+			ImmutableDDLeaf l = (ImmutableDDLeaf) el;
+			
+			if(currFoundLeaf == null || compr.compare(l, currFoundLeaf)>0) {
+				return l;
+			}
+		}
+		else {
+			ImmutableDDNode n = (ImmutableDDNode) el;
+			
+			for(ImmutableDDElement childEl:n.getChildren()) {
+				currFoundLeaf = findLeaf(childEl,currFoundLeaf,compr,findCache);
+			}
+		}
+		
+		return currFoundLeaf;
+	}
+	
+	protected TableDDElement approximateSubgraph(ImmutableDDElement el, ArrayList<TableDDLeaf> newLeaves, double tolerance, HashMap<ImmutableDDElement, TableDDElement> approxCache) {
+		if(approxCache.containsKey(el)) {
+			return approxCache.get(el);
+		}
+		
+		if(el instanceof ImmutableDDLeaf) {
+			ImmutableDDLeaf l = (ImmutableDDLeaf) el;
+			TableDDLeaf lNew = makeLeaf(l.getValue());
+			
+			int findIx = Collections.binarySearch(newLeaves,lNew);
+			
+			if(findIx>-1) {
+				approxCache.put(el, newLeaves.get(findIx));
+				return newLeaves.get(findIx);
+			}
+			else {
+				int ubIx = -(findIx + 1);
+				if(ubIx == 0){
+					newLeaves.add(lNew);
+					approxCache.put(el, lNew);
+					return lNew;
+				}
+				
+				int lbIx = ubIx-1;
+				
+				if(ubIx == newLeaves.size()) {
+					ubIx = ubIx-1;
+				}
+				
+				double distFromUb = Math.abs(newLeaves.get(ubIx).getValue()-l.getValue());
+				double distFromLb = Math.abs(newLeaves.get(lbIx).getValue()-l.getValue());
+				
+				if(distFromLb>tolerance && distFromUb>tolerance) {
+					newLeaves.add(lNew);
+					Collections.sort(newLeaves);
+					approxCache.put(el, lNew);
+					return lNew;
+				}
+				
+				if(distFromUb<=tolerance){
+					approxCache.put(el, newLeaves.get(ubIx));
+					return newLeaves.get(ubIx);
+				}
+				else {
+					approxCache.put(el, newLeaves.get(lbIx));
+					return newLeaves.get(lbIx);
+				}
+			}
+			
+		}
+		else if (el instanceof ImmutableDDNode) {
+			ImmutableDDNode n = (ImmutableDDNode) el;
+			TableDDElement[] children = new TableDDElement[n.getVariable().getValueCount()];
+			
+			for(int i=0;i<n.getVariable().getValueCount();i++) {
+				children[i] = approximateSubgraph(n.getChild(i),newLeaves,tolerance,approxCache);
+			}
+			
+			boolean allEqual = true;
+			
+			TableDDElement currEl = children[0];
+			for(int i=1;i<n.getVariable().getValueCount() && allEqual;i++) {
+				allEqual = allEqual && currEl.equals(children[i]);
+				currEl = children[i];
+			}
+			
+			if(allEqual) {
+				return children[0];
+			}
+			
+			TableDDNode nNew = makeNode(n.getVariable(),children);
+			approxCache.put(el, nNew);
+			return nNew;
+		}
+		
+		return null;
+	}
+	
 	protected TableDDElement makeSubGraph(HashMap<DDVariable,Integer> path, List<DDVariable> varOrder, HashSet<DDVariable> vars, DDBuilderFunction fn) {
 		
 		if(varOrder.size()==0) {
@@ -233,6 +399,185 @@ public class TableDD {
 		else {
 			return makeSubGraph(path,nextVarOrder, vars, fn);
 		}
+	}
+	
+	protected TableDDElement sumSubtrees(ImmutableDDElement el,DDVariable subtreeRootVar, HashMap<ImmutableDDElement,TableDDElement> applyCache) {
+		
+		if(applyCache.containsKey(el)) {
+			return applyCache.get(el);
+		}
+		
+		int varIx = -1;
+		
+		if(el instanceof ImmutableDDNode) {
+			ImmutableDDNode n = (ImmutableDDNode) el;
+			varIx = DDContext.canonicalVariableOrdering.indexOf(n.getVariable());
+		}
+		
+		int subtreeRootVarIx = DDContext.canonicalVariableOrdering.indexOf(subtreeRootVar);
+		
+		if(el instanceof ImmutableDDLeaf || varIx>subtreeRootVarIx) {
+			TableDD dd = build(new ArrayList<DDVariable>(vars),el,new ConstantMultiplicationOperation(subtreeRootVar.getValueCount()));
+			
+			TableDDElement result = dd.rootNode;
+			
+			if(result instanceof TableDDLeaf) {
+				result = makeLeaf(((TableDDLeaf) result).getValue());
+			}
+			applyCache.put(el, result);
+			return result;
+		}
+		else {
+			ImmutableDDNode n = (ImmutableDDNode) el;
+			
+			if(n.getVariable().equals(subtreeRootVar)) {
+				ArrayList<ImmutableDDElement> dags = new ArrayList<ImmutableDDElement>(Arrays.asList(n.getChildren()));
+				
+				ArrayList<DDVariable> varsNew = new ArrayList<DDVariable>(vars);
+				
+				ImmutableDDElement el1 = dags.get(0); 
+				ImmutableDDElement el2 = null;
+				TableDD dd=null;
+				for(int i=1;i<dags.size();i++) {
+					el2 = dags.get(i);
+					dd = new TableDD(varsNew);
+					dd.rootNode = dd.applyOperation(el1, el2, new AdditionOperation(), new HashMap<ImmutableDDElement,HashMap<ImmutableDDElement,TableDDElement>>());
+					el1 = dd.asDagDD(el1.isMeasure() && el2.isMeasure());
+				}
+				
+				TableDDElement result = dd.rootNode;
+				
+				if(result instanceof TableDDLeaf) {
+					result = makeLeaf(((TableDDLeaf) result).getValue());
+				}
+				applyCache.put(el, result);
+				return result;
+			}
+			else {
+				TableDDNode nNew;
+				TableDDElement[] children = new TableDDElement[el.getVariable().getValueCount()];
+				
+				for(int i=0;i<el.getVariable().getValueCount();i++) {
+					children[i] = sumSubtrees(n.getChild(i), subtreeRootVar, applyCache);
+				}
+				
+				nNew = new TableDDNode(el.getVariable(),children);
+				
+				applyCache.put(el, nNew);
+				
+				boolean allEqual = true;
+				
+				TableDDElement currEl = children[0];
+				for(int i=1;i<el.getVariable().getValueCount() && allEqual;i++) {
+					allEqual = allEqual && currEl.equals(children[i]);
+					currEl = children[i];
+				}
+				
+				if(allEqual) {
+					return children[0];
+				}
+				
+				return nNew;
+			}
+			
+			
+		}
+		
+	}
+	protected TableDDElement applyOperation(ImmutableDDElement el1, ImmutableDDElement el2, BinaryOperation op, HashMap<ImmutableDDElement,HashMap<ImmutableDDElement,TableDDElement>> applyCache) {
+		
+		if(applyCache.containsKey(el1) && applyCache.get(el1).containsKey(el2)) {
+			return applyCache.get(el1).get(el2);
+		}
+		else {
+			applyCache.put(el1, new HashMap<ImmutableDDElement,TableDDElement>());
+		}
+		
+		if(el1 instanceof ImmutableDDLeaf && el2 instanceof ImmutableDDLeaf) {
+			ImmutableDDLeaf l1 = (ImmutableDDLeaf) el1;
+			ImmutableDDLeaf l2 = (ImmutableDDLeaf) el2;
+			
+			TableDDLeaf lNew = makeLeaf(op.invoke(l1.getValue(), l2.getValue()));
+			applyCache.get(el1).put(el2, lNew);
+			return lNew;
+		}
+		
+		TableDDNode nNew = null;
+		DDVariable currVar = null;
+		TableDDElement[] children;
+		
+		if(el1 instanceof ImmutableDDLeaf && el2 instanceof ImmutableDDNode) {
+			ImmutableDDNode n2 = (ImmutableDDNode) el2;
+			currVar = n2.getVariable();
+			children = new TableDDElement[n2.getVariable().getValueCount()];
+			
+			for(int i=0;i<n2.getVariable().getValueCount();i++) {
+				children[i] = applyOperation(el1,n2.getChild(i),op, applyCache);
+			}
+		}
+		else if(el1 instanceof ImmutableDDNode && el2 instanceof ImmutableDDLeaf) {
+			ImmutableDDNode n1 = (ImmutableDDNode) el1;
+			currVar = n1.getVariable();
+			children = new TableDDElement[n1.getVariable().getValueCount()];
+			
+			for(int i=0;i<n1.getVariable().getValueCount();i++) {
+				children[i] = applyOperation(n1.getChild(i),el2,op, applyCache);
+			}
+		}
+		else if(el1 instanceof ImmutableDDNode && el2 instanceof ImmutableDDNode) {
+			ImmutableDDNode n1 = (ImmutableDDNode) el1;
+			ImmutableDDNode n2 = (ImmutableDDNode) el2;
+			
+			int varIx1 = DDContext.canonicalVariableOrdering.indexOf(n1.getVariable());
+			int varIx2 = DDContext.canonicalVariableOrdering.indexOf(n2.getVariable());
+			
+			if(varIx1==varIx2) {
+				currVar = n1.getVariable();
+				children = new TableDDElement[n1.getVariable().getValueCount()];
+				
+				for(int i=0;i<n1.getVariable().getValueCount();i++) {
+					children[i] = applyOperation(n1.getChild(i),n2.getChild(i),op, applyCache);
+				}
+			}
+			else if(varIx1<varIx2) {
+				currVar = n1.getVariable();
+				children = new TableDDElement[n1.getVariable().getValueCount()];
+				
+				for(int i=0;i<n1.getVariable().getValueCount();i++) {
+					children[i] = applyOperation(n1.getChild(i),n2,op,applyCache);
+				}
+			}
+			else {
+				currVar = n2.getVariable();
+				children = new TableDDElement[n2.getVariable().getValueCount()];
+				
+				for(int i=0;i<n2.getVariable().getValueCount();i++) {
+					children[i] = applyOperation(n1,n2.getChild(i),op,applyCache);
+				}
+			}
+			
+		}
+		else {
+			return null;
+		}
+		
+		boolean allEqual = true;
+		
+		TableDDElement currEl = children[0];
+		for(int i=1;i<currVar.getValueCount() && allEqual;i++) {
+			allEqual = allEqual && currEl.equals(children[i]);
+			currEl = children[i];
+		}
+		
+		if(allEqual) {
+			return children[0];
+		}
+		
+		
+		nNew = new TableDDNode(currVar,children);
+		applyCache.get(el1).put(el2, nNew);
+
+		return nNew;
 	}
 	
 	

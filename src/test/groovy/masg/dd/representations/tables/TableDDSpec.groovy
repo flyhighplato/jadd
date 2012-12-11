@@ -82,16 +82,14 @@ class TableDDSpec extends Specification {
 			TableDD tableDD2 = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
 			ImmutableDDElement immColl2 = tableDD2.asDagDD()
 			
-			
 			MultiplicationOperation multOp = new MultiplicationOperation();
 			
-			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],[immColl1,immColl2],multOp)
 			
-			ImmutableDDElement immColl = tableDD.asDagDD();
+			ImmutableDDElement immColl = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],[immColl1,immColl2],multOp);
 			
 		then:
-			println tableDD
-			println immColl
+			println "Done"
+			//println immColl
 	}
 	
 	def "binary operations perform quickly"() {
@@ -106,20 +104,16 @@ class TableDDSpec extends Specification {
 			MultiplicationOperation multOp = new MultiplicationOperation();
 			
 			
-			TableDD tableDD;
 			ImmutableDDElement immColl;
 			
 			long timeStart = new Date().time
 			int numOps = 0
-			while(numOps < 1000) {
-				 tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],[immColl1,immColl2],multOp)
-			
-				 immColl = tableDD.asDagDD();
+			while(new Date().time - timeStart < 60000) {
+				immColl = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],[immColl1,immColl2],multOp);
 				++numOps;
 			}
 		then:
 			println "number of binary operations: $numOps time: ${new Date().time - timeStart}"
-			println tableDD
 			println immColl
 	}
 	
@@ -145,13 +139,12 @@ class TableDDSpec extends Specification {
 			
 			ImmutableDDElement immColl = tableDD.asDagDD()
 			
-			tableDD = TableDD.eliminate([a1RowVar], immColl)
-			immColl = tableDD.asDagDD()
+			immColl = TableDD.eliminate([a1RowVar,wRowVar], immColl)
 			
 		then:
 			assert (immColl.getTotalWeight() - 1.0d)<0.0001d;
 			//println tableDD
-			//println immColl
+			println immColl
 	}
 	
 	def "variable priming works"() {
@@ -179,6 +172,33 @@ class TableDDSpec extends Specification {
 			
 			tableDD = TableDD.unprime(immColl)
 			immColl = tableDD.asDagDD()
+			
+		then:
+			println tableDD
+			println immColl
+	}
+	
+	def "approximating works"() {
+		when:
+			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			
+			ImmutableDDElement immColl = tableDD.asDagDD()
+			
+			tableDD = TableDD.approximate(immColl, 1.0f)
+			immColl = tableDD.asDagDD()
+			
+		then:
+			println tableDD
+			println immColl
+	}
+	
+	def "finding the max leaf works"() {
+		when:
+			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			
+			ImmutableDDElement immColl = tableDD.asDagDD()
+			
+			immColl = TableDD.findMaxLeaf(immColl)
 			
 		then:
 			println tableDD

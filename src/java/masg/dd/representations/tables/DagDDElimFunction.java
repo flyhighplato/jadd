@@ -35,18 +35,13 @@ public class DagDDElimFunction implements DDBuilderFunction {
 		
 		HashSet<DDVariable> uniqVars = new HashSet<DDVariable>(varValues.keySet());
 		uniqVars.addAll(elimVars);
-		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(uniqVars);
+		
 		double result = 0.0f;
 		
 		for(HashMap<DDVariable,Integer> elimVarSpacePt:elimVarSpace) {
 			varValuesAll.putAll(elimVarSpacePt);
 			
-			BitMap prefix = null;
-			for(Entry<DDVariable,Integer> e:varValuesAll.entrySet()) {
-				prefix = BaseDDNode.joinKeys(prefix, BaseDDNode.variableValuetoBitMap(e.getKey(), e.getValue()));
-			}
-			
-			result+=dag.getValue(vars, prefix);
+			result+=dag.getValue(varValuesAll);
 		}
 		
 		return result;

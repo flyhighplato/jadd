@@ -1,6 +1,6 @@
 package masg.dd.representations.tables;
 
-public class TableDDLeaf extends TableDDElement {
+public class TableDDLeaf extends TableDDElement implements Comparable<TableDDLeaf> {
 	Double value;
 	
 	public TableDDLeaf(double value) {
@@ -25,6 +25,10 @@ public class TableDDLeaf extends TableDDElement {
 		}
 		
 		return false;
+	}
+	
+	public int compareTo(TableDDLeaf l) {
+		return Double.compare(l.value, value);
 	}
 	
 	public int hashCode() {

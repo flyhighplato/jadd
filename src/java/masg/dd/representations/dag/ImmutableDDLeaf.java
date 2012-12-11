@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import masg.dd.context.DDContext;
 import masg.dd.representations.tables.TableDDLeaf;
 import masg.dd.variables.DDVariable;
 import masg.util.BitMap;
@@ -46,7 +47,7 @@ public class ImmutableDDLeaf extends BaseDDNode implements ImmutableDDElement{
 	}
 
 	@Override
-	public Double getValue(ArrayList<DDVariable> vars, BitMap r) {
+	public Double getValue(HashMap<DDVariable,Integer> path) {
 		return value;
 	}
 	
@@ -221,7 +222,14 @@ public class ImmutableDDLeaf extends BaseDDNode implements ImmutableDDElement{
 	}*/
 
 	public String toString() {
-		return value.toString();
+		HashSet<DDVariable> uniqVars = new HashSet<DDVariable>(getVariables());
+		ArrayList<DDVariable> varsInOrder = new ArrayList<DDVariable>();
+		for(DDVariable v:DDContext.canonicalVariableOrdering) {
+			if(uniqVars.contains(v)) {
+				varsInOrder.add(v);
+			}
+		}
+		return  varsInOrder + "\n" + value.toString();
 	}
 	
 }

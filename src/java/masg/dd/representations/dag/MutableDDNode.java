@@ -16,7 +16,7 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 	}
 	
 	public void applySetValue(ArrayList<DDVariable> vars, BitMap r, double value, BinaryOperation oper) {
-		BitMap rVar = extractPivot(vars, r);
+		/*BitMap rVar = extractPivot(vars, r);
 		
 		if(rVar!=null) {	
 			((MutableDDElement) subCollections.get(rVar)).applySetValue(vars, r, value, oper);
@@ -25,12 +25,12 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 			for(ImmutableDDElement node:subCollections.values()) {
 				((MutableDDElement) node).applySetValue(vars, r, value, oper);
 			}
-		}
+		}*/
 		
 	}
 	
 	public void setValue(ArrayList<DDVariable> vars, BitMap r, double value) {
-		BitMap rVar = extractPivot(vars, r);
+		/*BitMap rVar = extractPivot(vars, r);
 		
 		if(rVar!=null) {	
 			((MutableDDElement) subCollections.get(rVar)).setValue(vars, r, value);
@@ -39,7 +39,7 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 			for(ImmutableDDElement hdrc:subCollections.values()) {
 				((MutableDDElement) hdrc).setValue(vars, r, value);
 			}
-		}
+		}*/
 		
 		
 	}
@@ -78,30 +78,30 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 	}*/
 	
 	public void setIsMeasure(ArrayList<DDVariable> vars, boolean isMeasure) {
-		if(vars.contains(this.var)) {
+		/*if(vars.contains(this.var)) {
 			this.isMeasure = isMeasure;
 		}
 		
 		for(ImmutableDDElement hdrc:subCollections.values()) {
 			((MutableDDElement) hdrc).setIsMeasure(vars, isMeasure);
-		}
+		}*/
 		
 		
 	}
 	
 	public void setIsMeasure(HashMap<DDVariable,Boolean> map) {
-		if(map.containsKey(this.var)) {
+		/*if(map.containsKey(this.var)) {
 			this.isMeasure = map.get(this.var);
 		}
 		
 		for(ImmutableDDElement hdrc:subCollections.values()) {
 			((MutableDDElement) hdrc).setIsMeasure(map);
-		}
+		}*/
 
 	}
 	
 	public void compress() {
-		HashMap<BitMap,ImmutableDDElement> newSubNodes = new HashMap<BitMap,ImmutableDDElement>();
+		/*HashMap<BitMap,ImmutableDDElement> newSubNodes = new HashMap<BitMap,ImmutableDDElement>();
 		
 		ImmutableDDElement sameHDRC = null;
 		
@@ -120,7 +120,7 @@ public class MutableDDNode extends ImmutableDDNode implements MutableDDElement {
 
 		if(sameHDRC!=null) {
 			subCollections = newSubNodes;
-		}
+		}*/
 		
 		
 		/*uniqueSubElements = new ArrayList<ImmutableDDElement>();

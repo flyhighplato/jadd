@@ -22,13 +22,7 @@ public class DagDDUnaryOperationFunction implements DDBuilderFunction {
 	
 	@Override
 	public Double invoke(HashMap<DDVariable, Integer> varValues) {
-		BitMap prefix = null;
-		for(Entry<DDVariable,Integer> e:varValues.entrySet()) {
-			prefix = BaseDDNode.joinKeys(prefix, BaseDDNode.variableValuetoBitMap(e.getKey(), e.getValue()));
-		}
-		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(varValues.keySet());
-		
-		return op.invoke(dag.getValue(vars, prefix));
+		return op.invoke(dag.getValue(varValues));
 	}
 
 }

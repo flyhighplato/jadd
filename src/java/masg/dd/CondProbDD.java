@@ -8,6 +8,10 @@ import java.util.HashSet;
 import java.util.List;
 
 import masg.dd.context.DDContext;
+import masg.dd.operations.BinaryOperation;
+import masg.dd.operations.MultiplicationOperation;
+import masg.dd.representations.dag.ImmutableDDElement;
+import masg.dd.representations.tables.TableDD;
 import masg.dd.variables.DDVariable;
 
 public class CondProbDD {
@@ -83,13 +87,14 @@ public class CondProbDD {
 	}
 	
 	public ProbDD toProbabilityFn() {
-		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(condVars);
-		vars.addAll(uncondVars);
-		ProbDD prob  = new ProbDD(vars, (Closure<Double>[])null);
-		prob = prob.multiply(this);
-		
-		prob = prob.div(prob.sumOut(vars));
-		return prob;
+		 ArrayList<ImmutableDDElement> dags = new ArrayList<ImmutableDDElement>();
+		 for(AlgebraicDD dd:indepFns) {
+			 dags.add(dd.ruleCollection);
+		 }
+		 
+		 AlgebraicDD dd = new AlgebraicDD(TableDD.build(getVariables(), dags, new MultiplicationOperation()));
+		 
+		 return new ProbDD(dd, getVariables());
 	}
 	
 	public ArrayList<DDVariable> getVariables() {

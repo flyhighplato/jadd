@@ -26,14 +26,7 @@ public class DagDDTranslateFunction implements DDBuilderFunction {
 			varValuesNew.put(varMap.get(e.getKey()), e.getValue());
 		}
 		
-		BitMap prefix = null;
-		for(Entry<DDVariable,Integer> e:varValuesNew.entrySet()) {
-			prefix = BaseDDNode.joinKeys(prefix, BaseDDNode.variableValuetoBitMap(e.getKey(), e.getValue()));
-		}
-		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(varValuesNew.keySet());
-		
-		
-		return dag.getValue(vars, prefix);
+		return dag.getValue(varValuesNew);
 	}
 
 }

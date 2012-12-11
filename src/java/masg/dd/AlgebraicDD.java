@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import masg.dd.operations.AbsDiffOperation;
 import masg.dd.operations.AdditionOperation;
 import masg.dd.operations.BinaryOperation;
 import masg.dd.operations.ConstantAdditionOperation;
@@ -31,6 +32,10 @@ public class AlgebraicDD {
 	protected ImmutableDDElement ruleCollection;
 	protected ArrayList<DDVariable> variables;
 	
+	public final ImmutableDDElement getFunction() {
+		return ruleCollection;
+	}
+	
 	public AlgebraicDD(ArrayList<DDVariable> vars, Closure<Double> c, boolean isMeasure) {
 		variables = vars;
 		ruleCollection = TableDD.build(vars, c).asDagDD(isMeasure);
@@ -47,8 +52,7 @@ public class AlgebraicDD {
 	}
 	
 	public Double getValue(HashMap<DDVariable,Integer> varSpacePoint) {
-		BitMap bm = MutableDDElementBuilder.varSpacePointToBitMap(new ArrayList<DDVariable>(varSpacePoint.keySet()), varSpacePoint);
-		return ruleCollection.getValue(new ArrayList<DDVariable>(varSpacePoint.keySet()), bm);
+		return ruleCollection.getValue(varSpacePoint);
 	}
 	
 	public ArrayList<DDVariable> getVariables() {
@@ -57,6 +61,10 @@ public class AlgebraicDD {
 	
 	public AlgebraicDD restrict(HashMap<DDVariable,Integer> varSpacePoint) {
 		return new AlgebraicDD(TableDD.restrict(varSpacePoint, ruleCollection).asDagDD(ruleCollection.isMeasure()));
+	}
+	
+	public AlgebraicDD absDiff(AlgebraicDD dd) {
+		return oper(new AbsDiffOperation(),dd);
 	}
 	
 	public AlgebraicDD minus(AlgebraicDD dd) {
@@ -112,7 +120,19 @@ public class AlgebraicDD {
 	}
 	
 	public AlgebraicDD sumOut(ArrayList<DDVariable> vars) {
-		return new AlgebraicDD( TableDD.eliminate(vars, ruleCollection).asDagDD(ruleCollection.isMeasure()) );
+		boolean needsSumOut = false;
+		
+		for(DDVariable var:vars) {
+			if(ruleCollection.getVariables().contains(var)) {
+				needsSumOut = true;
+				break;
+			}
+		}
+		
+		if(!needsSumOut)
+			return this;
+		
+		return new AlgebraicDD( TableDD.eliminate(vars, ruleCollection) );
 	}
 	
 	protected AlgebraicDD oper(UnaryOperation oper) {
@@ -123,7 +143,7 @@ public class AlgebraicDD {
 		ArrayList<ImmutableDDElement> dDs = new ArrayList<ImmutableDDElement>();
 		dDs.add(ruleCollection);
 		dDs.add(ddOther.ruleCollection);
-		return new AlgebraicDD(TableDD.build(getVariables(), dDs, oper).asDagDD(ruleCollection.isMeasure()));
+		return new AlgebraicDD(TableDD.build(getVariables(), dDs, oper));
 	}
 	
 	
@@ -137,7 +157,7 @@ public class AlgebraicDD {
 			isMeasure = isMeasure && dd.ruleCollection.isMeasure();
 		}
 		
-		return new AlgebraicDD(TableDD.build(getVariables(), dDs, oper).asDagDD(isMeasure));
+		return new AlgebraicDD(TableDD.build(getVariables(), dDs, oper));
 	}
 	
 	public AlgebraicDD prime() {

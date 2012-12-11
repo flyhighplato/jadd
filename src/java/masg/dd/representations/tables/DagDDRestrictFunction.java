@@ -27,13 +27,7 @@ public class DagDDRestrictFunction implements DDBuilderFunction {
 		varValuesAll.putAll(varValues);
 		varValuesAll.putAll(restrictVarValues);
 		
-		BitMap prefix = null;
-		for(Entry<DDVariable,Integer> e:varValuesAll.entrySet()) {
-			prefix = BaseDDNode.joinKeys(prefix, BaseDDNode.variableValuetoBitMap(e.getKey(), e.getValue()));
-		}
-		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(varValuesAll.keySet());
-		
-		return dag.getValue(vars, prefix);
+		return dag.getValue(varValuesAll);
 	}
 
 	
