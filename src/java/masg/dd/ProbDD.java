@@ -5,7 +5,6 @@ import groovy.lang.Closure;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import masg.dd.representations.dag.MutableDDElement;
 import masg.dd.representations.tables.TableDD;
 import masg.dd.variables.DDVariable;
 

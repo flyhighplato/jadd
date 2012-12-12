@@ -7,9 +7,8 @@ import java.util.HashSet;
 import masg.dd.context.DDContext;
 import masg.dd.representations.tables.TableDDLeaf;
 import masg.dd.variables.DDVariable;
-import masg.util.BitMap;
 
-public class ImmutableDDLeaf extends BaseDDNode implements ImmutableDDElement{
+public class ImmutableDDLeaf implements ImmutableDDElement{
 	protected Double value;
 
 	HashSet<DDVariable> treeVars;
@@ -18,28 +17,17 @@ public class ImmutableDDLeaf extends BaseDDNode implements ImmutableDDElement{
 		this.value = value;
 	}
 	
-	/*public ImmutableDDLeaf(MutableDDLeaf leaf) {
-		this.value = leaf.getValue();
-	}*/
+	long id=-1;
 	
 	public ImmutableDDLeaf(HashSet<DDVariable> allVars, TableDDLeaf leaf, HashMap<Long,ImmutableDDElement> processedNodes) {
 		treeVars = allVars;
-		
+		id = leaf.getId();
 		if(processedNodes==null) {
 			processedNodes = new HashMap<Long,ImmutableDDElement>();
 		}
 		this.value = leaf.getValue();
 		processedNodes.put(leaf.getId(), this);
 	}
-
-	/*@Override
-	public void getIsMeasure(HashMap<DDVariable, Boolean> map) {
-	}*/
-
-	/*@Override
-	public HashMap<DDVariable, Boolean> getIsMeasure() {
-		return new HashMap<DDVariable, Boolean>();
-	}*/
 
 	@Override
 	public Double getTotalWeight() {
@@ -50,16 +38,6 @@ public class ImmutableDDLeaf extends BaseDDNode implements ImmutableDDElement{
 	public Double getValue(HashMap<DDVariable,Integer> path) {
 		return value;
 	}
-	
-
-	/*@Override
-	public ArrayList<Double> getValues(
-			HashMap<DDVariable, HashSet<BitMap>> keyMap) {
-		
-		ArrayList<Double> values = new ArrayList<Double>();
-		values.add(value);
-		return values;
-	}*/
 	
 	public Double getValue() {
 		return value;
@@ -79,101 +57,11 @@ public class ImmutableDDLeaf extends BaseDDNode implements ImmutableDDElement{
 	public boolean isMeasure() {
 		return true;
 	}
-
-	/*@Override
-	public void apply(ArrayList<DDVariable> prefixVars, BitMap prefix, UnaryOperation oper, MutableDDElement newCollection) {
-		newCollection.setValue(prefixVars, prefix, oper.invoke(value));
-	}*/
-
-	/*@Override
-	public void apply(HashMap<DDVariable, HashSet<BitMap>> prevKeys,
-			UnaryOperation oper, MutableDDElement newCollection) {
-		newCollection.setValue(prevKeys, oper.invoke(value));
-	}*/
-	
-	/*@Override
-	public void apply(HashMap<DDVariable, HashSet<BitMap>> prevKeys,
-			BinaryOperation oper,
-			ArrayList<ImmutableDDElement> otherCollections,
-			MutableDDElement newCollection) {
-		
-		double val = value;
-		for(ImmutableDDElement otherDD:otherCollections) {
-			for(Double d:otherDD.getValues(prevKeys)) {
-				val = oper.invoke(val, d);
-			}
-		}
-		
-		newCollection.setValue(prevKeys, val);
-	}*/
-	
-	/*@Override
-	public void apply(ArrayList<DDVariable> prefixVars, BitMap prefix,
-			BinaryOperation oper,
-			ArrayList<ImmutableDDElement> otherCollections,
-			MutableDDElement newCollection) {
-		
-		double val = value;
-		for(ImmutableDDElement otherDD:otherCollections) {
-			val = oper.invoke(val, otherDD.getValue(prefixVars, prefix));
-		}
-		
-		newCollection.setValue(prefixVars, prefix, val);
-		
-	}
-	
-	@Override
-	public MutableDDElement restrict(Map<DDVariable, Integer> elimVarValues) {
-		return new MutableDDLeaf(value);
-	}
-
-	@Override
-	public void copy(ArrayList<DDVariable> prefixVars, BitMap prefix,
-			BinaryOperation oper, MutableDDElement newCollection) {
-		double val = newCollection.getValue(prefixVars, prefix);
-		newCollection.setValue(prefixVars, prefix, oper.invoke(val, value));
-	}
-
-	@Override
-	public void restrict(ArrayList<DDVariable> prefixVars, BitMap prefix,
-			ArrayList<DDVariable> restrictVars, BitMap restrictKey,
-			MutableDDElement newCollection) {
-		
-		newCollection.setValue(prefixVars, prefix, value);
-	}
-
-	@Override
-	public MutableDDElement eliminateVariables(ArrayList<DDVariable> elimVars,
-			BinaryOperation oper) {
-		return new MutableDDLeaf(value);
-	}*/
 	
 	@Override
 	public DDVariable getVariable() {
 		return null;
 	}
-
-	/*@Override
-	public MutableDDElement apply(UnaryOperation oper) {
-		return new MutableDDLeaf(oper.invoke(value));
-	}
-
-	@Override
-	public MutableDDElement apply(BinaryOperation oper,
-			ImmutableDDElement otherColl) {
-		return new MutableDDLeaf(oper.invoke(value,otherColl.getTotalWeight()));
-	}
-
-	@Override
-	public MutableDDElement apply(BinaryOperation oper,
-			ArrayList<ImmutableDDElement> otherColl) {
-		double val = value;
-		for(ImmutableDDElement otherDD:otherColl) {
-			val = oper.invoke(val, otherDD.getTotalWeight());
-		}
-		
-		return new MutableDDLeaf(val);
-	}*/
 
 	public boolean equals(Object o) {
 		if(o==this)
@@ -188,39 +76,6 @@ public class ImmutableDDLeaf extends BaseDDNode implements ImmutableDDElement{
 		}
 	}
 
-	/*@Override
-	public MutableDDElement primeVariables() {
-		return new MutableDDLeaf(value);
-	}
-
-	@Override
-	public void primeVariables(ArrayList<DDVariable> prefixVars, BitMap prefix,
-			MutableDDElement newColl) {
-		ArrayList<DDVariable> primedPrefixVars = new ArrayList<DDVariable>();
-		for(DDVariable v:prefixVars) {
-			primedPrefixVars.add(v.getPrimed());
-		}
-		newColl.setValue(primedPrefixVars, prefix, value);
-		
-	}
-	
-	@Override
-	public MutableDDElement unprimeVariables() {
-		return new MutableDDLeaf(value);
-	}
-
-	@Override
-	public void unprimeVariables(ArrayList<DDVariable> prefixVars, BitMap prefix,
-			MutableDDElement newColl) {
-		ArrayList<DDVariable> unprimedPrefixVars = new ArrayList<DDVariable>();
-		for(DDVariable v:prefixVars) {
-			unprimedPrefixVars.add(v.getUnprimed());
-		}
-		//System.out.println(unprimedPrefixVars + "=" + value);
-		newColl.setValue(unprimedPrefixVars, prefix, value);
-		
-	}*/
-
 	public String toString() {
 		HashSet<DDVariable> uniqVars = new HashSet<DDVariable>(getVariables());
 		ArrayList<DDVariable> varsInOrder = new ArrayList<DDVariable>();
@@ -230,6 +85,10 @@ public class ImmutableDDLeaf extends BaseDDNode implements ImmutableDDElement{
 			}
 		}
 		return  varsInOrder + "\n" + value.toString();
+	}
+	
+	public int hashCode() {
+		return (int)id;
 	}
 	
 }

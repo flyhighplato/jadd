@@ -6,8 +6,8 @@ import java.util.HashMap;
 import masg.dd.AlgebraicDD
 import masg.dd.alphavector.BeliefAlphaVector;
 import masg.dd.pomdp.agent.belief.Belief;
-import masg.dd.representations.dag.MutableDDLeaf
 import masg.dd.variables.DDVariable;
+import masg.dd.representations.tables.TableDD;
 
 public class AlphaVectorPolicy implements Policy {
 
@@ -23,7 +23,8 @@ public class AlphaVectorPolicy implements Policy {
 	}
 	
 	public AlgebraicDD getValueFunction() {
-		AlgebraicDD valueFunction = new AlgebraicDD(new MutableDDLeaf(-Double.MAX_VALUE))
+		
+		AlgebraicDD valueFunction = new AlgebraicDD(TableDD.build(alphaVectors.get(0).getValueFunction().getVariables(), -Double.MAX_VALUE))
 		for(BeliefAlphaVector alpha: alphaVectors) {
 			valueFunction = alpha.valueFunction.max(valueFunction);
 		}

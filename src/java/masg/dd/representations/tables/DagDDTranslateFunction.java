@@ -1,13 +1,10 @@
 package masg.dd.representations.tables;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import masg.dd.representations.dag.BaseDDNode;
 import masg.dd.representations.dag.ImmutableDDElement;
 import masg.dd.variables.DDVariable;
-import masg.util.BitMap;
 
 public class DagDDTranslateFunction implements DDBuilderFunction {
 	HashMap<DDVariable, DDVariable> varMap;

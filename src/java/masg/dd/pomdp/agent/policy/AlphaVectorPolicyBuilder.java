@@ -19,7 +19,6 @@ import masg.dd.alphavector.BeliefAlphaVector;
 import masg.dd.pomdp.POMDP;
 import masg.dd.pomdp.agent.belief.Belief;
 import masg.dd.pomdp.agent.belief.BeliefRegion;
-import masg.dd.representations.dag.MutableDDLeaf;
 import masg.dd.representations.tables.TableDD;
 import masg.dd.variables.DDVariable;
 

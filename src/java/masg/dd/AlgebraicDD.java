@@ -19,14 +19,8 @@ import masg.dd.operations.MultiplicationOperation;
 import masg.dd.operations.SubtractionOperation;
 import masg.dd.operations.UnaryOperation;
 import masg.dd.representations.dag.ImmutableDDElement;
-import masg.dd.representations.dag.ImmutableDDLeaf;
-import masg.dd.representations.dag.ImmutableDDNode;
-import masg.dd.representations.dag.MutableDDElement;
-import masg.dd.representations.dag.MutableDDLeaf;
-import masg.dd.representations.dag.MutableDDNode;
 import masg.dd.representations.tables.TableDD;
 import masg.dd.variables.DDVariable;
-import masg.util.BitMap;
 
 public class AlgebraicDD {
 	protected ImmutableDDElement ruleCollection;

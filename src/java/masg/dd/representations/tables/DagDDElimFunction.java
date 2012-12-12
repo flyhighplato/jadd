@@ -3,14 +3,10 @@ package masg.dd.representations.tables;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map.Entry;
 
-import masg.dd.representations.dag.BaseDDNode;
 import masg.dd.representations.dag.ImmutableDDElement;
-import masg.dd.representations.dag.ImmutableDDNode;
 import masg.dd.variables.DDVariable;
 import masg.dd.variables.DDVariableSpace;
-import masg.util.BitMap;
 
 public class DagDDElimFunction implements DDBuilderFunction {
 
