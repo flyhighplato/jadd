@@ -425,7 +425,12 @@ public class TableDD {
 		
 		if(el instanceof ImmutableDDLeaf || varIx>subtreeRootVarIx) {
 			ArrayList<DDVariable> varsNew = new ArrayList<DDVariable>(el.getVariables());
-			TableDD dd = build(varsNew,el,new ConstantMultiplicationOperation(currVar.getValueCount()));
+			
+			double multiplier = 1.0d;
+			for(DDVariable v:subtreeElimVars) {
+				multiplier*=v.getValueCount();
+			}
+			TableDD dd = build(varsNew,el,new ConstantMultiplicationOperation(multiplier));
 			
 			TableDDElement result = dd.rootNode;
 			
