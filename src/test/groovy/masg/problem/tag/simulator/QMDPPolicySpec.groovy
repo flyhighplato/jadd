@@ -1,5 +1,6 @@
 package masg.problem.tag.simulator
 
+import masg.dd.pomdp.agent.policy.QMDPPolicy
 import masg.dd.pomdp.agent.policy.QMDPPolicyBuilder
 import masg.problem.tag.TagProblem;
 import spock.lang.Shared;
@@ -12,7 +13,7 @@ class QMDPPolicySpec extends Specification {
 	def "QMDP policy is generated"() {
 		when:
 			QMDPPolicyBuilder builder = new QMDPPolicyBuilder(problem.getPOMDP());
-			def policy = builder.build()
+			QMDPPolicy policy = builder.build()
 		then:
 			println policy
 			println "Done"

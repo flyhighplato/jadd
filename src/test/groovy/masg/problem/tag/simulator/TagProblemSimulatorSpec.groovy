@@ -13,6 +13,7 @@ import masg.dd.pomdp.agent.belief.BeliefRegion
 import masg.dd.pomdp.agent.policy.AlphaVectorPolicy
 import masg.dd.pomdp.agent.policy.Policy
 import masg.dd.pomdp.agent.policy.AlphaVectorPolicyBuilder
+import masg.dd.pomdp.agent.policy.QMDPPolicyBuilder
 import masg.dd.pomdp.agent.policy.RandomPolicy
 import masg.dd.variables.DDVariable
 import masg.problem.tag.TagProblem;
@@ -42,8 +43,9 @@ class TagProblemSimulatorSpec extends Specification {
 			DDVariable w_pres = new DDVariable("w_pres",2)
 			
 			
-			Policy pol = new RandomPolicy(problem.getPOMDP())
+			//Policy pol = new RandomPolicy(problem.getPOMDP())
 			
+			Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()
 			
 			int numSamples = 100
 			int numIterations = 1
@@ -101,9 +103,9 @@ class TagProblemSimulatorSpec extends Specification {
 			int numTrials = 10;
 			
 		then:
-			for(BeliefAlphaVector alpha:allAlphas) {
+			/*for(BeliefAlphaVector alpha:allAlphas) {
 				println "${alpha.getAction()}: ${alpha.getValueFunction().getTotalWeight()}";
-			}
+			}*/
 			
 			numTrials.times {
 				TagAgent agent1 = new TagAgent(problem.getPOMDP(),pol)

@@ -3,13 +3,11 @@ package masg.dd.representations.dag;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map.Entry;
 
 import masg.dd.context.DDContext;
 import masg.dd.representations.tables.TableDDLeaf;
 import masg.dd.representations.tables.TableDDNode;
 import masg.dd.variables.DDVariable;
-import masg.util.BitMap;
 
 public class ImmutableDDNode implements ImmutableDDElement {
 	protected ImmutableDDElement[] subCollections;
