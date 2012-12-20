@@ -40,6 +40,11 @@ public class AlgebraicDD {
 		ruleCollection = TableDD.build(vars, c).asDagDD(true);
 	}
 	
+	public AlgebraicDD(ArrayList<DDVariable> vars, double val) {
+		variables = vars;
+		ruleCollection = TableDD.build(vars, val).asDagDD(true);
+	}
+	
 	public AlgebraicDD(ImmutableDDElement immutableDDElement) {
 		variables = new ArrayList<DDVariable>(immutableDDElement.getVariables());
 		ruleCollection = immutableDDElement;
@@ -101,6 +106,26 @@ public class AlgebraicDD {
 		return oper(new AdditionOperation(),dd);
 	}
 	
+	public AlgebraicDD div(ProbDD pdd) {
+		return div(pdd.getDD());
+	}
+	
+	public AlgebraicDD div(CondProbDD condProbDD) {
+		
+		HashSet<DDVariable> thisVars = new HashSet<DDVariable>(variables);
+		ArrayList<AlgebraicDD> pertinentFns = new ArrayList<AlgebraicDD>();
+		for(AlgebraicDD dd: condProbDD.getComponentFunctions()) {
+			for(DDVariable v:dd.getVariables()) {
+				if(thisVars.contains(v)) {
+					pertinentFns.add(dd);
+					break;
+				}
+			}
+		}
+		
+		return oper(new DivisionOperation(), pertinentFns);
+	}
+
 	public AlgebraicDD div(AlgebraicDD dd) {
 		return oper(new DivisionOperation(),dd);
 	}

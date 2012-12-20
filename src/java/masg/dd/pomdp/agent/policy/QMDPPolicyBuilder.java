@@ -31,7 +31,7 @@ public class QMDPPolicyBuilder {
 		
 		double bellmanError = 1.0d;
 		
-		for(int i=0;i<50 && bellmanError > 0.001d;i++) {
+		for(int i=0;i<3 && bellmanError > 0.001d;i++) {
 			System.out.println("Iteration:" + i);
 			
 			TableDD ddResult = null;

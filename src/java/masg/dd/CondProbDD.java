@@ -155,14 +155,34 @@ public class CondProbDD {
 	}
 	
 	public CondProbDD multiply(CondProbDD pdd) {
-		if(!pdd.condVars.isEmpty()) {
+		/*if(!pdd.condVars.isEmpty()) {
 			return null;
-		}
+		}*/
 		
 		ArrayList<AlgebraicDD> newIndepFns = new ArrayList<AlgebraicDD>();
 		
 		for(AlgebraicDD dd:indepFns) {
 			newIndepFns.add(dd.multiply(pdd));
+		}
+		
+		ArrayList<DDVariable> newCondVars = new ArrayList<DDVariable>(condVars);
+		newCondVars.removeAll(pdd.uncondVars);
+		newCondVars.addAll(pdd.condVars);
+		ArrayList<DDVariable> newUncondVars = new ArrayList<DDVariable>(uncondVars);
+		newUncondVars.addAll(pdd.uncondVars);
+
+		return new CondProbDD(newCondVars,newUncondVars,newIndepFns);
+	}
+	
+	public CondProbDD div(CondProbDD pdd) {
+		/*if(!pdd.condVars.isEmpty()) {
+			return null;
+		}*/
+		
+		ArrayList<AlgebraicDD> newIndepFns = new ArrayList<AlgebraicDD>();
+		
+		for(AlgebraicDD dd:indepFns) {
+			newIndepFns.add(dd.div(pdd));
 		}
 		
 		ArrayList<DDVariable> newCondVars = new ArrayList<DDVariable>(condVars);

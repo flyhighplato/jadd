@@ -15,6 +15,7 @@ import masg.dd.pomdp.agent.policy.Policy
 import masg.dd.pomdp.agent.policy.AlphaVectorPolicyBuilder
 import masg.dd.pomdp.agent.policy.QMDPPolicyBuilder
 import masg.dd.pomdp.agent.policy.RandomPolicy
+import masg.dd.representations.tables.TableDD;
 import masg.dd.variables.DDVariable
 import masg.problem.tag.TagProblem;
 import spock.lang.Shared;
@@ -43,70 +44,22 @@ class TagProblemSimulatorSpec extends Specification {
 			DDVariable w_pres = new DDVariable("w_pres",2)
 			
 			
-			//Policy pol = new RandomPolicy(problem.getPOMDP())
-			
 			Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()
 			
-			int numSamples = 100
-			int numIterations = 1
-			
-			ArrayList<BeliefAlphaVector> allAlphas = new ArrayList<BeliefAlphaVector>();
-			
-			ArrayList<Belief> witnessPoints = []
-			
-			for(int i=0;i<50;i++) {
-				BeliefRegion belReg
-				
-				if(i%2==0) {
-					belReg = new BeliefRegion(numSamples, problem.getPOMDP(), pol)
-				}
-				else {
-					belReg = new BeliefRegion(numSamples, problem.getPOMDP(), new RandomPolicy(problem.getPOMDP()))
-				}
-				belReg.beliefSamples.addAll(witnessPoints)
-				
-				double valFnTotalOld = -100.0f;
-				double valFnTotalNew = 0.0f;
-				
-				for(int j=0;j<10 && !(Math.abs(valFnTotalOld-valFnTotalNew)<0.001f);j++) {
-					AlphaVectorPolicyBuilder polBuilder = new AlphaVectorPolicyBuilder(problem.getPOMDP())
-					polBuilder.bestAlphas.addAll(allAlphas);
-					
-					allAlphas = new ArrayList<BeliefAlphaVector>();
-					
-					pol = polBuilder.build(belReg, numIterations)
-					allAlphas.addAll(polBuilder.bestAlphas);
-					
-					AlgebraicDD valueFnDD = allAlphas.get(0).getValueFunction();
-					for(BeliefAlphaVector alpha:allAlphas) {
-						valueFnDD = alpha.getValueFunction().max(valueFnDD);
-					}
-					println()
-					
-					valFnTotalOld = valFnTotalNew
-					valFnTotalNew = valueFnDD.getTotalWeight();
-					System.out.println("*Total value function sum:" + valFnTotalNew);
-					System.out.println("*Total # value function vectors:" + allAlphas.size());
-				}
-				
-				witnessPoints = []
-				allAlphas.each{
-					witnessPoints << new Belief(problem.getPOMDP(),it.witnessPt)
-				}
-			}
-			
-			pol = new AlphaVectorPolicy(allAlphas)
+			int numSamples = 500
+			int numIterations = 100
 			
 			int numColocations = 0;
 			int totalColocations = 0;
 			int numSteps = 100;
 			int numTrials = 10;
 			
-		then:
-			/*for(BeliefAlphaVector alpha:allAlphas) {
-				println "${alpha.getAction()}: ${alpha.getValueFunction().getTotalWeight()}";
-			}*/
+			BeliefRegion belReg = new BeliefRegion(numSamples, numSteps, problem.getPOMDP(), pol)
 			
+			AlphaVectorPolicyBuilder polBuilder = new AlphaVectorPolicyBuilder(problem.getPOMDP())
+			
+			pol = polBuilder.build(belReg, numIterations)
+		then:
 			numTrials.times {
 				TagAgent agent1 = new TagAgent(problem.getPOMDP(),pol)
 				TagAgent agent2 = new TagAgent(problem.getPOMDP(),pol)

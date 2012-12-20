@@ -2,6 +2,7 @@ package masg.dd.pomdp.agent.belief
 
 import java.util.List;
 
+import masg.dd.AlgebraicDD
 import masg.dd.CondProbDD;
 import masg.dd.ProbDD;
 import masg.dd.pomdp.POMDP;
@@ -18,25 +19,61 @@ class BeliefRegion {
 		return beliefSamples;
 	}
 	
-	public BeliefRegion(int numSamples, POMDP p, Policy policy) {
+	public BeliefRegion(int numSamples, int episodeLength, POMDP p, Policy policy) {
 		this.p = p
 		
 		beliefSamples << new Belief(p, p.getInitialBelief().toConditionalProbabilityFn())
-		1.times {
+
 			Belief belief = new Belief(p, p.getInitialBelief().toConditionalProbabilityFn())
-			numSamples.times{
+			
+			int episodeStep = 0;
+			while(beliefSamples.size()<numSamples) {
+				
 				
 				if(beliefSamples.size()%10==0) {
 					println "Sampled ${beliefSamples.size()}"
 				}
+				
+				if(episodeStep>=episodeLength) {
+					belief = new Belief(p, p.getInitialBelief().toConditionalProbabilityFn())
+					episodeStep = 0;
+				}
+				
 				HashMap<DDVariable,Integer> actPoint = policy.getAction(belief)
 				//println "Policy gives action $actPoint"
 				HashMap<DDVariable,Integer> obsPt = belief.sampleNextObservation(actPoint);
 				//println "Sample observation $obsPt"
+				
+				
 				belief = belief.getNextBelief(actPoint, obsPt)
 				
-				beliefSamples << belief
+				ProbDD beliefProbDD = belief.beliefFn.toProbabilityFn()
+				boolean goodSample = true;
+				for(int i=0;i<beliefSamples.size();i++) {
+					Belief beliefOther = beliefSamples.get(i)
+					
+					AlgebraicDD absDiffDD = beliefOther.beliefFn.toProbabilityFn().getDD().absDiff(beliefProbDD.getDD())
+					absDiffDD = absDiffDD.multiply(absDiffDD);
+					
+					double l2Dist = Math.sqrt(absDiffDD.getTotalWeight());
+					
+					if(l2Dist<0.01f) {
+						println "L2 distance too small: $l2Dist"
+						goodSample = false;
+						break;
+					}
+					
+					
+					
+				}
+				
+				if(goodSample) {
+					beliefSamples << belief
+				}
+				
+				episodeStep++;
 			}
-		}
+			
+			println "Sampled ${beliefSamples.size()}"
 	}
 }

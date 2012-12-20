@@ -18,10 +18,12 @@ class POMDP {
 	
 	private Map actRestrTransnFn = [:]
 	private Map actRestrObservFn = [:]
+	private Map actRestTransObservFn = [:]
 	private Map actRestrRewFn = [:]
 	
 	private Map actObsRestrTransnFn = [:]
 	private Map actObsRestrObservFn = [:];
+	
 	
 	private DDVariableSpace actSpace;
 	private DDVariableSpace obsSpace;
@@ -50,8 +52,22 @@ class POMDP {
 			actRestrObservFn[actSpacePt]=observFn.restrict(actSpacePt);
 			actRestrRewFn[actSpacePt]=rewFn.restrict(actSpacePt);
 			
+			
 			actObsRestrTransnFn[actSpacePt] = [:]
 			actObsRestrObservFn[actSpacePt] = [:]
+			
+			
+			CondProbDD restrTransFn = actRestrTransnFn[actSpacePt];
+			CondProbDD norm = restrTransFn.sumOut(getStatesPrime());
+			restrTransFn = restrTransFn.div(norm);
+			
+			CondProbDD restrObsFn = actRestrObservFn[actSpacePt];
+			norm = restrObsFn.sumOut(getObservations());
+			restrObsFn = restrObsFn.div(norm);
+			
+			CondProbDD restrTransObsFn = restrTransFn.multiply(restrObsFn);
+			norm = restrTransObsFn.sumOut(getStatesPrime());
+			actRestTransObservFn[actSpacePt] = restrTransObsFn.div(norm);
 			
 			obsSpace.each { HashMap<DDVariable,Integer> obsSpacePt ->
 				actObsRestrTransnFn[actSpacePt][obsSpacePt] = actRestrTransnFn[actSpacePt].restrict(obsSpacePt)
@@ -95,6 +111,10 @@ class POMDP {
 	
 	public final CondProbDD getObservationFunction(HashMap<DDVariable,Integer> actSpacePt, HashMap<DDVariable,Integer> obsSpacePt) {
 		return actObsRestrObservFn[actSpacePt][obsSpacePt];
+	}
+	
+	public final CondProbDD getObservedTransitionFunction(HashMap<DDVariable,Integer> actSpacePt) {
+		return actRestTransObservFn[actSpacePt]
 	}
 	
 	public final ArrayList<DDVariable> getStates() {
