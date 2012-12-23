@@ -60,24 +60,31 @@ public class TableDD {
 	}
 	
 	public static TableDD build(ArrayList<DDVariable> vars, Closure<Double>... closures) {
+		vars = putInCanonicalOrder(vars);
+		
 		TableDD dd = new TableDD(vars);
 		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new ProbabilityClosuresFunction(closures));
 		return dd;
 	}
 	
 	public static TableDD build(ArrayList<DDVariable> vars, Closure<Double> c) {
+		vars = putInCanonicalOrder(vars);
+		
 		TableDD dd = new TableDD(vars);
 		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new ClosureFunction(c));
 		return dd;
 	}
 	
 	public static TableDD build(ArrayList<DDVariable> vars, double constVal) {
+		vars = putInCanonicalOrder(vars);
+		
 		TableDD dd = new TableDD(vars);
 		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new ConstantFunction(constVal));
 		return dd;
 	}
 	
 	public static ImmutableDDElement build(ArrayList<DDVariable> vars, ArrayList<ImmutableDDElement> dags, BinaryOperation op) {
+		vars = putInCanonicalOrder(vars);
 		
 		ArrayList<ImmutableDDElement> dagsNew = new ArrayList<ImmutableDDElement>();
 		for(ImmutableDDElement dd:dags) {
@@ -112,6 +119,8 @@ public class TableDD {
 	}
 	
 	public static TableDD build(ArrayList<DDVariable> vars, ImmutableDDElement dag, UnaryOperation op) {
+		vars = putInCanonicalOrder(vars);
+		
 		TableDD dd = new TableDD(vars);
 		dd.rootNode = dd.applyOperation(dag, op, new HashMap<ImmutableDDElement,TableDDElement>());
 		return dd;
@@ -121,20 +130,15 @@ public class TableDD {
 		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(dag.getVariables());
 		vars.removeAll(restrictVarValues.keySet());
 		
+		vars = putInCanonicalOrder(vars);
+		
 		TableDD dd = new TableDD(vars);
 		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.vars, new DagDDRestrictFunction(dag,restrictVarValues));
 		return dd;
 	}
 	
 	public static ImmutableDDElement eliminate(ArrayList<DDVariable> elimVars, ImmutableDDElement dag) {
-		ArrayList<DDVariable> elimVarsInOrder = new ArrayList<DDVariable>();
-		for(int i=0;i<DDContext.canonicalVariableOrdering.size();i++) {
-			DDVariable currVar = DDContext.canonicalVariableOrdering.get(i);
-			if(elimVars.contains(currVar)) {
-				elimVarsInOrder.add(currVar);
-			}
-		}
-		elimVars = elimVarsInOrder;
+		elimVars = putInCanonicalOrder(elimVars);
 		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(dag.getVariables());
 		elimVars.retainAll(vars);
 		
@@ -203,6 +207,17 @@ public class TableDD {
 		return res;
 	}
 	
+	private static ArrayList<DDVariable> putInCanonicalOrder(ArrayList<DDVariable> vars) {
+		ArrayList<DDVariable> retVars = new ArrayList<DDVariable>();
+		for(int i=0;i<DDContext.canonicalVariableOrdering.size();i++) {
+			DDVariable currVar = DDContext.canonicalVariableOrdering.get(i);
+			if(vars.contains(currVar)) {
+				retVars.add(currVar);
+			}
+		}
+		return retVars;
+		
+	}
 	public TableDDElement getRootNode() {
 		return rootNode;
 	}
@@ -422,7 +437,6 @@ public class TableDD {
 		DDVariable currVar = subtreeElimVars.get(0);
 		int subtreeRootVarIx = DDContext.getVariableIndex(currVar);
 		
-		
 		if(el instanceof ImmutableDDLeaf || varIx>subtreeRootVarIx) {
 			ArrayList<DDVariable> varsNew = new ArrayList<DDVariable>(el.getVariables());
 			
@@ -437,6 +451,12 @@ public class TableDD {
 			if(result instanceof TableDDLeaf) {
 				result = makeLeaf(((TableDDLeaf) result).getValue());
 			}
+			else if(result instanceof TableDDNode) {
+				if(subtreeElimVars.size()>1) {
+					result = sumSubtrees(dd.asDagDD(el.isMeasure()),subtreeElimVars.subList(1, subtreeElimVars.size()), applyCache);
+				}
+			}
+			
 			applyCache.put(el, result);
 			return result;
 		}
