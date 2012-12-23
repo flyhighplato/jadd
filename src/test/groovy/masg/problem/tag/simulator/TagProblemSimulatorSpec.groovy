@@ -46,13 +46,13 @@ class TagProblemSimulatorSpec extends Specification {
 			
 			Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()
 			
-			int numSamples = 500
+			int numSamples = 1000
 			int numIterations = 100
 			
 			int numColocations = 0;
 			int totalColocations = 0;
 			int numSteps = 100;
-			int numTrials = 10;
+			int numTrials = 100;
 			
 			BeliefRegion belReg = new BeliefRegion(numSamples, numSteps, problem.getPOMDP(), pol)
 			
