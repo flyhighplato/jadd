@@ -5,7 +5,6 @@ import groovy.lang.Closure;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import masg.dd.representations.tables.TableDD;
 import masg.dd.variables.DDVariable;
 
 public class ProbDD {
@@ -16,6 +15,12 @@ public class ProbDD {
 		
 		variables = vars;
 		dd = new AlgebraicDD(vars, c);
+	}
+	
+	public ProbDD(ArrayList<DDVariable> vars, Closure<Double> c) {
+		
+		variables = vars;
+		dd = new AlgebraicDD(vars, c, true);
 	}
 	
 	public ProbDD(AlgebraicDD dd,ArrayList<DDVariable> variables) {

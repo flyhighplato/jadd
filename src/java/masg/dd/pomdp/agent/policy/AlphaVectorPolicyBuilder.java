@@ -325,9 +325,11 @@ public class AlphaVectorPolicyBuilder {
 			}
 			
 			AlgebraicDD nextAlpha  = new AlgebraicDD(TableDD.build(vars, dags, new MultiplicationOperation()));
-			nextAlpha = nextAlpha.sumOut(p.getStatesPrime());
 			
 			nextAlpha = new AlgebraicDD(TableDD.approximate(nextAlpha.getFunction(), tolerance).asDagDD(false));
+			
+			nextAlpha = nextAlpha.sumOut(p.getStatesPrime());
+			
 			
 			nextAlpha = nextAlpha.plus(p.getRewardFunction(bestAct));
 			

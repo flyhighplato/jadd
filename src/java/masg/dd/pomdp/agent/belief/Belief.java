@@ -163,6 +163,9 @@ public class Belief {
 			
 			ProbDD probTempFn = probFn.sumOut(sumOutVars).toProbabilityFn();
 			
+			if(probTempFn.getDD().getTotalWeight()<=0.0d) {
+				System.out.println("No possible samples!");
+			}
 			double thresh = random.nextDouble();
 			double weight = 0.0f;
 			

@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.List;
 
 import masg.dd.context.DDContext;
-import masg.dd.operations.BinaryOperation;
 import masg.dd.operations.MultiplicationOperation;
 import masg.dd.representations.dag.ImmutableDDElement;
 import masg.dd.representations.tables.TableDD;
@@ -82,7 +81,6 @@ public class CondProbDD {
 		for(AlgebraicDD dd:indepFns) {
 			val*=dd.getValue(varSpacePoint);
 		}
-		//val = toProbabilityFn().getValue(varSpacePoint);
 		return val;
 	}
 	
