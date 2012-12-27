@@ -46,7 +46,7 @@ class TagProblemSimulatorSpec extends Specification {
 			
 			Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()
 			
-			int numSamples = 100
+			int numSamples = 50
 			int numIterations = 100
 			
 			int numColocations = 0;

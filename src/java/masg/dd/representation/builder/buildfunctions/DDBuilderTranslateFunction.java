@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 
 import masg.dd.representation.DDElement;
-import masg.dd.representation.builder.DDBuilderFunction;
 import masg.dd.variables.DDVariable;
 
 public class DDBuilderTranslateFunction implements DDBuilderFunction {

@@ -3,7 +3,6 @@ package masg.dd.representation.builder.buildfunctions;
 import java.util.HashMap;
 
 import masg.dd.representation.DDElement;
-import masg.dd.representation.builder.DDBuilderFunction;
 import masg.dd.variables.DDVariable;
 
 public class DDBuilderRestrictFunction implements DDBuilderFunction {

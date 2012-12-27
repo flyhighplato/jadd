@@ -23,6 +23,7 @@ import masg.dd.representation.DDLeaf;
 import masg.dd.representation.DDNode;
 import masg.dd.representation.builder.buildfunctions.DDBuilderClosureFunction;
 import masg.dd.representation.builder.buildfunctions.DDBuilderConstantFunction;
+import masg.dd.representation.builder.buildfunctions.DDBuilderFunction;
 import masg.dd.representation.builder.buildfunctions.DDBuilderProbabilityClosuresFunction;
 import masg.dd.representation.builder.buildfunctions.DDBuilderRestrictFunction;
 import masg.dd.representation.builder.buildfunctions.DDBuilderTranslateFunction;
@@ -32,7 +33,7 @@ import masg.dd.variables.DDVariable;
 public class DDBuilder {
 	
 	HashMap<Double, DDLeaf> leaves = new HashMap<Double, DDLeaf>();
-	HashMap<DDVariable, ArrayList< HashMap<BaseDDElement, HashSet<DDNode>> > >  nodes = new HashMap<DDVariable, ArrayList< HashMap<BaseDDElement, HashSet<DDNode>> > >();
+	HashMap<DDVariable, ArrayList< HashMap<DDElement, HashSet<DDNode>> > >  nodes = new HashMap<DDVariable, ArrayList< HashMap<DDElement, HashSet<DDNode>> > >();
 	
 	BaseDDElement rootNode = null;
 	private DDInfo info;
@@ -41,10 +42,10 @@ public class DDBuilder {
 		this.info = new DDInfo(new HashSet<DDVariable>(vars), isMeasure);
 		
 		for(DDVariable var:vars) {
-			ArrayList< HashMap<BaseDDElement, HashSet<DDNode>> > temp = new ArrayList< HashMap<BaseDDElement, HashSet<DDNode>> >();
+			ArrayList< HashMap<DDElement, HashSet<DDNode>> > temp = new ArrayList< HashMap<DDElement, HashSet<DDNode>> >();
 			
 			for(int i=0;i<var.getValueCount();i++) {
-				temp.add(new HashMap<BaseDDElement,HashSet<DDNode>>());
+				temp.add(new HashMap<DDElement,HashSet<DDNode>>());
 			}
 			
 			nodes.put(var, temp);
@@ -55,10 +56,10 @@ public class DDBuilder {
 		this.info = info;
 		
 		for(DDVariable var:info.getVariables()) {
-			ArrayList< HashMap<BaseDDElement, HashSet<DDNode>> > temp = new ArrayList< HashMap<BaseDDElement, HashSet<DDNode>> >();
+			ArrayList< HashMap<DDElement, HashSet<DDNode>> > temp = new ArrayList< HashMap<DDElement, HashSet<DDNode>> >();
 			
 			for(int i=0;i<var.getValueCount();i++) {
-				temp.add(new HashMap<BaseDDElement,HashSet<DDNode>>());
+				temp.add(new HashMap<DDElement,HashSet<DDNode>>());
 			}
 			
 			nodes.put(var, temp);
@@ -118,23 +119,21 @@ public class DDBuilder {
 		return el1;
 	}
 	
-	public static DDBuilder build(ArrayList<DDVariable> vars, DDElement dag, UnaryOperation op) {
+	public static DDElement build(ArrayList<DDVariable> vars, DDElement dag, UnaryOperation op) {
 		vars = putInCanonicalOrder(vars);
 		
 		DDBuilder dd = new DDBuilder(vars, dag.isMeasure());
-		dd.rootNode = dd.applyOperation(dag, op, new HashMap<DDElement,BaseDDElement>());
-		return dd;
+		return dd.applyOperation(dag, op, new HashMap<DDElement,DDElement>());
 	}
 	
-	public static DDBuilder restrict(HashMap<DDVariable,Integer> restrictVarValues, DDElement dag) {
+	public static DDElement restrict(HashMap<DDVariable,Integer> restrictVarValues, DDElement dag) {
 		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(dag.getVariables());
 		vars.removeAll(restrictVarValues.keySet());
 		
 		vars = putInCanonicalOrder(vars);
 		
 		DDBuilder dd = new DDBuilder(vars,dag.isMeasure());
-		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.getDDInfo().getVariables(), new DDBuilderRestrictFunction(dag,restrictVarValues));
-		return dd;
+		return dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.getDDInfo().getVariables(), new DDBuilderRestrictFunction(dag,restrictVarValues));
 	}
 	
 	public static DDElement eliminate(ArrayList<DDVariable> elimVars, DDElement dag) {
@@ -149,12 +148,13 @@ public class DDBuilder {
 		
 		DDInfo info = new DDInfo(vars, dag.isMeasure());
 		DDBuilder dd = new DDBuilder(info);
-		dd.rootNode = dd.sumSubtrees(dag, elimVars, new HashMap<DDElement,BaseDDElement>());
+		DDElement result = dd.sumSubtrees(dag, elimVars, new HashMap<DDElement,DDElement>());
 		
 		HashSet<DDVariable> newVars = new HashSet<DDVariable>(dag.getVariables());
 		newVars.removeAll(elimVars);
 		info.updateInfo(newVars, dag.isMeasure());
-		return dd.rootNode;
+		
+		return result;
 	}
 	
 	public static DDBuilder prime(DDElement dag) {
@@ -244,7 +244,7 @@ public class DDBuilder {
 		return l;
 	}
 	
-	protected DDNode makeNode(DDVariable var, BaseDDElement[] children) {
+	protected DDNode makeNode(DDVariable var, DDElement[] children) {
 		if(nodes.get(var)==null || nodes.get(var).get(0)==null) {
 			System.out.println("Wha--?");
 		}
@@ -432,7 +432,7 @@ public class DDBuilder {
 		}
 	}
 	
-	protected BaseDDElement sumSubtrees(DDElement el,List<DDVariable> subtreeElimVars, HashMap<DDElement,BaseDDElement> applyCache) {
+	protected DDElement sumSubtrees(DDElement el,List<DDVariable> subtreeElimVars, HashMap<DDElement,DDElement> applyCache) {
 		
 		if(applyCache.containsKey(el)) {
 			return applyCache.get(el);
@@ -455,16 +455,15 @@ public class DDBuilder {
 			for(DDVariable v:subtreeElimVars) {
 				multiplier*=v.getValueCount();
 			}
-			DDBuilder dd = build(varsNew,el,new ConstantMultiplicationOperation(multiplier));
 			
-			BaseDDElement result = dd.rootNode;
+			DDElement result = build(varsNew,el,new ConstantMultiplicationOperation(multiplier));
 			
 			if(result instanceof DDLeaf) {
 				result = makeLeaf(((DDLeaf) result).getValue());
 			}
 			else if(result instanceof DDNode) {
 				if(subtreeElimVars.size()>1) {
-					result = sumSubtrees(dd.rootNode,subtreeElimVars.subList(1, subtreeElimVars.size()), applyCache);
+					result = sumSubtrees(result,subtreeElimVars.subList(1, subtreeElimVars.size()), applyCache);
 				}
 			}
 			
@@ -477,21 +476,19 @@ public class DDBuilder {
 			if(n.getVariable().equals(currVar)) {
 				ArrayList<DDElement> dags = new ArrayList<DDElement>(Arrays.asList(n.getChildren()));
 				
-				DDElement el1 = dags.get(0); 
+				DDElement result = dags.get(0); 
 				
 				DDElement el2 = null;
 				DDBuilder dd=null;
 				for(int i=1;i<dags.size();i++) {
 					el2 = dags.get(i);
 					dd = new DDBuilder(info);
-					dd.rootNode = dd.applyOperation(el1, el2, new AdditionOperation(), new HashMap<DDElement,HashMap<DDElement,BaseDDElement>>());
-					el1 = dd.rootNode;
+					result = dd.applyOperation(result, el2, new AdditionOperation(), new HashMap<DDElement,HashMap<DDElement,BaseDDElement>>());
 				}
 				
-				BaseDDElement result = dd.rootNode;
 				
 				if(subtreeElimVars.size()>1) {
-					result = sumSubtrees(dd.rootNode,subtreeElimVars.subList(1, subtreeElimVars.size()), applyCache);
+					result = sumSubtrees(result,subtreeElimVars.subList(1, subtreeElimVars.size()), applyCache);
 				}
 				
 				if(result instanceof DDLeaf) {
@@ -503,7 +500,7 @@ public class DDBuilder {
 			}
 			else {
 				DDNode nNew;
-				BaseDDElement[] children = new BaseDDElement[el.getVariable().getValueCount()];
+				DDElement[] children = new DDElement[el.getVariable().getValueCount()];
 				
 				for(int i=0;i<el.getVariable().getValueCount();i++) {
 					children[i] = sumSubtrees(n.getChild(i), subtreeElimVars, applyCache);
@@ -513,7 +510,7 @@ public class DDBuilder {
 
 				boolean allEqual = true;
 				
-				BaseDDElement currEl = children[0];
+				DDElement currEl = children[0];
 				for(int i=1;i<el.getVariable().getValueCount() && allEqual;i++) {
 					allEqual = allEqual && currEl.equals(children[i]);
 					currEl = children[i];
@@ -533,12 +530,12 @@ public class DDBuilder {
 		
 	}
 	
-	protected BaseDDElement applyOperation(DDElement el, UnaryOperation op, HashMap<DDElement,BaseDDElement> applyCache) {
+	protected DDElement applyOperation(DDElement el, UnaryOperation op, HashMap<DDElement,DDElement> applyCache) {
 		if(applyCache.containsKey(el)) {
 			return applyCache.get(el);
 		}
 		
-		BaseDDElement result = null;
+		DDElement result = null;
 		if(el instanceof DDLeaf) {
 			DDLeaf l = (DDLeaf) el;
 			
@@ -547,7 +544,7 @@ public class DDBuilder {
 		else if(el instanceof DDNode) {
 			DDNode n = (DDNode) el;
 			
-			BaseDDElement[] children = new BaseDDElement[n.getVariable().getValueCount()];
+			DDElement[] children = new BaseDDElement[n.getVariable().getValueCount()];
 			
 			for(int i=0;i<n.getVariable().getValueCount();i++) {
 				children[i] = applyOperation(n.getChild(i),op, applyCache);
@@ -557,7 +554,7 @@ public class DDBuilder {
 			
 			boolean allEqual = true;
 			
-			BaseDDElement currEl = children[0];
+			DDElement currEl = children[0];
 			for(int i=1;i<n.getVariable().getValueCount() && allEqual;i++) {
 				allEqual = allEqual && currEl.equals(children[i]);
 				currEl = children[i];
@@ -684,10 +681,10 @@ public class DDBuilder {
 			
 			String parentLabel = "	\"" + n.getKey() + "\"";
 			
-			HashMap<BaseDDElement,HashSet<Integer>> childrenPaths = new HashMap<BaseDDElement,HashSet<Integer>>();
+			HashMap<DDElement,HashSet<Integer>> childrenPaths = new HashMap<DDElement,HashSet<Integer>>();
 			for(int i=0;i<n.getChildren().length;i++) {
 				
-				BaseDDElement child = n.getChild(i);
+				DDElement child = n.getChild(i);
 
 				if(childrenPaths.get(child)==null) {
 					childrenPaths.put(child, new HashSet<Integer>());
@@ -696,8 +693,8 @@ public class DDBuilder {
 
 			}
 			
-			for(Entry<BaseDDElement, HashSet<Integer>> e:childrenPaths.entrySet()) {
-				BaseDDElement child = e.getKey();
+			for(Entry<DDElement, HashSet<Integer>> e:childrenPaths.entrySet()) {
+				DDElement child = e.getKey();
 				
 				String childLabel = "";
 				

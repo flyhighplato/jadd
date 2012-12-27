@@ -9,8 +9,8 @@ import masg.dd.variables.DDVariable;
 
 public class DDNode extends BaseDDElement implements DDElement {
 	private DDVariable v;
-	private BaseDDElement[] children;
-	private HashSet<BaseDDElement> uniqChildren;
+	private DDElement[] children;
+	private HashSet<DDElement> uniqChildren;
 	private DDInfo info;
 	
 	public DDNode(DDInfo info, DDVariable v) {
@@ -18,15 +18,15 @@ public class DDNode extends BaseDDElement implements DDElement {
 		init(info, v,new BaseDDElement[v.getValueCount()]);
 	}
 	
-	public DDNode(DDInfo info, DDVariable v, BaseDDElement[] children) {
+	public DDNode(DDInfo info, DDVariable v, DDElement[] children) {
 		super();
 		init(info, v,children);
 	}
 	
-	private void init(DDInfo info, DDVariable v, BaseDDElement[] children) {
+	private void init(DDInfo info, DDVariable v, DDElement[] children) {
 		this.v = v;
 		this.children = children;
-		this.uniqChildren = new HashSet<BaseDDElement>(Arrays.asList(this.children));
+		this.uniqChildren = new HashSet<DDElement>(Arrays.asList(this.children));
 		this.info = info;
 	}
 	
@@ -34,11 +34,11 @@ public class DDNode extends BaseDDElement implements DDElement {
 		return v;
 	}
 	
-	public final BaseDDElement[] getChildren() {
+	public final DDElement[] getChildren() {
 		return children;
 	}
 	
-	public final BaseDDElement getChild(int i) {
+	public final DDElement getChild(int i) {
 		return children[i];
 	}
 	
@@ -74,7 +74,7 @@ public class DDNode extends BaseDDElement implements DDElement {
 	public Double getTotalWeight() {
 		Double sum = 0.0d;
 		
-		for(BaseDDElement child:children) {
+		for(DDElement child:children) {
 			sum+=child.getTotalWeight();;
 		}
 		
@@ -89,7 +89,7 @@ public class DDNode extends BaseDDElement implements DDElement {
 		else if(info.isMeasure()) {
 			Double sum = 0.0d;
 			
-			for(BaseDDElement child:uniqChildren) {
+			for(DDElement child:uniqChildren) {
 				Double temp = child.getValue(path);
 				
 				if(temp==null)

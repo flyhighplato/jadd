@@ -13,7 +13,6 @@ import masg.dd.operations.BinaryOperation;
 import masg.dd.operations.ConstantAdditionOperation;
 import masg.dd.operations.ConstantMultiplicationOperation;
 import masg.dd.operations.DivisionOperation;
-import masg.dd.operations.IsEqualOperation;
 import masg.dd.operations.MaxOperation;
 import masg.dd.operations.MultiplicationOperation;
 import masg.dd.operations.SubtractionOperation;
@@ -60,7 +59,7 @@ public class AlgebraicDD {
 	}
 	
 	public AlgebraicDD restrict(HashMap<DDVariable,Integer> varSpacePoint) {
-		return new AlgebraicDD(DDBuilder.restrict(varSpacePoint, ruleCollection).getRootNode());
+		return new AlgebraicDD(DDBuilder.restrict(varSpacePoint, ruleCollection));
 	}
 	
 	public AlgebraicDD absDiff(AlgebraicDD dd) {
@@ -131,10 +130,6 @@ public class AlgebraicDD {
 		return oper(new DivisionOperation(),dd);
 	}
 	
-	public AlgebraicDD equalAtAnyPoint(AlgebraicDD dd) {
-		return oper(new IsEqualOperation(),dd);
-	}
-	
 	public AlgebraicDD max(AlgebraicDD dd) {
 		return oper(new MaxOperation(),dd);
 	}
@@ -156,7 +151,7 @@ public class AlgebraicDD {
 	}
 	
 	protected AlgebraicDD oper(UnaryOperation oper) {
-		return new AlgebraicDD(DDBuilder.build(getVariables(), ruleCollection, oper).getRootNode());
+		return new AlgebraicDD(DDBuilder.build(getVariables(), ruleCollection, oper));
 	}
 	
 	protected AlgebraicDD oper(BinaryOperation oper, AlgebraicDD ddOther) {
@@ -166,16 +161,9 @@ public class AlgebraicDD {
 		return new AlgebraicDD(DDBuilder.build(getVariables(), dDs, oper));
 	}
 	
-	
-	
 	protected AlgebraicDD oper(BinaryOperation oper, List<AlgebraicDD> ddOtherList) {
 		ArrayList<DDElement> dDs = new ArrayList<DDElement>();
 		dDs.add(ruleCollection);
-		boolean isMeasure = true;
-		for(AlgebraicDD dd: ddOtherList) {
-			dDs.add(dd.ruleCollection);
-			isMeasure = isMeasure && dd.ruleCollection.isMeasure();
-		}
 		
 		return new AlgebraicDD(DDBuilder.build(getVariables(), dDs, oper));
 	}

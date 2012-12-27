@@ -1,4 +1,4 @@
-package masg.dd.representation.builder;
+package masg.dd.representation.builder.buildfunctions;
 
 import java.util.HashMap;
 

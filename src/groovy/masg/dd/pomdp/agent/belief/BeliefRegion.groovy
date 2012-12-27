@@ -57,7 +57,7 @@ class BeliefRegion {
 					
 					double l2Dist = Math.sqrt(absDiffDD.getTotalWeight());
 					
-					if(l2Dist<0.01f) {
+					if(l2Dist<0.001f) {
 						println "L2 distance too small: $l2Dist"
 						goodSample = false;
 						break;
