@@ -19,8 +19,9 @@ import masg.dd.operations.MultiplicationOperation;
 import masg.dd.pomdp.POMDP;
 import masg.dd.pomdp.agent.belief.Belief;
 import masg.dd.pomdp.agent.belief.BeliefRegion;
-import masg.dd.representations.dag.ImmutableDDElement;
-import masg.dd.representations.tables.TableDD;
+import masg.dd.representation.DDElement;
+import masg.dd.representation.DDInfo;
+import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
 
 
@@ -48,37 +49,37 @@ public class AlphaVectorPolicyBuilder {
 			
 			System.out.println("Generating pure strategy for action:" + actSpacePt);
 			
-			AlgebraicDD actionAlpha = new AlgebraicDD(TableDD.build(p.getStates(),0.0d).asDagDD(false));
+			AlgebraicDD actionAlpha = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStates(),false),0.0d).getRootNode());
 			double bellmanError = 20*tolerance;
 			
 			for(int i=0;i<3 && bellmanError>tolerance;++i) {
 				System.out.println("Iteration #" + i);
 				actionAlpha.prime();
 				
-				ArrayList<ImmutableDDElement> dags = new ArrayList<ImmutableDDElement>();
+				ArrayList<DDElement> dags = new ArrayList<DDElement>();
 				dags.add(actionAlpha.getFunction());
 				for(AlgebraicDD ddComp:p.getTransitionFunction(actSpacePt).getComponentFunctions()) {
 					dags.add(ddComp.getFunction());
 				}
 				
-				ImmutableDDElement resDD = TableDD.build(qFnVars, dags, new MultiplicationOperation());
+				DDElement resDD = DDBuilder.build(qFnVars, dags, new MultiplicationOperation());
 				AlgebraicDD actionAlphaNew = new AlgebraicDD(resDD);
 				
 				actionAlphaNew = actionAlphaNew.sumOut(p.getStatesPrime());
 				actionAlphaNew = actionAlphaNew.multiply(discFactor);
 				
-				actionAlphaNew = new AlgebraicDD(TableDD.approximate(actionAlphaNew.getFunction(), bellmanError * (1.0d-discFactor)/2.0d).asDagDD(false));
+				actionAlphaNew = new AlgebraicDD(DDBuilder.approximate(actionAlphaNew.getFunction(), bellmanError * (1.0d-discFactor)/2.0d).getRootNode());
 				
 				actionAlphaNew = actionAlphaNew.plus(p.getRewardFunction(actSpacePt));
 				
 				
-				bellmanError = TableDD.findMaxLeaf(actionAlphaNew.absDiff(actionAlpha).getFunction()).getValue();
+				bellmanError = DDBuilder.findMaxLeaf(actionAlphaNew.absDiff(actionAlpha).getFunction()).getValue();
 				System.out.println("bellmanError: " + bellmanError);
 				actionAlpha = actionAlphaNew;
 			}
 			
-			System.out.println(TableDD.findMaxLeaf(actionAlpha.getFunction()));
-			System.out.println(TableDD.findMaxLeaf(actionAlpha.multiply(-1.0f).getFunction()));
+			System.out.println(DDBuilder.findMaxLeaf(actionAlpha.getFunction()));
+			System.out.println(DDBuilder.findMaxLeaf(actionAlpha.multiply(-1.0f).getFunction()));
 			bestAlphas.add(new BeliefAlphaVector(actSpacePt, actionAlpha, currBel));
 		}
 		
@@ -206,7 +207,7 @@ public class AlphaVectorPolicyBuilder {
 						
 						boolean dominated = false;
 						for(BeliefAlphaVector alpha:bestAlphas) {
-							if(TableDD.findMaxLeaf(newAlpha.getValueFunction().minus(alpha.getValueFunction()).getFunction()).getValue()<tolerance) {
+							if(DDBuilder.findMaxLeaf(newAlpha.getValueFunction().minus(alpha.getValueFunction()).getFunction()).getValue()<tolerance) {
 								dominated = true;
 								break;
 							}
@@ -217,10 +218,12 @@ public class AlphaVectorPolicyBuilder {
 							beliefAlphas = updateBeliefValues(beliefAlphas, newAlpha, beliefsTemp);
 							System.out.println("Num alphas:" + bestAlphas.size());
 						}
-						System.out.println("Num beliefs:" + beliefsTemp.size());
+						
 					}
 					
 				}
+				
+				System.out.println("Beliefs left:" + beliefsTemp.size());
 				
 			}
 			
@@ -318,15 +321,15 @@ public class AlphaVectorPolicyBuilder {
 			ArrayList<DDVariable> vars = new ArrayList<DDVariable>(p.getStates());
 			vars.addAll(p.getStatesPrime());
 			
-			ArrayList<ImmutableDDElement> dags = new ArrayList<ImmutableDDElement>();
+			ArrayList<DDElement> dags = new ArrayList<DDElement>();
 			dags.add(nextValFn.getFunction());
 			for(AlgebraicDD dd:p.getObservedTransitionFunction(bestAct).getComponentFunctions()) {
 				dags.add(dd.getFunction());
 			}
 			
-			AlgebraicDD nextAlpha  = new AlgebraicDD(TableDD.build(vars, dags, new MultiplicationOperation()));
+			AlgebraicDD nextAlpha  = new AlgebraicDD(DDBuilder.build(vars, dags, new MultiplicationOperation()));
 			
-			nextAlpha = new AlgebraicDD(TableDD.approximate(nextAlpha.getFunction(), tolerance).asDagDD(false));
+			nextAlpha = new AlgebraicDD(DDBuilder.approximate(nextAlpha.getFunction(), tolerance).getRootNode());
 			
 			nextAlpha = nextAlpha.sumOut(p.getStatesPrime());
 			

@@ -6,8 +6,9 @@ import java.util.HashMap;
 import masg.dd.AlgebraicDD;
 import masg.dd.operations.MultiplicationOperation;
 import masg.dd.pomdp.POMDP;
-import masg.dd.representations.dag.ImmutableDDElement;
-import masg.dd.representations.tables.TableDD;
+import masg.dd.representation.DDElement;
+import masg.dd.representation.DDInfo;
+import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
 
 public class QMDPPolicyBuilder {
@@ -20,7 +21,7 @@ public class QMDPPolicyBuilder {
 	
 	public QMDPPolicy build() {
 		
-		AlgebraicDD valFn = new AlgebraicDD(TableDD.build(p.getStatesPrime(),0.0f).asDagDD(false));
+		AlgebraicDD valFn = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStatesPrime(),false),0.0f).getRootNode());
 		
 		
 		ArrayList<DDVariable> qFnVars = new ArrayList<DDVariable>();
@@ -34,22 +35,22 @@ public class QMDPPolicyBuilder {
 		for(int i=0;i<3 && bellmanError > 0.001d;i++) {
 			System.out.println("Iteration:" + i);
 			
-			TableDD ddResult = null;
-			AlgebraicDD valFnNew = new AlgebraicDD(TableDD.build(p.getStates(),-Double.MAX_VALUE).asDagDD(false));
+			DDBuilder ddResult = null;
+			AlgebraicDD valFnNew = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStates(),false),-Double.MAX_VALUE).getRootNode());
 			for(HashMap<DDVariable,Integer> actSpacePt:p.getActionSpace()) {
-				ArrayList<ImmutableDDElement> dags = new ArrayList<ImmutableDDElement>();
+				ArrayList<DDElement> dags = new ArrayList<DDElement>();
 				dags.add(valFn.getFunction());
 				for(AlgebraicDD ddComp:p.getTransitionFunction(actSpacePt).getComponentFunctions()) {
 					dags.add(ddComp.getFunction());
 				}
 				
-				ImmutableDDElement resDD = TableDD.build(qFnVars, dags, new MultiplicationOperation());
+				DDElement resDD = DDBuilder.build(qFnVars, dags, new MultiplicationOperation());
 				AlgebraicDD futureVal = new AlgebraicDD(resDD);
 				futureVal = futureVal.sumOut(p.getStatesPrime());
 				futureVal = futureVal.multiply(discount);
 				futureVal = futureVal.plus(p.getRewardFunction(actSpacePt));
-				ddResult = TableDD.approximate(futureVal.getFunction(), bellmanError * (1.0d-discount)/2.0d);
-				futureVal = new AlgebraicDD(ddResult.asDagDD(false));
+				ddResult = DDBuilder.approximate(futureVal.getFunction(), bellmanError * (1.0d-discount)/2.0d);
+				futureVal = new AlgebraicDD(ddResult.getRootNode());
 				System.out.println("computed action:" + actSpacePt);
 				
 				valFnNew = valFnNew.max(futureVal);
@@ -58,7 +59,7 @@ public class QMDPPolicyBuilder {
 			
 			valFnNew = valFnNew.prime();
 			
-			bellmanError = TableDD.findMaxLeaf(valFnNew.absDiff(valFn).getFunction()).getValue();
+			bellmanError = DDBuilder.findMaxLeaf(valFnNew.absDiff(valFn).getFunction()).getValue();
 			
 			System.out.println("bellmanError:" + bellmanError);
 			

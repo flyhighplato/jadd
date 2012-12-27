@@ -15,7 +15,7 @@ import masg.dd.pomdp.agent.policy.Policy
 import masg.dd.pomdp.agent.policy.AlphaVectorPolicyBuilder
 import masg.dd.pomdp.agent.policy.QMDPPolicyBuilder
 import masg.dd.pomdp.agent.policy.RandomPolicy
-import masg.dd.representations.tables.TableDD;
+import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable
 import masg.problem.tag.TagProblem;
 import spock.lang.Shared;
@@ -46,7 +46,7 @@ class TagProblemSimulatorSpec extends Specification {
 			
 			Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()
 			
-			int numSamples = 1000
+			int numSamples = 100
 			int numIterations = 100
 			
 			int numColocations = 0;

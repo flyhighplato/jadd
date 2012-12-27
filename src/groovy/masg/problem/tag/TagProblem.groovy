@@ -176,40 +176,28 @@ class TagProblem {
 				int distance = Math.abs(w_row - a1_row) + Math.abs(w_col - a1_col)
 				
 				//Sense HERE
-				if(w_pres==0) {
-					if(a1_col==w_col && a1_row==w_row) {
-						return 1.0d
-					}
+				if(w_pres==0 && a1_col==w_col && a1_row==w_row) {
+					return 1.0d
 				}
 				//Sense N
-				else if(w_pres==1) {
-					if(a1_col==w_col && a1_row<w_row) {
-						return 1.0d
-					}
+				else if(w_pres==1 && a1_col==w_col && a1_row<w_row) {
+					return 1.0d
 				}
 				//Sense S
-				else if(w_pres==2) {
-					if(a1_col==w_col && a1_row>w_row) {
-						return 1.0d
-					}
+				else if(w_pres==2 && a1_col==w_col && a1_row>w_row) {
+					return 1.0d
 				}
 				//Sense E
-				else if(w_pres==3) {
-					if(a1_row==w_row && a1_col<w_col) {
-						return 1.0d
-					}
+				else if(w_pres==3 && a1_row==w_row && a1_col<w_col) {
+					return 1.0d
 				}
 				//Sense W
-				else if(w_pres==4) {
-					if(a1_row==w_row && a1_col>w_col) {
-						return 1.0d
-					}
+				else if(w_pres==4 && a1_row==w_row && a1_col>w_col) {
+					return 1.0d
 				}
 				//No sense
-				else if(w_pres==5) {
-					//if(a1_row!=w_row && a1_col!=w_col ) {
-						return 1.0d;
-					//}
+				else if(w_pres==5 && a1_row!=w_row && a1_col!=w_col ) {
+					return 1.0d;
 				}
 				
 				

@@ -1,4 +1,4 @@
-package masg.dd.representations.tables;
+package masg.dd.representation.builder;
 
 import java.util.HashMap;
 

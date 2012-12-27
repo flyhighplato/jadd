@@ -3,9 +3,12 @@ package masg.dd.representations.tables
 import masg.dd.context.DDContext
 import masg.dd.operations.ConstantMultiplicationOperation
 import masg.dd.operations.MultiplicationOperation
-import masg.dd.representations.dag.ImmutableDDElement
-import masg.dd.representations.dag.ImmutableDDLeaf
-import masg.dd.representations.dag.ImmutableDDNode
+import masg.dd.representation.BaseDDElement;
+import masg.dd.representation.DDElement
+import masg.dd.representation.DDInfo
+import masg.dd.representation.DDLeaf;
+import masg.dd.representation.DDNode;
+import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
 import masg.dd.variables.DDVariableSpace;
 import spock.lang.Specification
@@ -20,6 +23,7 @@ class TableDDSpec extends Specification {
 	
 	int gridHeight = 5;
 	int gridWidth = 5;
+	
 	
 	@Shared
 	Closure<Double> c = { Map variables ->
@@ -52,156 +56,124 @@ class TableDDSpec extends Specification {
 	
 	def "collection can be built from closure"() {
 		when:
-			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
-			
-			ImmutableDDElement immColl = tableDD.asDagDD()
+			DDBuilder tableDD = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),c)
 			
 		then:
 			println tableDD
-			println immColl
+			
 	}
 	
 	def "unary operations work"() {
 		when:
-			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			DDBuilder tableDD = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),c)
 			
-			ImmutableDDElement immColl = tableDD.asDagDD()
 			ConstantMultiplicationOperation multOp = new ConstantMultiplicationOperation(5.0f);
 			
-			tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],immColl,multOp) 
-			immColl = tableDD.asDagDD()
+			tableDD = DDBuilder.build([a1RowVar,a1ColVar,wRowVar,wColVar],tableDD.getRootNode(),multOp) 
+
 		then:
 			println tableDD
-			println immColl
 	}
 	
 	def "binary operations work"() {
 		when:
-			TableDD tableDD1 = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
-			ImmutableDDElement immColl1 = tableDD1.asDagDD()
-			TableDD tableDD2 = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
-			ImmutableDDElement immColl2 = tableDD2.asDagDD()
+			DDBuilder tableDD1 = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),c)
+			DDBuilder tableDD2 = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),c)
 			
 			MultiplicationOperation multOp = new MultiplicationOperation();
 			
 			
-			ImmutableDDElement immColl = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],[immColl1,immColl2],multOp);
+			DDNode node = DDBuilder.build([a1RowVar,a1ColVar,wRowVar,wColVar],[tableDD1.getRootNode(),tableDD2.getRootNode()],multOp);
 			
 		then:
-			println "Done"
-			//println immColl
+			println node
 	}
 	
 	def "binary operations perform quickly"() {
 		when:
-			TableDD tableDD1 = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
-			ImmutableDDElement immColl1 = tableDD1.asDagDD()
-			TableDD tableDD2 = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
-			ImmutableDDElement immColl2 = tableDD2.asDagDD()
-			
-			
+			DDBuilder tableDD1 = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),c)
+			DDBuilder tableDD2 = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),c)
 			
 			MultiplicationOperation multOp = new MultiplicationOperation();
 			
-			
-			ImmutableDDElement immColl;
-			
 			long timeStart = new Date().time
 			int numOps = 0
+			
+			BaseDDElement res;
 			while(new Date().time - timeStart < 60000) {
-				immColl = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],[immColl1,immColl2],multOp);
+				res = DDBuilder.build([a1RowVar,a1ColVar,wRowVar,wColVar],[tableDD1.getRootNode(),tableDD2.getRootNode()],multOp);
 				++numOps;
 			}
 		then:
 			println "number of binary operations: $numOps time: ${new Date().time - timeStart}"
-			println immColl
+			println res
 	}
 	
 	def "variable restriction works"() {
 		when:
-			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
-			
-			ImmutableDDElement immColl = tableDD.asDagDD()
+			DDBuilder tableDD = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),c)
 			
 			HashMap<DDVariable,Integer> restrictVarValues = [:]
 			restrictVarValues.put(a1RowVar, 1);
-			tableDD = TableDD.restrict(restrictVarValues, immColl)
-			immColl = tableDD.asDagDD()
+			tableDD = DDBuilder.restrict(restrictVarValues, tableDD.getRootNode())
+			
 			
 		then:
 			println tableDD
-			println immColl
+			
 	}
 	
 	def "variable elimination works"() {
 		when:
-			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar],{return 1d/25d})
+			DDBuilder tableDD = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),{return 1d/25d})
 			
-			ImmutableDDElement immColl = tableDD.asDagDD()
-			
-			immColl = TableDD.eliminate([a1RowVar,wRowVar], immColl)
+			DDElement ret = DDBuilder.eliminate([a1RowVar,wRowVar], tableDD.getRootNode())
 			
 		then:
-			assert (immColl.getTotalWeight() - 1.0d)<0.0001d;
-			//println tableDD
-			println immColl
+			assert (ret.getTotalWeight() - 1.0d)<0.0001d;
+			println ret
 	}
 	
 	def "variable priming works"() {
 		when:
-			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			DDBuilder tableDD = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),c)
 			
-			ImmutableDDElement immColl = tableDD.asDagDD()
-			
-			tableDD = TableDD.prime(immColl)
-			immColl = tableDD.asDagDD()
-			
+			tableDD = DDBuilder.prime(tableDD.getRootNode())	
 		then:
 			println tableDD
-			println immColl
+
 	}
 	
 	def "variable unpriming works"() {
 		when:
-			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			DDBuilder tableDD = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),c)
 			
-			ImmutableDDElement immColl = tableDD.asDagDD()
+			tableDD = DDBuilder.prime(tableDD.getRootNode())
 			
-			tableDD = TableDD.prime(immColl)
-			immColl = tableDD.asDagDD()
-			
-			tableDD = TableDD.unprime(immColl)
-			immColl = tableDD.asDagDD()
+			tableDD = DDBuilder.unprime(tableDD.getRootNode())
 			
 		then:
 			println tableDD
-			println immColl
 	}
 	
 	def "approximating works"() {
 		when:
-			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
+			DDBuilder tableDD = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),c)
 			
-			ImmutableDDElement immColl = tableDD.asDagDD()
+			tableDD = DDBuilder.approximate(tableDD.getRootNode(), 1.0f)
 			
-			tableDD = TableDD.approximate(immColl, 1.0f)
-			immColl = tableDD.asDagDD()
 			
 		then:
 			println tableDD
-			println immColl
 	}
 	
 	def "finding the max leaf works"() {
 		when:
-			TableDD tableDD = TableDD.build([a1RowVar,a1ColVar,wRowVar,wColVar],c)
-			
-			ImmutableDDElement immColl = tableDD.asDagDD()
-			
-			immColl = TableDD.findMaxLeaf(immColl)
+			DDBuilder tableDD = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),c)
+			DDLeaf leaf = DDBuilder.findMaxLeaf(tableDD.getRootNode())
 			
 		then:
 			println tableDD
-			println immColl
+			println leaf
 	}
 }

@@ -1,17 +1,13 @@
-package masg.dd.representations.dag;
+package masg.dd.representation;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 
-import masg.dd.operations.BinaryOperation;
-import masg.dd.operations.UnaryOperation;
 import masg.dd.variables.DDVariable;
-import masg.util.BitMap;
 
-public interface ImmutableDDElement  {
+public interface DDElement  {
 	public boolean isMeasure();
+	public long getId();
 	public Double getTotalWeight();
 	public Double getValue(HashMap<DDVariable,Integer> path);
 	public DDVariable getVariable();

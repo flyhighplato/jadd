@@ -1,17 +1,18 @@
-package masg.dd.representations.tables;
+package masg.dd.representation.builder.buildfunctions;
 
 import groovy.lang.Closure;
 
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import masg.dd.representation.builder.DDBuilderFunction;
 import masg.dd.variables.DDVariable;
 
-public class ClosureFunction implements DDBuilderFunction {
+public class DDBuilderClosureFunction implements DDBuilderFunction {
 
 	Closure<Double> c;
 	
-	public ClosureFunction(Closure<Double> c) {
+	public DDBuilderClosureFunction(Closure<Double> c) {
 		this.c = c;
 	}
 	

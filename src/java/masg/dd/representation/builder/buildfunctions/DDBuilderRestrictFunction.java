@@ -1,16 +1,17 @@
-package masg.dd.representations.tables;
+package masg.dd.representation.builder.buildfunctions;
 
 import java.util.HashMap;
 
-import masg.dd.representations.dag.ImmutableDDElement;
+import masg.dd.representation.DDElement;
+import masg.dd.representation.builder.DDBuilderFunction;
 import masg.dd.variables.DDVariable;
 
-public class DagDDRestrictFunction implements DDBuilderFunction {
+public class DDBuilderRestrictFunction implements DDBuilderFunction {
 
 	HashMap<DDVariable,Integer> restrictVarValues;
-	ImmutableDDElement dag;
+	DDElement dag;
 	
-	public DagDDRestrictFunction(ImmutableDDElement dag, HashMap<DDVariable,Integer> restrictVarValues) {
+	public DDBuilderRestrictFunction(DDElement dag, HashMap<DDVariable,Integer> restrictVarValues) {
 		this.restrictVarValues = restrictVarValues;
 		this.dag = dag;
 	}

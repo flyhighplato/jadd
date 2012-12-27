@@ -1,16 +1,17 @@
-package masg.dd.representations.tables;
+package masg.dd.representation.builder.buildfunctions;
 
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import masg.dd.representations.dag.ImmutableDDElement;
+import masg.dd.representation.DDElement;
+import masg.dd.representation.builder.DDBuilderFunction;
 import masg.dd.variables.DDVariable;
 
-public class DagDDTranslateFunction implements DDBuilderFunction {
+public class DDBuilderTranslateFunction implements DDBuilderFunction {
 	HashMap<DDVariable, DDVariable> varMap;
-	ImmutableDDElement dag;
+	DDElement dag;
 	
-	public DagDDTranslateFunction(ImmutableDDElement dag, HashMap<DDVariable, DDVariable> varMap) {
+	public DDBuilderTranslateFunction(DDElement dag, HashMap<DDVariable, DDVariable> varMap) {
 		this.varMap = varMap;
 		this.dag = dag;
 	}

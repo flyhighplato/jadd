@@ -9,8 +9,8 @@ import java.util.List;
 
 import masg.dd.context.DDContext;
 import masg.dd.operations.MultiplicationOperation;
-import masg.dd.representations.dag.ImmutableDDElement;
-import masg.dd.representations.tables.TableDD;
+import masg.dd.representation.DDElement;
+import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
 
 public class CondProbDD {
@@ -85,12 +85,12 @@ public class CondProbDD {
 	}
 	
 	public ProbDD toProbabilityFn() {
-		 ArrayList<ImmutableDDElement> dags = new ArrayList<ImmutableDDElement>();
+		 ArrayList<DDElement> dags = new ArrayList<DDElement>();
 		 for(AlgebraicDD dd:indepFns) {
 			 dags.add(dd.ruleCollection);
 		 }
 		 
-		 AlgebraicDD dd = new AlgebraicDD(TableDD.build(getVariables(), dags, new MultiplicationOperation()));
+		 AlgebraicDD dd = new AlgebraicDD(DDBuilder.build(getVariables(), dags, new MultiplicationOperation()));
 		 
 		 return new ProbDD(dd, getVariables());
 	}

@@ -1,15 +1,17 @@
-package masg.dd.representations.tables;
+package masg.dd.representation;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-abstract public class TableDDElement {
+
+abstract public class BaseDDElement implements DDElement {
 	private static AtomicLong idCurr = new AtomicLong();
 	protected long id;
-	public TableDDElement() {
+	public BaseDDElement() {
 		id = idCurr.getAndIncrement();
 	}
 	
 	public long getId() {
 		return id;
 	}
+	
 }
