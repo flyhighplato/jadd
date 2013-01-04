@@ -15,6 +15,7 @@ import masg.dd.context.DDContext;
 import masg.dd.operations.AdditionOperation;
 import masg.dd.operations.BinaryOperation;
 import masg.dd.operations.ConstantMultiplicationOperation;
+import masg.dd.operations.DivisionOperation;
 import masg.dd.operations.UnaryOperation;
 import masg.dd.representation.BaseDDElement;
 import masg.dd.representation.DDElement;
@@ -137,6 +138,11 @@ public class DDBuilder {
 	}
 	
 	public static DDElement eliminate(ArrayList<DDVariable> elimVars, DDElement dag) {
+		
+		if(elimVars.size()==0) {
+			return dag;
+		}
+		
 		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(dag.getVariables());
 		elimVars = new ArrayList<DDVariable>(elimVars);
 		
@@ -157,6 +163,15 @@ public class DDBuilder {
 		return result;
 	}
 	
+	public static DDElement normalize(ArrayList<DDVariable> normVars, DDElement dag) {
+		normVars = new ArrayList<DDVariable>(normVars);
+		normVars.retainAll(dag.getVariables());
+		
+		DDElement normDD = eliminate(normVars,dag);
+		DDBuilder dd = new DDBuilder(new ArrayList<DDVariable>(dag.getVariables()),dag.isMeasure());
+		return dd.applyOperation(dag, normDD, new DivisionOperation(), new HashMap<DDElement,HashMap<DDElement,BaseDDElement>>());
+	}
+	
 	public static DDBuilder prime(DDElement dag) {
 		HashMap<DDVariable,DDVariable> translation = new HashMap<DDVariable,DDVariable>();
 		
@@ -167,8 +182,11 @@ public class DDBuilder {
 			translation.put(varPrimed, var);
 		}
 		
-		DDBuilder dd = new DDBuilder(vars, dag.isMeasure());
+		DDInfo info = new DDInfo(vars, dag.isMeasure());
+		DDBuilder dd = new DDBuilder(info);
 		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.getDDInfo().getVariables(), new DDBuilderTranslateFunction(dag,translation));
+		
+		info.updateInfo(vars, dag.isMeasure());
 		return dd;
 		
 	}
@@ -183,8 +201,10 @@ public class DDBuilder {
 			translation.put(varUnprimed, var);
 		}
 		
-		DDBuilder dd = new DDBuilder(vars, dag.isMeasure());
+		DDInfo info = new DDInfo(vars, dag.isMeasure());
+		DDBuilder dd = new DDBuilder(info);
 		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.getDDInfo().getVariables(), new DDBuilderTranslateFunction(dag,translation));
+		info.updateInfo(vars, dag.isMeasure());
 		return dd;
 		
 	}
@@ -449,14 +469,15 @@ public class DDBuilder {
 		int subtreeRootVarIx = DDContext.getVariableIndex(currVar);
 		
 		if(el instanceof DDLeaf || varIx>subtreeRootVarIx) {
-			ArrayList<DDVariable> varsNew = new ArrayList<DDVariable>(el.getVariables());
+			//ArrayList<DDVariable> varsNew = new ArrayList<DDVariable>(el.getVariables());
 			
 			double multiplier = 1.0d;
 			for(DDVariable v:subtreeElimVars) {
 				multiplier*=v.getValueCount();
 			}
 			
-			DDElement result = build(varsNew,el,new ConstantMultiplicationOperation(multiplier));
+			//DDBuilder dd = new DDBuilder(info);
+			DDElement result = applyOperation(el, new ConstantMultiplicationOperation(multiplier), new HashMap<DDElement,DDElement>());
 			
 			if(result instanceof DDLeaf) {
 				result = makeLeaf(((DDLeaf) result).getValue());

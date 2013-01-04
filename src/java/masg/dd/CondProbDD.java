@@ -5,249 +5,213 @@ import groovy.lang.Closure;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 
-import masg.dd.context.DDContext;
-import masg.dd.operations.MultiplicationOperation;
-import masg.dd.representation.DDElement;
-import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
 
 public class CondProbDD {
-	private ArrayList<AlgebraicDD> indepFns = new ArrayList<AlgebraicDD>();
 	private ArrayList<DDVariable> condVars = new ArrayList<DDVariable>();
 	private ArrayList<DDVariable> uncondVars = new ArrayList<DDVariable>();
 	
-	public CondProbDD(ArrayList<ArrayList<ArrayList<DDVariable>>> varsLst, List<Closure<Double>> closures) {
-		for(int i=0;i<varsLst.size();++i) {
-			ArrayList<DDVariable> conditionalVars = varsLst.get(i).get(0);
-			ArrayList<DDVariable> vars = varsLst.get(i).get(1);
-			vars.removeAll(conditionalVars);
-			
-			
-			HashSet<DDVariable> temp = new HashSet<DDVariable>(conditionalVars);
-			temp.addAll(this.condVars);
-			this.condVars = new ArrayList<DDVariable>();
-			
-			for(DDVariable v: DDContext.canonicalVariableOrdering) {
-				if(temp.contains(v)) {
-					this.condVars.add(v);
-				}
-			}
-			this.uncondVars = new ArrayList<DDVariable>(new HashSet<DDVariable>(uncondVars));
-			
-			temp = new HashSet<DDVariable>(vars);
-			temp.addAll(this.uncondVars);
-			for(DDVariable v: DDContext.canonicalVariableOrdering) {
-				if(temp.contains(v)) {
-					this.uncondVars.add(v);
-				}
-			}
-			
-			//Conditional variables have to come first
-			ArrayList<DDVariable> allVariables = new ArrayList<DDVariable>(vars);
-			allVariables.addAll(conditionalVars);
-			
-			AlgebraicDD dd = new AlgebraicDD(allVariables, closures.get(i), true);
-			indepFns.add(dd);
-			
-			
-		}
+	private AlgebraicDD fn;
+	
+	public CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, Closure<Double> c) {
+		this.condVars.addAll(new HashSet<DDVariable>(condVars));
+		this.uncondVars.addAll(new HashSet<DDVariable>(uncondVars));
+		
+		ArrayList<DDVariable> allVariables = new ArrayList<DDVariable>(this.uncondVars);
+		allVariables.addAll(this.condVars);
+		
+		fn = new AlgebraicDD(allVariables, c, true);
 	}
 	
-	public CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, ArrayList<AlgebraicDD> indepFns) {
-		this.condVars = new ArrayList<DDVariable>();
+	protected CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, AlgebraicDD fn) {
 		
-		HashSet<DDVariable> temp = new HashSet<DDVariable>(condVars);
-		for(DDVariable v: DDContext.canonicalVariableOrdering) {
-			if(temp.contains(v)) {
-				this.condVars.add(v);
-			}
-		}
-		this.uncondVars = new ArrayList<DDVariable>();
-		
-		temp = new HashSet<DDVariable>(uncondVars);
-		for(DDVariable v: DDContext.canonicalVariableOrdering) {
-			if(temp.contains(v)) {
-				this.uncondVars.add(v);
-			}
+		if(uncondVars.isEmpty()) {
+			fn = fn.normalize();
+			uncondVars = condVars;
+			condVars = new ArrayList<DDVariable>();
 		}
 		
-		this.indepFns = indepFns;
+		this.condVars.addAll(new HashSet<DDVariable>(condVars));
+		this.uncondVars.addAll(new HashSet<DDVariable>(uncondVars));
+		
+		this.fn = fn;
 	}
 	
 	public Double getValue(HashMap<DDVariable,Integer> varSpacePoint) {
-		double val = 1.0f;
-		for(AlgebraicDD dd:indepFns) {
-			val*=dd.getValue(varSpacePoint);
-		}
-		return val;
+		return fn.getValue(varSpacePoint);
 	}
 	
-	public ProbDD toProbabilityFn() {
-		 ArrayList<DDElement> dags = new ArrayList<DDElement>();
-		 for(AlgebraicDD dd:indepFns) {
-			 dags.add(dd.ruleCollection);
-		 }
-		 
-		 AlgebraicDD dd = new AlgebraicDD(DDBuilder.build(getVariables(), dags, new MultiplicationOperation()));
-		 
-		 return new ProbDD(dd, getVariables());
+	public final ArrayList<DDVariable> getConditionalVariables() {
+		return new ArrayList<DDVariable>(condVars);
 	}
 	
-	public ArrayList<DDVariable> getVariables() {
-		ArrayList<DDVariable> allVars = new ArrayList<DDVariable>(condVars);
-		allVars.addAll(uncondVars);
-		return allVars;
+	public final ArrayList<DDVariable> getPosteriorVariables() {
+		return new ArrayList<DDVariable>(uncondVars);
+	}
+	
+	public final AlgebraicDD getFunction() {
+		return fn;
 	}
 	
 	public CondProbDD restrict(HashMap<DDVariable,Integer> varSpacePoint) {
-		ArrayList<AlgebraicDD> restrictedIndepFns = new ArrayList<AlgebraicDD>();
-		for(AlgebraicDD dd:indepFns) {
-			restrictedIndepFns.add(dd.restrict(varSpacePoint));
-		}
+		ArrayList<DDVariable> condVars = new ArrayList<DDVariable>(this.condVars);
+		ArrayList<DDVariable> uncondVars = new ArrayList<DDVariable>(this.uncondVars);
 		
-		ArrayList<DDVariable> newCondVars = new ArrayList<DDVariable>(condVars);
-		newCondVars.removeAll(varSpacePoint.keySet());
+		condVars.removeAll(varSpacePoint.keySet());
+		uncondVars.removeAll(varSpacePoint.keySet());
 		
-		ArrayList<DDVariable> newUncondVars = new ArrayList<DDVariable>(uncondVars);
-		newUncondVars.removeAll(varSpacePoint.keySet());
-		
-		return new CondProbDD(newCondVars,newUncondVars, restrictedIndepFns);
-	}
-	
-	public CondProbDD multiply(ProbDD pdd) {
-		ArrayList<AlgebraicDD> newIndepFns = new ArrayList<AlgebraicDD>();
-		for(AlgebraicDD dd:indepFns) {
-			newIndepFns.add(dd.multiply(pdd));
-		}
-		
-		ArrayList<DDVariable> resolvedCondVars = pdd.getVariables();
-		resolvedCondVars.retainAll(condVars);
-		
-		ArrayList<DDVariable> newCondVars = new ArrayList<DDVariable>(condVars);
-		newCondVars.removeAll(resolvedCondVars);
-		
-		ArrayList<DDVariable> newUncondVars = new ArrayList<DDVariable>(uncondVars);
-		newUncondVars.addAll(resolvedCondVars);
-		return new CondProbDD(newCondVars,newUncondVars,newIndepFns);
-		
-		
-	}
-	
-	public CondProbDD unprime() {
-		ArrayList<AlgebraicDD> newIndepFns = new ArrayList<AlgebraicDD>();
-		for(AlgebraicDD dd:indepFns) {
-			newIndepFns.add(dd.unprime());
-		}
-		
-		ArrayList<DDVariable> newCondVars = new ArrayList<DDVariable>();
-		for(DDVariable v:condVars) {
-			newCondVars.add(v.getUnprimed());
-		}
-		ArrayList<DDVariable> newUncondVars = new ArrayList<DDVariable>();
-		for(DDVariable v:uncondVars) {
-			newUncondVars.add(v.getUnprimed());
-		}
-		return new CondProbDD(newCondVars,newUncondVars,newIndepFns);
-	}
-	
-	public CondProbDD multiply(CondProbDD pdd) {
-		/*if(!pdd.condVars.isEmpty()) {
-			return null;
-		}*/
-		
-		ArrayList<AlgebraicDD> newIndepFns = new ArrayList<AlgebraicDD>();
-		
-		for(AlgebraicDD dd:indepFns) {
-			newIndepFns.add(dd.multiply(pdd));
-		}
-		
-		ArrayList<DDVariable> newCondVars = new ArrayList<DDVariable>(condVars);
-		newCondVars.removeAll(pdd.uncondVars);
-		newCondVars.addAll(pdd.condVars);
-		ArrayList<DDVariable> newUncondVars = new ArrayList<DDVariable>(uncondVars);
-		newUncondVars.addAll(pdd.uncondVars);
-
-		return new CondProbDD(newCondVars,newUncondVars,newIndepFns);
-	}
-	
-	public CondProbDD div(CondProbDD pdd) {
-		/*if(!pdd.condVars.isEmpty()) {
-			return null;
-		}*/
-		
-		ArrayList<AlgebraicDD> newIndepFns = new ArrayList<AlgebraicDD>();
-		
-		for(AlgebraicDD dd:indepFns) {
-			newIndepFns.add(dd.div(pdd));
-		}
-		
-		ArrayList<DDVariable> newCondVars = new ArrayList<DDVariable>(condVars);
-		newCondVars.removeAll(pdd.uncondVars);
-		newCondVars.addAll(pdd.condVars);
-		ArrayList<DDVariable> newUncondVars = new ArrayList<DDVariable>(uncondVars);
-		newUncondVars.addAll(pdd.uncondVars);
-
-		return new CondProbDD(newCondVars,newUncondVars,newIndepFns);
-	}
-	
-	public CondProbDD sumOut(ArrayList<DDVariable> vars) {
-		ArrayList<AlgebraicDD> newIndepFns = new ArrayList<AlgebraicDD>();
-		for(AlgebraicDD dd:indepFns) {
-			newIndepFns.add(dd.sumOut(vars));
-		}
-		
-		ArrayList<DDVariable> newCondVars = new ArrayList<DDVariable>(condVars);
-		newCondVars.removeAll(vars);
-		ArrayList<DDVariable> newUncondVars = new ArrayList<DDVariable>(uncondVars);
-		newUncondVars.removeAll(vars);
-		
-		return new CondProbDD(newCondVars,newUncondVars,newIndepFns);
+		return new CondProbDD(condVars,uncondVars,fn.restrict(varSpacePoint));
 	}
 	
 	public AlgebraicDD multiply(AlgebraicDD dd) {
-		return dd.multiply(this);
+		return fn.multiply(dd);
 	}
 	
-	public CondProbDD plus(double value) {
-		ArrayList<AlgebraicDD> newIndepFns = new ArrayList<AlgebraicDD>();
-		for(AlgebraicDD dd:indepFns) {
-			newIndepFns.add( dd.plus(value) );
+	public CondProbDD multiply(CondProbDD cpddOther) {
+		return CondProbDD.multiply(this,cpddOther);
+	}
+	
+	private static CondProbDD multiply(CondProbDD cpdd1, CondProbDD cpdd2) {
+		
+		HashSet<DDVariable> newCondVars = new HashSet<DDVariable>();
+		HashSet<DDVariable> newUncondVars = new HashSet<DDVariable>();
+		HashSet<DDVariable> elimVars = new HashSet<DDVariable>();
+		
+		HashSet<DDVariable> solvedConditionalVariables1 = new HashSet<DDVariable>(cpdd1.getPosteriorVariables());
+		solvedConditionalVariables1.retainAll(cpdd2.getConditionalVariables());
+		
+		HashSet<DDVariable> solvedConditionalVariables2 = new HashSet<DDVariable>(cpdd2.getPosteriorVariables());
+		solvedConditionalVariables2.retainAll(cpdd1.getConditionalVariables());
+		
+		
+		boolean canMultiply = false;
+		if(!solvedConditionalVariables1.isEmpty()) {
+			canMultiply = true;
+			
+			newCondVars.addAll(cpdd1.getConditionalVariables());
+			newCondVars.addAll(cpdd2.getConditionalVariables());
+			newCondVars.removeAll(solvedConditionalVariables1);
+			
+			
+			newUncondVars.addAll(cpdd1.getPosteriorVariables());
+			newUncondVars.addAll(cpdd2.getPosteriorVariables());
+			newUncondVars.removeAll(solvedConditionalVariables1);
+			
+			elimVars.addAll(solvedConditionalVariables1);
+			
+		}
+		else if(!solvedConditionalVariables2.isEmpty()) {
+			canMultiply = true;
+			
+			newCondVars.addAll(cpdd1.getConditionalVariables());
+			newCondVars.addAll(cpdd2.getConditionalVariables());
+			newCondVars.removeAll(solvedConditionalVariables2);
+			
+			
+			newUncondVars.addAll(cpdd1.getPosteriorVariables());
+			newUncondVars.addAll(cpdd2.getPosteriorVariables());
+			newUncondVars.removeAll(solvedConditionalVariables2);
+			
+			elimVars.addAll(solvedConditionalVariables2);
+		}
+		//Assumption of conditional independence here
+		else {
+			
+			HashSet<DDVariable> condVars1 = new HashSet<DDVariable>(cpdd1.getConditionalVariables());
+			HashSet<DDVariable> condVars2 = new HashSet<DDVariable>(cpdd2.getConditionalVariables());
+			
+			HashSet<DDVariable> posteriorVariablesIntersection = new HashSet<DDVariable>(cpdd1.getPosteriorVariables());
+			posteriorVariablesIntersection.retainAll(cpdd2.getPosteriorVariables());
+			
+			
+			if(posteriorVariablesIntersection.isEmpty()) {
+				canMultiply = true;
+				
+				newCondVars.addAll(cpdd1.getConditionalVariables());
+				newCondVars.addAll(cpdd2.getConditionalVariables());
+				newUncondVars.addAll(cpdd1.getPosteriorVariables());
+				newUncondVars.addAll(cpdd2.getPosteriorVariables());
+			}
+			else if(condVars1.equals(condVars2)) {
+				canMultiply = true;
+				
+				newCondVars.addAll(cpdd1.getConditionalVariables());
+				newUncondVars.addAll(cpdd1.getPosteriorVariables());
+				newUncondVars.addAll(cpdd2.getPosteriorVariables());
+			}
 		}
 		
-		ArrayList<DDVariable> newCondVars = new ArrayList<DDVariable>(condVars);
-		ArrayList<DDVariable> newUncondVars = new ArrayList<DDVariable>(uncondVars);
+		if(canMultiply) {
+			return new CondProbDD(new ArrayList<DDVariable>(newCondVars),new ArrayList<DDVariable>(newUncondVars),cpdd1.getFunction().multiply(cpdd2.getFunction()).sumOut(new ArrayList<DDVariable>(elimVars)));
+		}
 		
-		return new CondProbDD(newCondVars,newUncondVars,newIndepFns);
+		return null;
+	}
+	
+	public CondProbDD sumOut(ArrayList<DDVariable> vars) {
+		
+		ArrayList<DDVariable> normVars = new ArrayList<DDVariable>();
+		
+		for(DDVariable v: this.condVars) {
+			if(vars.contains(v)) {
+				normVars.add(v);
+				break;
+			}
+		}
+		
+		ArrayList<DDVariable> condVars = new ArrayList<DDVariable>(this.condVars);
+		ArrayList<DDVariable> uncondVars = new ArrayList<DDVariable>(this.uncondVars);
+		
+		uncondVars.removeAll(vars);
+		
+		AlgebraicDD resultDD = fn.sumOut(vars);
+		
+		if(normVars.size()>0) {
+			resultDD = resultDD.div(fn.sumOut(normVars));
+		}
+		
+		return new CondProbDD(condVars,uncondVars,resultDD);
 	}
 	
 	public CondProbDD normalize() {
-		ArrayList<AlgebraicDD> newIndepFns = new ArrayList<AlgebraicDD>();
-		for(AlgebraicDD dd:indepFns) {
-			newIndepFns.add( dd.div(dd.sumOut(uncondVars)) );
+		ArrayList<DDVariable> condVars = new ArrayList<DDVariable>(this.condVars);
+		ArrayList<DDVariable> uncondVars = new ArrayList<DDVariable>(this.uncondVars);
+		
+		AlgebraicDD resultDD = fn.div(fn.sumOut(this.uncondVars));
+		return new CondProbDD(condVars,uncondVars,resultDD);
+	}
+	public CondProbDD unprime() {
+		ArrayList<DDVariable> condVars = new ArrayList<DDVariable>();
+		for(DDVariable v:this.condVars) {
+			condVars.add(v.getUnprimed());
+		}
+		ArrayList<DDVariable> uncondVars = new ArrayList<DDVariable>();
+		for(DDVariable v:this.uncondVars) {
+			condVars.add(v.getUnprimed());
 		}
 		
-		ArrayList<DDVariable> newCondVars = new ArrayList<DDVariable>(condVars);
-		ArrayList<DDVariable> newUncondVars = new ArrayList<DDVariable>(uncondVars);
+		return new CondProbDD(condVars,uncondVars,fn.unprime());
 		
-		return new CondProbDD(newCondVars,newUncondVars,newIndepFns);
 	}
 	
-	public final ArrayList<AlgebraicDD> getComponentFunctions() {
-		return new ArrayList<AlgebraicDD>(indepFns);
+	public CondProbDD prime() {
+		ArrayList<DDVariable> condVars = new ArrayList<DDVariable>();
+		for(DDVariable v:this.condVars) {
+			condVars.add(v.getPrimed());
+		}
+		ArrayList<DDVariable> uncondVars = new ArrayList<DDVariable>();
+		for(DDVariable v:this.uncondVars) {
+			condVars.add(v.getPrimed());
+		}
+		
+		return new CondProbDD(condVars,uncondVars,fn.prime());
+		
 	}
 	
 	public String toString() {
-		String str = "";
-		str += "Conditional:" + condVars + "\n";
-		str += "Non-conditonal:" + uncondVars + "\n";
-		for(AlgebraicDD dd:indepFns) {
-			str+=dd.toString() + "\n";
-		}
-		return str;
-	}
-	static public CondProbDD build(ArrayList<ArrayList<ArrayList<DDVariable>>> varsLst, List<Closure<Double>> closures) {
-		return new CondProbDD(varsLst,closures);
+		String str = this.condVars + "\n";
+		str += this.uncondVars + "\n";
+		return str + fn.toString();
 	}
 }

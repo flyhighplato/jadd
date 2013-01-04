@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Random;
 
 import masg.dd.AlgebraicDD;
-import masg.dd.CondProbDD;
+import masg.dd.FactoredCondProbDD;
 import masg.dd.ProbDD;
 import masg.dd.alphavector.BeliefAlphaVector;
 import masg.dd.pomdp.POMDP;
@@ -14,34 +14,36 @@ import masg.dd.variables.DDVariable;
 
 public class Belief {
 	final POMDP p;
-	final CondProbDD beliefFn;
+	final FactoredCondProbDD beliefFn;
 	
 	HashMap<HashMap<DDVariable,Integer>, AlgebraicDD> immRewardFns = new HashMap<HashMap<DDVariable,Integer>, AlgebraicDD>();
-	HashMap<HashMap<DDVariable,Integer>, CondProbDD> obsProbFns = new HashMap<HashMap<DDVariable,Integer>, CondProbDD>();
+	HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> obsProbFns = new HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD>();
 	
-	HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, CondProbDD> > nextBeliefFns = new HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, CondProbDD> >();
+	HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> > nextBeliefFns = new HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> >();
 	
 	HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, Double> > obsProbs = new HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, Double> >();
 	
 	Random random = new Random();
 	
-	public Belief(POMDP p, CondProbDD fn) {
+	public Belief(POMDP p, FactoredCondProbDD fn) {
 		this.p = p;
 		this.beliefFn = fn;
 		
+		
 		for(HashMap<DDVariable,Integer> actSpacePt:p.getActionSpace()) {
-			immRewardFns.put(actSpacePt, p.getRewardFunction(actSpacePt).multiply(beliefFn) );
+			immRewardFns.put(actSpacePt, beliefFn.multiply(p.getRewardFunction(actSpacePt)) );
 			
-			CondProbDD tempRestrTransFn = p.getTransitionFunction(actSpacePt).multiply(beliefFn);
+			FactoredCondProbDD tempRestrTransFn = p.getTransitionFunction(actSpacePt).multiply(beliefFn);
 			tempRestrTransFn = tempRestrTransFn.sumOut(p.getStates());
+			tempRestrTransFn = tempRestrTransFn.normalize();
 			
-			CondProbDD obsProbFn = p.getObservationFunction(actSpacePt).multiply(tempRestrTransFn);
+			FactoredCondProbDD obsProbFn = p.getObservationFunction(actSpacePt).multiply(tempRestrTransFn);
 			obsProbFn = obsProbFn.sumOut(p.getStatesPrime());
 			obsProbFn = obsProbFn.normalize();
 			
 			obsProbFns.put(actSpacePt, obsProbFn);
 			
-			nextBeliefFns.put(actSpacePt, new HashMap<HashMap<DDVariable,Integer>, CondProbDD>());
+			nextBeliefFns.put(actSpacePt, new HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD>());
 			obsProbs.put(actSpacePt, new HashMap<HashMap<DDVariable,Integer>, Double>());
 			
 			for(HashMap<DDVariable,Integer> obsSpacePt:p.getObservationSpace()) {
@@ -51,8 +53,20 @@ public class Belief {
 				
 				if(obsProb>0.0f) {
 					
-					CondProbDD tempRestrObsFn =  p.getObservationFunction(actSpacePt, obsSpacePt);
-					CondProbDD nextBelief = tempRestrObsFn.multiply(tempRestrTransFn);
+					FactoredCondProbDD tempRestrObsFn =  p.getObservationFunction(actSpacePt);
+					tempRestrObsFn = tempRestrObsFn.restrict(obsSpacePt);
+					
+					FactoredCondProbDD nextBelief =  p.getTransitionFunction(actSpacePt);
+					nextBelief = nextBelief.multiply(beliefFn);
+					nextBelief = nextBelief.multiply(tempRestrObsFn);
+					
+					//TODO: Remove this debug code
+					/*if(nextBelief==null) {
+						
+						nextBelief =  p.getTransitionFunction(actSpacePt);
+						nextBelief = nextBelief.multiply(beliefFn);
+						nextBelief = nextBelief.multiply(tempRestrObsFn);
+					}*/
 					nextBelief = nextBelief.normalize();
 					nextBelief = nextBelief.unprime();
 					
@@ -69,7 +83,7 @@ public class Belief {
 		
 		for(BeliefAlphaVector alpha:alphas) {
 			double tempVal;
-			AlgebraicDD valFn = alpha.getValueFunction().multiply(beliefFn);
+			AlgebraicDD valFn = beliefFn.multiply(alpha.getValueFunction());
 			tempVal = valFn.getTotalWeight();
 			
 			
@@ -86,14 +100,14 @@ public class Belief {
 		ArrayList<BeliefAlphaVector> usefulAlphas = new ArrayList<BeliefAlphaVector>();
 		usefulAlphas.add(pickBestAlpha(alphas));
 		
-		for(HashMap<HashMap<DDVariable,Integer>, CondProbDD> actBeliefs: nextBeliefFns.values()) {
-			for(CondProbDD nextBeliefFn:actBeliefs.values()) {
+		for(HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> actBeliefs: nextBeliefFns.values()) {
+			for(FactoredCondProbDD nextBeliefFn:actBeliefs.values()) {
 				BeliefAlphaVector bestAlpha = null;
 				double bestVal = -Double.MAX_VALUE;
 				for(BeliefAlphaVector alpha:alphas) {
 					double tempVal;
 		
-					AlgebraicDD valFn = alpha.getValueFunction().multiply(nextBeliefFn);
+					AlgebraicDD valFn = nextBeliefFn.multiply(alpha.getValueFunction());
 					tempVal = valFn.getTotalWeight();
 		
 					if(tempVal>=bestVal) {
@@ -110,11 +124,11 @@ public class Belief {
 		return usefulAlphas;
 	}
 	
-	public CondProbDD getBeliefFunction() {
+	public FactoredCondProbDD getBeliefFunction() {
 		return beliefFn;
 	}
 	
-	public CondProbDD getNextBeliefFunction(HashMap<DDVariable,Integer> actSpacePt, HashMap<DDVariable,Integer> obsSpacePt) {
+	public FactoredCondProbDD getNextBeliefFunction(HashMap<DDVariable,Integer> actSpacePt, HashMap<DDVariable,Integer> obsSpacePt) {
 		return nextBeliefFns.get(actSpacePt).get(obsSpacePt);
 	}
 	
@@ -142,7 +156,7 @@ public class Belief {
 		return immRewardFns.get(actSpacePt);
 	}
 	
-	public CondProbDD getObservationProbabilityFunction(HashMap<DDVariable,Integer> actSpacePt) {
+	public FactoredCondProbDD getObservationProbabilityFunction(HashMap<DDVariable,Integer> actSpacePt) {
 		return obsProbFns.get(actSpacePt);
 	}
 	
@@ -154,18 +168,15 @@ public class Belief {
 		return sampleSpacePoint(p.getStates(),beliefFn);
 	}
 	
-	public HashMap<DDVariable,Integer> sampleSpacePoint(ArrayList<DDVariable> variables, CondProbDD probFn) {
+	public HashMap<DDVariable,Integer> sampleSpacePoint(ArrayList<DDVariable> variables, FactoredCondProbDD probFn) {
 		HashMap<DDVariable,Integer> point = new HashMap<DDVariable,Integer>();
 		
 		for(DDVariable variable:variables) {
 			ArrayList<DDVariable> sumOutVars = new ArrayList<DDVariable>(variables);
 			sumOutVars.remove(variable);
 			
-			ProbDD probTempFn = probFn.sumOut(sumOutVars).toProbabilityFn();
+			ProbDD probTempFn = probFn.sumOut(sumOutVars).toProbabilityDD();
 			
-			if(probTempFn.getDD().getTotalWeight()<=0.0d) {
-				System.out.println("No possible samples!");
-			}
 			double thresh = random.nextDouble();
 			double weight = 0.0f;
 			

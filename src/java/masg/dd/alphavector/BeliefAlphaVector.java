@@ -3,15 +3,15 @@ package masg.dd.alphavector;
 import java.util.HashMap;
 
 import masg.dd.AlgebraicDD;
-import masg.dd.CondProbDD;
+import masg.dd.ProbDD;
 import masg.dd.variables.DDVariable;
 
 public class BeliefAlphaVector {
 	final protected HashMap<DDVariable,Integer> action;
-	final protected CondProbDD witnessPt;
+	final protected ProbDD witnessPt;
 	final protected AlgebraicDD valueFn;
 	
-	public BeliefAlphaVector(HashMap<DDVariable,Integer> action, AlgebraicDD val, CondProbDD witness) {
+	public BeliefAlphaVector(HashMap<DDVariable,Integer> action, AlgebraicDD val, ProbDD witness) {
 		this.action = action;
 		this.witnessPt = witness;
 		this.valueFn = val;
