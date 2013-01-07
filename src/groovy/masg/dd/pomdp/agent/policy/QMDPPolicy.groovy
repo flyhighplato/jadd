@@ -20,7 +20,7 @@ class QMDPPolicy implements Policy {
 		double bestActVal = -Double.MAX_VALUE;
 		
 		for(Entry<HashMap<DDVariable,Integer>, AlgebraicDD> e:qFn.entrySet()) {
-			double actVal = e.getValue().multiply(belief.beliefFn).getTotalWeight();
+			double actVal = belief.beliefFn.multiply(e.getValue()).getTotalWeight();
 			
 			if(actVal>bestActVal) {
 				bestAct = e.getKey();

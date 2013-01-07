@@ -3,7 +3,7 @@ package masg.dd.pomdp.agent.belief
 import java.util.List;
 
 import masg.dd.AlgebraicDD
-import masg.dd.CondProbDD;
+import masg.dd.FactoredCondProbDD;
 import masg.dd.ProbDD;
 import masg.dd.pomdp.POMDP;
 import masg.dd.pomdp.agent.belief.Belief;
@@ -22,9 +22,9 @@ class BeliefRegion {
 	public BeliefRegion(int numSamples, int episodeLength, POMDP p, Policy policy) {
 		this.p = p
 		
-		beliefSamples << new Belief(p, p.getInitialBelief().toConditionalProbabilityFn())
+		beliefSamples << new Belief(p, p.getInitialBelief())
 
-			Belief belief = new Belief(p, p.getInitialBelief().toConditionalProbabilityFn())
+			Belief belief = new Belief(p, p.getInitialBelief())
 			
 			int episodeStep = 0;
 			while(beliefSamples.size()<numSamples) {
@@ -35,7 +35,7 @@ class BeliefRegion {
 				}
 				
 				if(episodeStep>=episodeLength) {
-					belief = new Belief(p, p.getInitialBelief().toConditionalProbabilityFn())
+					belief = new Belief(p, p.getInitialBelief())
 					episodeStep = 0;
 				}
 				
@@ -47,12 +47,12 @@ class BeliefRegion {
 				
 				belief = belief.getNextBelief(actPoint, obsPt)
 				
-				ProbDD beliefProbDD = belief.beliefFn.toProbabilityFn()
+				ProbDD beliefProbDD = belief.beliefFn.toProbabilityDD()
 				boolean goodSample = true;
 				for(int i=0;i<beliefSamples.size();i++) {
 					Belief beliefOther = beliefSamples.get(i)
 					
-					AlgebraicDD absDiffDD = beliefOther.beliefFn.toProbabilityFn().getDD().absDiff(beliefProbDD.getDD())
+					AlgebraicDD absDiffDD = beliefOther.beliefFn.toProbabilityDD().getFunction().absDiff(beliefProbDD.getFunction())
 					absDiffDD = absDiffDD.multiply(absDiffDD);
 					
 					double l2Dist = Math.sqrt(absDiffDD.getTotalWeight());

@@ -22,7 +22,7 @@ public class TagAgent {
 		
 		this.pomdp = pomdp;
 		this.policy = policy;
-		this.currBelief = new Belief(pomdp, pomdp.getInitialBelief().toConditionalProbabilityFn());
+		this.currBelief = new Belief(pomdp, pomdp.getInitialBelief());
 		
 		updateState();
 	}

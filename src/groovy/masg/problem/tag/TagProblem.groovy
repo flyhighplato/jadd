@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import masg.dd.AlgebraicDD;
-import masg.dd.CondProbDD;
+import masg.dd.FactoredCondProbDD;
 import masg.dd.ProbDD;
 import masg.dd.context.DDContext;
 import masg.dd.pomdp.POMDP;
@@ -16,7 +16,7 @@ class TagProblem {
 	
 	POMDP p;
 	
-	boolean directionalObservation = true;
+	boolean directionalObservation = false;
 	
 	public TagProblem() {
 		

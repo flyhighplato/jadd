@@ -1,7 +1,7 @@
 package masg.dd.pomdp
 
 import masg.dd.AlgebraicDD;
-import masg.dd.CondProbDD;
+import masg.dd.FactoredCondProbDD;
 import masg.dd.ProbDD;
 import masg.dd.alphavector.BeliefAlphaVector;
 import masg.dd.pomdp.agent.belief.BeliefRegion;
@@ -93,10 +93,10 @@ class POMDPSpec extends Specification {
 			}
 			
 			
-			CondProbDD restrTransFn = problem.getPOMDP().getTransitionFunction()
+			FactoredCondProbDD restrTransFn = problem.getPOMDP().getTransitionFunction()
 			restrTransFn = restrTransFn.restrict(actPoint);
 			
-			CondProbDD restrObsFn = problem.getPOMDP().getObservationFunction().restrict(actPoint).restrict(obsPoint);
+			FactoredCondProbDD restrObsFn = problem.getPOMDP().getObservationFunction().restrict(actPoint).restrict(obsPoint);
 			
 			def timeLimit = 10000
 			def timeStart = new Date().getTime()
@@ -105,10 +105,10 @@ class POMDPSpec extends Specification {
 			def belief = problem.getPOMDP().getInitialBelief();
 			
 			while(new Date().getTime()-timeStart<timeLimit) {
-				CondProbDD tempRestrTransFn = restrTransFn.multiply(belief)
+				FactoredCondProbDD tempRestrTransFn = restrTransFn.multiply(belief)
 				tempRestrTransFn = tempRestrTransFn.sumOut(problem.getPOMDP().getStates())
 				tempRestrTransFn = tempRestrTransFn.normalize()
-				CondProbDD temp = restrObsFn.multiply(tempRestrTransFn);
+				FactoredCondProbDD temp = restrObsFn.multiply(tempRestrTransFn);
 				temp = temp.normalize()
 				belief = temp.unprime();
 				numBeliefUpdates++;
@@ -147,10 +147,10 @@ class POMDPSpec extends Specification {
 			}
 			
 			
-			CondProbDD restrTransFn = problem.getPOMDP().getTransitionFunction()
+			FactoredCondProbDD restrTransFn = problem.getPOMDP().getTransitionFunction()
 			restrTransFn = restrTransFn.restrict(actPoint);
 			
-			CondProbDD restrObsFn = problem.getPOMDP().getObservationFunction().restrict(actPoint).restrict(obsPoint);
+			FactoredCondProbDD restrObsFn = problem.getPOMDP().getObservationFunction().restrict(actPoint).restrict(obsPoint);
 			
 			AlgebraicDD restrRewFn = problem.getPOMDP().getRewardFunction().restrict(actPoint)
 			
@@ -163,10 +163,10 @@ class POMDPSpec extends Specification {
 			
 			AlgebraicDD valueFn = restrRewFn.multiply(belief)
 			while(new Date().getTime()-timeStart<timeLimit) {
-				CondProbDD tempRestrTransFn = restrTransFn.multiply(belief)
+				FactoredCondProbDD tempRestrTransFn = restrTransFn.multiply(belief)
 				tempRestrTransFn = tempRestrTransFn.sumOut(problem.getPOMDP().getStates())
 				tempRestrTransFn = tempRestrTransFn.normalize()
-				CondProbDD temp = restrObsFn.multiply(tempRestrTransFn);
+				FactoredCondProbDD temp = restrObsFn.multiply(tempRestrTransFn);
 				temp = temp.normalize()
 				belief = temp.unprime();
 				
