@@ -24,13 +24,7 @@ public class CondProbDD {
 		fn = new AlgebraicDD(allVariables, c, true);
 	}
 	
-	protected CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, AlgebraicDD fn) {
-		
-		if(uncondVars.isEmpty()) {
-			fn = fn.normalize();
-			uncondVars = condVars;
-			condVars = new ArrayList<DDVariable>();
-		}
+	public CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, AlgebraicDD fn) {
 		
 		this.condVars.addAll(new HashSet<DDVariable>(condVars));
 		this.uncondVars.addAll(new HashSet<DDVariable>(uncondVars));
@@ -188,7 +182,7 @@ public class CondProbDD {
 		}
 		ArrayList<DDVariable> uncondVars = new ArrayList<DDVariable>();
 		for(DDVariable v:this.uncondVars) {
-			condVars.add(v.getUnprimed());
+			uncondVars.add(v.getUnprimed());
 		}
 		
 		return new CondProbDD(condVars,uncondVars,fn.unprime());
@@ -202,7 +196,7 @@ public class CondProbDD {
 		}
 		ArrayList<DDVariable> uncondVars = new ArrayList<DDVariable>();
 		for(DDVariable v:this.uncondVars) {
-			condVars.add(v.getPrimed());
+			uncondVars.add(v.getPrimed());
 		}
 		
 		return new CondProbDD(condVars,uncondVars,fn.prime());

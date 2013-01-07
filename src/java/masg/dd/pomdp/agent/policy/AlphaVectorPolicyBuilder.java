@@ -50,7 +50,7 @@ public class AlphaVectorPolicyBuilder {
 			AlgebraicDD actionAlpha = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStates(),false),0.0d).getRootNode());
 			double bellmanError = 20*tolerance;
 			
-			for(int i=0;i<3 && bellmanError>tolerance;++i) {
+			for(int i=0;i<50 && bellmanError>tolerance;++i) {
 				System.out.println("Iteration #" + i);
 				actionAlpha.prime();
 				
@@ -310,7 +310,8 @@ public class AlphaVectorPolicyBuilder {
 			nextValFn = nextValFn.prime();
 			
 			
-			AlgebraicDD nextAlpha = p.getObservedTransitionFunction(bestAct).multiply(nextValFn);
+			FactoredCondProbDD dd = p.getTransitionFunction(bestAct);
+			AlgebraicDD nextAlpha = dd.multiply(nextValFn);
 			
 			nextAlpha = new AlgebraicDD(DDBuilder.approximate(nextAlpha.getFunction(), tolerance).getRootNode());
 			

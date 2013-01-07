@@ -16,7 +16,7 @@ class TagProblem {
 	
 	POMDP p;
 	
-	boolean directionalObservation = true;
+	boolean directionalObservation = false;
 	
 	public TagProblem() {
 		

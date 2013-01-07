@@ -46,7 +46,7 @@ class TagProblemSimulatorSpec extends Specification {
 			
 			Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()
 			
-			int numSamples = 50
+			int numSamples = 100
 			int numIterations = 100
 			
 			int numColocations = 0;
@@ -175,7 +175,7 @@ class TagProblemSimulatorSpec extends Specification {
 			ArrayList<DDVariable> sumOutVars = new ArrayList<DDVariable>(variables);
 			sumOutVars.remove(variable);
 			
-			ProbDD probTempFn = probFn.sumOut(sumOutVars).toProbabilityFn();
+			ProbDD probTempFn = probFn.sumOut(sumOutVars).toProbabilityDD();
 			
 			double thresh = random.nextDouble();
 			double weight = 0.0f;

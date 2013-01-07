@@ -17,43 +17,26 @@ public class FactoredCondProbDD {
 	private ArrayList<CondProbDD> indepFns = new ArrayList<CondProbDD>();
 	
 	public FactoredCondProbDD(ArrayList<ArrayList<ArrayList<DDVariable>>> varsLst, List<Closure<Double>> closures) {
-		HashSet<DDVariable> processedPosteriorVariables = new HashSet<DDVariable>();
+		
+		ArrayList<CondProbDD> indepFns = new ArrayList<CondProbDD>();
 		for(int i=0;i<varsLst.size();++i) {
-			
-			
 			CondProbDD cpdd = new CondProbDD(varsLst.get(i).get(0), varsLst.get(i).get(1), closures.get(i));
-			
-			HashSet<DDVariable> temp = new HashSet<DDVariable>(cpdd.getPosteriorVariables());
-			temp.retainAll(processedPosteriorVariables);
-			
-			if(!temp.isEmpty()) {
-				System.out.println("Posterior space unfactored!");
-			}
-					
-			processedPosteriorVariables.addAll(cpdd.getPosteriorVariables());
-			
-			
 			indepFns.add(cpdd);
 		}
 		
+		init(indepFns);
 	}
 	
 	public FactoredCondProbDD(ArrayList<CondProbDD> indepFns) {
-		
-		HashSet<DDVariable> processedPosteriorVariables = new HashSet<DDVariable>();
-		
-		for(CondProbDD cpdd:indepFns) {
-			HashSet<DDVariable> temp = new HashSet<DDVariable>(cpdd.getPosteriorVariables());
-			temp.retainAll(processedPosteriorVariables);
-			
-			if(!temp.isEmpty()) {
-				System.out.println("Posterior space unfactored!");
-			}
-			
-			processedPosteriorVariables.addAll(cpdd.getPosteriorVariables());
-		}
+		init(indepFns);
+	}
+	
+	private void init(ArrayList<CondProbDD> indepFns) {
+		this.indepFns = new ArrayList<CondProbDD>();
 		this.indepFns.addAll(indepFns);
 	}
+	
+	
 	
 	public Double getValue(HashMap<DDVariable,Integer> varSpacePoint) {
 		double val = 1.0f;
@@ -63,11 +46,77 @@ public class FactoredCondProbDD {
 		return val;
 	}
 	
+	
+	public ArrayList<CondProbDD> reconcile(ArrayList<CondProbDD> restrictedIndepFns) {
+		ArrayList<CondProbDD> reconciledIndepFns = new ArrayList<CondProbDD>();
+		
+		HashSet<CondProbDD> processedDDs = new HashSet<CondProbDD>();
+		
+		for(CondProbDD dd:restrictedIndepFns) {
+			if(processedDDs.contains(dd)) {
+				continue;
+			}
+			
+			processedDDs.add(dd);
+			
+			if(dd.getPosteriorVariables().isEmpty() && !dd.getConditionalVariables().isEmpty()) {
+				ArrayList<DDElement> commonDDs = new ArrayList<DDElement>();
+				commonDDs.add(dd.getFunction().getFunction());
+				
+				HashSet<DDVariable> condProbVars = new HashSet<DDVariable>();
+				condProbVars.addAll(dd.getConditionalVariables());
+				
+				boolean foundCommon = false;
+				
+				do {
+					foundCommon = false;
+					for(CondProbDD ddOther:restrictedIndepFns) {
+						
+						if(!ddOther.getPosteriorVariables().isEmpty() || processedDDs.contains(ddOther)) {
+							continue;
+						}
+						
+						HashSet<DDVariable> tempCondVars = new HashSet<DDVariable>(ddOther.getConditionalVariables());
+						tempCondVars.retainAll(condProbVars);
+						
+						if(!tempCondVars.isEmpty()) {
+							processedDDs.add(ddOther);
+							commonDDs.add(ddOther.getFunction().getFunction());
+							
+							condProbVars.addAll(ddOther.getConditionalVariables());
+							foundCommon = true;
+						}
+					}
+				} while (foundCommon);
+				
+				dd = new CondProbDD(new ArrayList<DDVariable>(), new ArrayList<DDVariable>(condProbVars),new AlgebraicDD(DDBuilder.build(new ArrayList<DDVariable>(condProbVars), commonDDs, new MultiplicationOperation())));
+				dd = dd.normalize();
+			}
+
+			reconciledIndepFns.add(dd);
+			
+		}
+
+		return reconciledIndepFns;
+		
+	}
+	
 	public FactoredCondProbDD restrict(HashMap<DDVariable,Integer> varSpacePoint) {
 		ArrayList<CondProbDD> restrictedIndepFns = new ArrayList<CondProbDD>();
+		
+		boolean needsReconcile = false;
 		for(CondProbDD dd:indepFns) {
-			restrictedIndepFns.add(dd.restrict(varSpacePoint));
+			dd = dd.restrict(varSpacePoint);
+			if(dd.getPosteriorVariables().isEmpty()) {
+				needsReconcile = true;
+			}
+			restrictedIndepFns.add(dd); 
 		}
+		
+		if(needsReconcile) {
+			restrictedIndepFns = reconcile(restrictedIndepFns);
+		}
+		
 		
 		
 		return new FactoredCondProbDD(restrictedIndepFns);
@@ -174,8 +223,6 @@ public class FactoredCondProbDD {
 			danglingVariables.removeAll(posteriorVariables2);
 		}
 		
-		
-		
 		if(satisfied1.isEmpty()) {
 			indepFnsConditional = indepFns;
 			indepFnsPosterior = cpdd.indepFns;
@@ -253,9 +300,20 @@ public class FactoredCondProbDD {
 	
 	public FactoredCondProbDD sumOut(ArrayList<DDVariable> vars) {
 		ArrayList<CondProbDD> newIndepFns = new ArrayList<CondProbDD>();
+		
+		boolean needsReconcile = false;
 		for(CondProbDD dd:indepFns) {
-			newIndepFns.add(dd.sumOut(vars));
+			dd = dd.sumOut(vars);
+			if(dd.getPosteriorVariables().isEmpty()) {
+				needsReconcile = true;
+			}
+			newIndepFns.add(dd); 
 		}
+		
+		if(needsReconcile) {
+			newIndepFns = reconcile(newIndepFns);
+		}
+		
 		return new FactoredCondProbDD(newIndepFns);
 	}
 	
