@@ -4,9 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import masg.dd.AlgebraicDD;
-import masg.dd.operations.MultiplicationOperation;
 import masg.dd.pomdp.POMDP;
-import masg.dd.representation.DDElement;
 import masg.dd.representation.DDInfo;
 import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
@@ -32,20 +30,13 @@ public class QMDPPolicyBuilder {
 		
 		double bellmanError = 1.0d;
 		
-		for(int i=0;i<3 && bellmanError > 0.001d;i++) {
+		for(int i=0;i<50 && bellmanError > 0.001d;i++) {
 			System.out.println("Iteration:" + i);
 			
 			DDBuilder ddResult = null;
 			AlgebraicDD valFnNew = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStates(),false),-Double.MAX_VALUE).getRootNode());
 			for(HashMap<DDVariable,Integer> actSpacePt:p.getActionSpace()) {
-				ArrayList<DDElement> dags = new ArrayList<DDElement>();
-				dags.add(valFn.getFunction());
-				for(AlgebraicDD ddComp:p.getTransitionFunction(actSpacePt).getComponentFunctions()) {
-					dags.add(ddComp.getFunction());
-				}
-				
-				DDElement resDD = DDBuilder.build(qFnVars, dags, new MultiplicationOperation());
-				AlgebraicDD futureVal = new AlgebraicDD(resDD);
+				AlgebraicDD futureVal = p.getTransitionFunction(actSpacePt).multiply(valFn);
 				futureVal = futureVal.sumOut(p.getStatesPrime());
 				futureVal = futureVal.multiply(discount);
 				futureVal = futureVal.plus(p.getRewardFunction(actSpacePt));

@@ -13,13 +13,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import masg.dd.AlgebraicDD;
-import masg.dd.CondProbDD;
+import masg.dd.FactoredCondProbDD;
 import masg.dd.alphavector.BeliefAlphaVector;
-import masg.dd.operations.MultiplicationOperation;
 import masg.dd.pomdp.POMDP;
 import masg.dd.pomdp.agent.belief.Belief;
 import masg.dd.pomdp.agent.belief.BeliefRegion;
-import masg.dd.representation.DDElement;
 import masg.dd.representation.DDInfo;
 import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
@@ -45,25 +43,18 @@ public class AlphaVectorPolicyBuilder {
 		qFnVars.addAll(p.getStatesPrime());
 		
 		for(HashMap<DDVariable,Integer> actSpacePt:p.getActionSpace()) {
-			CondProbDD currBel = p.getInitialBelief().toConditionalProbabilityFn();
+			FactoredCondProbDD currBel = p.getInitialBelief();
 			
 			System.out.println("Generating pure strategy for action:" + actSpacePt);
 			
 			AlgebraicDD actionAlpha = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStates(),false),0.0d).getRootNode());
 			double bellmanError = 20*tolerance;
 			
-			for(int i=0;i<3 && bellmanError>tolerance;++i) {
+			for(int i=0;i<50 && bellmanError>tolerance;++i) {
 				System.out.println("Iteration #" + i);
 				actionAlpha.prime();
 				
-				ArrayList<DDElement> dags = new ArrayList<DDElement>();
-				dags.add(actionAlpha.getFunction());
-				for(AlgebraicDD ddComp:p.getTransitionFunction(actSpacePt).getComponentFunctions()) {
-					dags.add(ddComp.getFunction());
-				}
-				
-				DDElement resDD = DDBuilder.build(qFnVars, dags, new MultiplicationOperation());
-				AlgebraicDD actionAlphaNew = new AlgebraicDD(resDD);
+				AlgebraicDD actionAlphaNew = p.getTransitionFunction(actSpacePt).multiply(actionAlpha);
 				
 				actionAlphaNew = actionAlphaNew.sumOut(p.getStatesPrime());
 				actionAlphaNew = actionAlphaNew.multiply(discFactor);
@@ -80,7 +71,7 @@ public class AlphaVectorPolicyBuilder {
 			
 			System.out.println(DDBuilder.findMaxLeaf(actionAlpha.getFunction()));
 			System.out.println(DDBuilder.findMaxLeaf(actionAlpha.multiply(-1.0f).getFunction()));
-			bestAlphas.add(new BeliefAlphaVector(actSpacePt, actionAlpha, currBel));
+			bestAlphas.add(new BeliefAlphaVector(actSpacePt, actionAlpha, currBel.toProbabilityDD()));
 		}
 		
 		return new AlphaVectorPolicy(bestAlphas);
@@ -95,8 +86,8 @@ public class AlphaVectorPolicyBuilder {
 				BeliefAlphaVector oldAlpha = e.getValue();
 				Belief b = e.getKey();
 				
-				AlgebraicDD oldValueDD = oldAlpha.getValueFunction().multiply(b.getBeliefFunction());
-				AlgebraicDD newValueDD = newAlpha.getValueFunction().multiply(b.getBeliefFunction());
+				AlgebraicDD oldValueDD = b.getBeliefFunction().multiply(oldAlpha.getValueFunction());
+				AlgebraicDD newValueDD = b.getBeliefFunction().multiply(newAlpha.getValueFunction());
 				double oldValue = oldValueDD.getTotalWeight();
 				double newValue = newValueDD.getTotalWeight();
 				
@@ -121,8 +112,8 @@ public class AlphaVectorPolicyBuilder {
 				BeliefAlphaVector oldAlpha = e.getValue();
 				Belief b = e.getKey();
 						
-				AlgebraicDD oldValueDD = oldAlpha.getValueFunction().multiply(b.getBeliefFunction());
-				AlgebraicDD newValueDD = newAlpha.getValueFunction().multiply(b.getBeliefFunction());
+				AlgebraicDD oldValueDD = b.getBeliefFunction().multiply(oldAlpha.getValueFunction());
+				AlgebraicDD newValueDD = b.getBeliefFunction().multiply(newAlpha.getValueFunction());
 				double oldValue = oldValueDD.getTotalWeight();
 				double newValue = newValueDD.getTotalWeight();
 				
@@ -187,23 +178,23 @@ public class AlphaVectorPolicyBuilder {
 				Belief belief = beliefsTemp.remove(ix);
 				
 				BeliefAlphaVector oldBestBeliefAlpha = beliefAlphas.get(belief);
-				double oldBeliefValue = oldBestBeliefAlpha.getValueFunction().multiply(belief.getBeliefFunction()).getTotalWeight();
+				double oldBeliefValue = belief.getBeliefFunction().multiply(oldBestBeliefAlpha.getValueFunction()).getTotalWeight();
 				
 				
 				BeliefBackup dpBackupTask = new BeliefBackup(belief,bestAlphas);
 				dpBackupTask.run();
 				
-				double newBeliefValue = dpBackupTask.result.getValueFunction().multiply(belief.getBeliefFunction()).getTotalWeight();
+				double newBeliefValue = belief.getBeliefFunction().multiply(dpBackupTask.result.getValueFunction()).getTotalWeight();
 				
-				
+				System.out.println(" Belief value:" + oldBeliefValue + " -> " + newBeliefValue);
 				if(newBeliefValue>=oldBeliefValue) {
 					BeliefAlphaVector newAlpha = dpBackupTask.result;
 					
 					bestImprovement = getMaxImprovement(beliefAlphas,newAlpha);
 					
+					System.out.println(" Best improvement:" + bestImprovement);
 					
 					if(bestImprovement>tolerance) {
-						System.out.println("Best improvement:" + bestImprovement);
 						
 						boolean dominated = false;
 						for(BeliefAlphaVector alpha:bestAlphas) {
@@ -223,7 +214,7 @@ public class AlphaVectorPolicyBuilder {
 					
 				}
 				
-				System.out.println("Beliefs left:" + beliefsTemp.size());
+				System.out.println(" Beliefs left:" + beliefsTemp.size());
 				
 			}
 			
@@ -270,22 +261,22 @@ public class AlphaVectorPolicyBuilder {
 			HashMap<DDVariable,Integer> bestAct = null;
 			double bestActValue = -Double.MAX_VALUE;
 			
-			CondProbDD belFn = b.getBeliefFunction();
+			FactoredCondProbDD belFn = b.getBeliefFunction();
 			
 			for(HashMap<DDVariable,Integer> actSpacePt:p.getActionSpace()) {
-				double actValue = p.getRewardFunction(actSpacePt).multiply(belFn).getTotalWeight();
+				double actValue = belFn.multiply(p.getRewardFunction(actSpacePt)).getTotalWeight();
 				
 				for(Entry<HashMap<DDVariable, Integer>, Double> e:b.getObservationProbabilities(actSpacePt).entrySet()) {
 					HashMap<DDVariable,Integer> obsSpacePt = e.getKey();
 					double obsProb = e.getValue();
 					
 					if(obsProb>0.0f) {
-						CondProbDD nextBelief = b.getNextBeliefFunction(actSpacePt, obsSpacePt);
+						FactoredCondProbDD nextBelief = b.getNextBeliefFunction(actSpacePt, obsSpacePt);
 						
 						double bestObsValue = -Double.MAX_VALUE;
 						
 						for(BeliefAlphaVector alpha:alphas) {
-							AlgebraicDD tempNextAlpha = alpha.getValueFunction().multiply(nextBelief);
+							AlgebraicDD tempNextAlpha = nextBelief.multiply(alpha.getValueFunction());
 							
 							double expectedValue = tempNextAlpha.getTotalWeight();
 							
@@ -318,16 +309,9 @@ public class AlphaVectorPolicyBuilder {
 			
 			nextValFn = nextValFn.prime();
 			
-			ArrayList<DDVariable> vars = new ArrayList<DDVariable>(p.getStates());
-			vars.addAll(p.getStatesPrime());
 			
-			ArrayList<DDElement> dags = new ArrayList<DDElement>();
-			dags.add(nextValFn.getFunction());
-			for(AlgebraicDD dd:p.getObservedTransitionFunction(bestAct).getComponentFunctions()) {
-				dags.add(dd.getFunction());
-			}
-			
-			AlgebraicDD nextAlpha  = new AlgebraicDD(DDBuilder.build(vars, dags, new MultiplicationOperation()));
+			FactoredCondProbDD dd = p.getTransitionFunction(bestAct);
+			AlgebraicDD nextAlpha = dd.multiply(nextValFn);
 			
 			nextAlpha = new AlgebraicDD(DDBuilder.approximate(nextAlpha.getFunction(), tolerance).getRootNode());
 			
@@ -336,7 +320,7 @@ public class AlphaVectorPolicyBuilder {
 			
 			nextAlpha = nextAlpha.plus(p.getRewardFunction(bestAct));
 			
-			result = new BeliefAlphaVector(bestAct,nextAlpha,b.getBeliefFunction());
+			result = new BeliefAlphaVector(bestAct,nextAlpha,b.getBeliefFunction().toProbabilityDD());
 			
 			
 		}

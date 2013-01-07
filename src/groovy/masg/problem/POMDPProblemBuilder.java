@@ -8,6 +8,7 @@ import java.util.List;
 
 import masg.dd.AlgebraicDD;
 import masg.dd.CondProbDD;
+import masg.dd.FactoredCondProbDD;
 import masg.dd.ProbDD;
 import masg.dd.context.DDContext;
 import masg.dd.pomdp.POMDP;
@@ -168,14 +169,17 @@ public class POMDPProblemBuilder {
 		
 		DDContext.canonicalVariableOrdering = canVars;
 		
-		CondProbDD tFn = new CondProbDD(tFnParameters,tFunctions);
-		CondProbDD oFn = new CondProbDD(oFnParameters,oFunctions);
+		FactoredCondProbDD tFn = new FactoredCondProbDD(tFnParameters,tFunctions);
+		FactoredCondProbDD oFn = new FactoredCondProbDD(oFnParameters,oFunctions);
 		AlgebraicDD rFn = new AlgebraicDD(rFnParameters,rFunction,false);
 		
 		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(stateVariables.values());
-		ProbDD initBelief = new ProbDD(vars, initialBeliefFn);
 		
-				
+		ArrayList<CondProbDD> beliefFns = new ArrayList<CondProbDD>();
+		beliefFns.add(new ProbDD(vars, initialBeliefFn));
+		
+		FactoredCondProbDD initBelief = new FactoredCondProbDD(beliefFns);
+		
 		return new POMDP(initBelief,rFn,tFn,oFn,vars,new ArrayList<DDVariable>(obsVariables.values()),new ArrayList<DDVariable>(actVariables.values()));
 	}
 }

@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Random;
 
 import masg.dd.AlgebraicDD;
-import masg.dd.CondProbDD;
+import masg.dd.FactoredCondProbDD;
 import masg.dd.ProbDD;
 import masg.dd.alphavector.BeliefAlphaVector
 import masg.dd.pomdp.agent.belief.Belief
@@ -46,7 +46,7 @@ class TagProblemSimulatorSpec extends Specification {
 			
 			Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()
 			
-			int numSamples = 50
+			int numSamples = 100
 			int numIterations = 100
 			
 			int numColocations = 0;
@@ -92,7 +92,7 @@ class TagProblemSimulatorSpec extends Specification {
 						++numColocations;
 					}
 					
-					CondProbDD restrTransFn1 = problem.getPOMDP().getTransitionFunction(action1)
+					FactoredCondProbDD restrTransFn1 = problem.getPOMDP().getTransitionFunction(action1)
 					restrTransFn1 = restrTransFn1.restrict(actualStateAgt1)
 					restrTransFn1 = restrTransFn1.normalize();
 					
@@ -103,7 +103,7 @@ class TagProblemSimulatorSpec extends Specification {
 					actualStateAgt1New[w_row.getPrimed()] = wumpus.row
 					actualStateAgt1New[w_col.getPrimed()] = wumpus.column
 					
-					CondProbDD restrTransFn2 = problem.getPOMDP().getTransitionFunction(action2)
+					FactoredCondProbDD restrTransFn2 = problem.getPOMDP().getTransitionFunction(action2)
 					restrTransFn2 = restrTransFn2.restrict(actualStateAgt2)
 					restrTransFn2 = restrTransFn2.normalize();
 					
@@ -126,11 +126,11 @@ class TagProblemSimulatorSpec extends Specification {
 					actualStateNewAg2Primed[w_col.getPrimed()] = actualStateAgt1New[w_col.getPrimed()]
 					
 					
-					CondProbDD restrObsFn1 = problem.getPOMDP().getObservationFunction().restrict(action1)
+					FactoredCondProbDD restrObsFn1 = problem.getPOMDP().getObservationFunction().restrict(action1)
 					restrObsFn1 = restrObsFn1.restrict(actualStateNewAg1Primed)
 					restrObsFn1 = restrObsFn1.normalize()
 					
-					CondProbDD restrObsFn2 = problem.getPOMDP().getObservationFunction().restrict(action2)
+					FactoredCondProbDD restrObsFn2 = problem.getPOMDP().getObservationFunction().restrict(action2)
 					restrObsFn2 = restrObsFn2.restrict(actualStateNewAg2Primed)
 					restrObsFn2 = restrObsFn2.normalize()
 					
@@ -168,14 +168,14 @@ class TagProblemSimulatorSpec extends Specification {
 			}
 	}
 	
-	private HashMap<DDVariable,Integer> sampleSpacePoint(ArrayList<DDVariable> variables, CondProbDD probFn) {
+	private HashMap<DDVariable,Integer> sampleSpacePoint(ArrayList<DDVariable> variables, FactoredCondProbDD probFn) {
 		HashMap<DDVariable,Integer> point = new HashMap<DDVariable,Integer>();
 		
 		for(DDVariable variable:variables) {
 			ArrayList<DDVariable> sumOutVars = new ArrayList<DDVariable>(variables);
 			sumOutVars.remove(variable);
 			
-			ProbDD probTempFn = probFn.sumOut(sumOutVars).toProbabilityFn();
+			ProbDD probTempFn = probFn.sumOut(sumOutVars).toProbabilityDD();
 			
 			double thresh = random.nextDouble();
 			double weight = 0.0f;

@@ -1,16 +1,16 @@
 package masg.dd.pomdp
 
 import masg.dd.AlgebraicDD;
-import masg.dd.CondProbDD;
+import masg.dd.FactoredCondProbDD;
 import masg.dd.ProbDD;
 import masg.dd.variables.DDVariable;
 import masg.dd.variables.DDVariableSpace;
 
 class POMDP {
-	private final ProbDD initialBelief;
+	private final FactoredCondProbDD initialBelief;
 	private final AlgebraicDD rewFn;
-	private final CondProbDD transnFn;
-	private final CondProbDD observFn;
+	private final FactoredCondProbDD transnFn;
+	private final FactoredCondProbDD observFn;
 	private final ArrayList<DDVariable> states;
 	private final ArrayList<DDVariable> statesPrime;
 	private final ArrayList<DDVariable> observations;
@@ -21,14 +21,16 @@ class POMDP {
 	private Map actRestTransObservFn = [:]
 	private Map actRestrRewFn = [:]
 	
-	private Map actObsRestrTransnFn = [:]
 	private Map actObsRestrObservFn = [:];
 	
 	
 	private DDVariableSpace actSpace;
 	private DDVariableSpace obsSpace;
 	
-	public POMDP(ProbDD initialBelief, AlgebraicDD rewFn, CondProbDD transnFn, CondProbDD observFn, ArrayList<DDVariable> states, ArrayList<DDVariable> observations, ArrayList<DDVariable> actions) {
+	public POMDP(FactoredCondProbDD initialBelief, AlgebraicDD rewFn, FactoredCondProbDD transnFn, FactoredCondProbDD observFn, ArrayList<DDVariable> states, ArrayList<DDVariable> observations, ArrayList<DDVariable> actions) {
+		transnFn = transnFn.normalize();
+		observFn = observFn.normalize();
+		
 		this.initialBelief = initialBelief;
 		this.rewFn = rewFn;
 		this.transnFn = transnFn;
@@ -47,37 +49,33 @@ class POMDP {
 		actSpace = new DDVariableSpace(actions);
 		obsSpace = new DDVariableSpace(observations);
 		
+		
 		actSpace.each{ HashMap<DDVariable,Integer> actSpacePt ->
 			actRestrTransnFn[actSpacePt]=transnFn.restrict(actSpacePt);
 			actRestrObservFn[actSpacePt]=observFn.restrict(actSpacePt);
 			actRestrRewFn[actSpacePt]=rewFn.restrict(actSpacePt);
 			
 			
-			actObsRestrTransnFn[actSpacePt] = [:]
 			actObsRestrObservFn[actSpacePt] = [:]
 			
 			
-			CondProbDD restrTransFn = actRestrTransnFn[actSpacePt];
-			CondProbDD norm = restrTransFn.sumOut(getStatesPrime());
-			restrTransFn = restrTransFn.div(norm);
+			FactoredCondProbDD restrTransFn = actRestrTransnFn[actSpacePt];
+			restrTransFn = restrTransFn.normalize();
 			
-			CondProbDD restrObsFn = actRestrObservFn[actSpacePt];
-			norm = restrObsFn.sumOut(getObservations());
-			restrObsFn = restrObsFn.div(norm);
+			FactoredCondProbDD restrObsFn = actRestrObservFn[actSpacePt];
+			restrObsFn = restrObsFn.normalize();
 			
-			CondProbDD restrTransObsFn = restrTransFn.multiply(restrObsFn);
-			norm = restrTransObsFn.sumOut(getStatesPrime());
-			actRestTransObservFn[actSpacePt] = restrTransObsFn.div(norm);
+			FactoredCondProbDD restrTransObsFn = restrTransFn.multiply(restrObsFn);
+			actRestTransObservFn[actSpacePt] = restrTransObsFn.normalize();
 			
 			obsSpace.each { HashMap<DDVariable,Integer> obsSpacePt ->
-				actObsRestrTransnFn[actSpacePt][obsSpacePt] = actRestrTransnFn[actSpacePt].restrict(obsSpacePt)
-				actObsRestrObservFn[actSpacePt][obsSpacePt] = actRestrObservFn[actSpacePt].restrict(obsSpacePt)
+				actObsRestrObservFn[actSpacePt][obsSpacePt] = ((FactoredCondProbDD)actRestrObservFn[actSpacePt]).restrict(obsSpacePt).normalize()
 			}
 		}
 		
 	}
 	
-	public final ProbDD getInitialBelief() {
+	public final FactoredCondProbDD getInitialBelief() {
 		return initialBelief;
 	}
 	
@@ -89,31 +87,31 @@ class POMDP {
 		return actRestrRewFn[actSpacePt];
 	}
 	
-	public final CondProbDD getTransitionFunction() {
+	public final FactoredCondProbDD getTransitionFunction() {
 		return transnFn;
 	}
 	
-	public final CondProbDD getTransitionFunction(HashMap<DDVariable,Integer> actSpacePt) {
+	public final FactoredCondProbDD getTransitionFunction(HashMap<DDVariable,Integer> actSpacePt) {
 		return actRestrTransnFn[actSpacePt];
 	}
 	
-	public final CondProbDD getTransitionFunction(HashMap<DDVariable,Integer> actSpacePt, HashMap<DDVariable,Integer> obsSpacePt) {
+	public final FactoredCondProbDD getTransitionFunction(HashMap<DDVariable,Integer> actSpacePt, HashMap<DDVariable,Integer> obsSpacePt) {
 		return actObsRestrTransnFn[actSpacePt][obsSpacePt];
 	}
 	
-	public final CondProbDD getObservationFunction() {
+	public final FactoredCondProbDD getObservationFunction() {
 		return observFn;
 	}
 	
-	public final CondProbDD getObservationFunction(HashMap<DDVariable,Integer> obsSpacePt) {
+	public final FactoredCondProbDD getObservationFunction(HashMap<DDVariable,Integer> obsSpacePt) {
 		return actRestrObservFn[obsSpacePt];
 	}
 	
-	public final CondProbDD getObservationFunction(HashMap<DDVariable,Integer> actSpacePt, HashMap<DDVariable,Integer> obsSpacePt) {
+	public final FactoredCondProbDD getObservationFunction(HashMap<DDVariable,Integer> actSpacePt, HashMap<DDVariable,Integer> obsSpacePt) {
 		return actObsRestrObservFn[actSpacePt][obsSpacePt];
 	}
 	
-	public final CondProbDD getObservedTransitionFunction(HashMap<DDVariable,Integer> actSpacePt) {
+	public final FactoredCondProbDD getObservedTransitionFunction(HashMap<DDVariable,Integer> actSpacePt) {
 		return actRestTransObservFn[actSpacePt]
 	}
 	

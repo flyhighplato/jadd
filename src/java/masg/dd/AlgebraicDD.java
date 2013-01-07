@@ -5,7 +5,6 @@ import groovy.lang.Closure;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 
 import masg.dd.operations.AbsDiffOperation;
 import masg.dd.operations.AdditionOperation;
@@ -19,6 +18,7 @@ import masg.dd.operations.SubtractionOperation;
 import masg.dd.operations.UnaryOperation;
 import masg.dd.representation.DDElement;
 import masg.dd.representation.DDInfo;
+import masg.dd.representation.DDLeaf;
 import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
 
@@ -70,26 +70,6 @@ public class AlgebraicDD {
 		return oper(new SubtractionOperation(),dd);
 	}
 	
-	public AlgebraicDD multiply(CondProbDD condProbDD) {
-		
-		HashSet<DDVariable> thisVars = new HashSet<DDVariable>(variables);
-		ArrayList<AlgebraicDD> pertinentFns = new ArrayList<AlgebraicDD>();
-		for(AlgebraicDD dd: condProbDD.getComponentFunctions()) {
-			for(DDVariable v:dd.getVariables()) {
-				if(thisVars.contains(v)) {
-					pertinentFns.add(dd);
-					break;
-				}
-			}
-		}
-		
-		return oper(new MultiplicationOperation(), pertinentFns);
-	}
-	
-	public AlgebraicDD multiply(ProbDD pdd) {
-		return multiply(pdd.getDD());
-	}
-	
 	public AlgebraicDD multiply(AlgebraicDD dd) {
 		return oper(new MultiplicationOperation(),dd);
 	}
@@ -106,26 +86,6 @@ public class AlgebraicDD {
 		return oper(new AdditionOperation(),dd);
 	}
 	
-	public AlgebraicDD div(ProbDD pdd) {
-		return div(pdd.getDD());
-	}
-	
-	public AlgebraicDD div(CondProbDD condProbDD) {
-		
-		HashSet<DDVariable> thisVars = new HashSet<DDVariable>(variables);
-		ArrayList<AlgebraicDD> pertinentFns = new ArrayList<AlgebraicDD>();
-		for(AlgebraicDD dd: condProbDD.getComponentFunctions()) {
-			for(DDVariable v:dd.getVariables()) {
-				if(thisVars.contains(v)) {
-					pertinentFns.add(dd);
-					break;
-				}
-			}
-		}
-		
-		return oper(new DivisionOperation(), pertinentFns);
-	}
-
 	public AlgebraicDD div(AlgebraicDD dd) {
 		return oper(new DivisionOperation(),dd);
 	}
@@ -155,19 +115,31 @@ public class AlgebraicDD {
 	}
 	
 	protected AlgebraicDD oper(BinaryOperation oper, AlgebraicDD ddOther) {
+		HashSet<DDVariable> vars = new HashSet<DDVariable>(getVariables());
+		vars.addAll(ddOther.getVariables());
+		
 		ArrayList<DDElement> dDs = new ArrayList<DDElement>();
 		dDs.add(ruleCollection);
 		dDs.add(ddOther.ruleCollection);
-		return new AlgebraicDD(DDBuilder.build(getVariables(), dDs, oper));
+		return new AlgebraicDD(DDBuilder.build(new ArrayList<DDVariable>(vars), dDs, oper));
 	}
 	
-	protected AlgebraicDD oper(BinaryOperation oper, List<AlgebraicDD> ddOtherList) {
+	protected AlgebraicDD oper(BinaryOperation oper, ArrayList<AlgebraicDD> ddOtherList) {
 		ArrayList<DDElement> dDs = new ArrayList<DDElement>();
 		dDs.add(ruleCollection);
 		
-		return new AlgebraicDD(DDBuilder.build(getVariables(), dDs, oper));
+		HashSet<DDVariable> vars = new HashSet<DDVariable>();
+		vars.addAll(getVariables());
+		for(AlgebraicDD dd:ddOtherList) {
+			dDs.add(dd.ruleCollection);
+			vars.addAll(dd.getVariables());
+		}
+		return new AlgebraicDD(DDBuilder.build(new ArrayList<DDVariable>(vars), dDs, oper));
 	}
 	
+	public AlgebraicDD normalize() {
+		return new AlgebraicDD(DDBuilder.normalize(new ArrayList<DDVariable>(ruleCollection.getVariables()),ruleCollection));
+	}
 	public AlgebraicDD prime() {
 		return new AlgebraicDD(DDBuilder.prime(ruleCollection).getRootNode());
 	}
@@ -177,7 +149,7 @@ public class AlgebraicDD {
 	}
 	
 	public Double getTotalWeight() {
-		return ruleCollection.getTotalWeight();
+		return ((DDLeaf)DDBuilder.eliminate(new ArrayList<DDVariable>(ruleCollection.getVariables()), ruleCollection)).getValue();
 	}
 	
 	public String toString() {
