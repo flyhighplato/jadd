@@ -1,6 +1,5 @@
 package masg.dd.pomdp.agent.policy;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import masg.dd.AlgebraicDD;
@@ -21,21 +20,16 @@ public class QMDPPolicyBuilder {
 		
 		AlgebraicDD valFn = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStatesPrime(),false),0.0f).getRootNode());
 		
-		
-		ArrayList<DDVariable> qFnVars = new ArrayList<DDVariable>();
-		qFnVars.addAll(p.getStates());
-		qFnVars.addAll(p.getStatesPrime());
-		
 		HashMap<HashMap<DDVariable,Integer>, AlgebraicDD> qFn = new HashMap<HashMap<DDVariable,Integer>, AlgebraicDD>();
 		
 		double bellmanError = 1.0d;
 		
-		for(int i=0;i<50 && bellmanError > 0.001d;i++) {
+		for(int i=0;i<1 && bellmanError > 0.001d;i++) {
 			System.out.println("Iteration:" + i);
 			
 			DDBuilder ddResult = null;
 			AlgebraicDD valFnNew = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStates(),false),-Double.MAX_VALUE).getRootNode());
-			for(HashMap<DDVariable,Integer> actSpacePt:p.getActionSpace()) {
+			for(HashMap<DDVariable,Integer> actSpacePt:p.getActions()) {
 				AlgebraicDD futureVal = p.getTransitionFunction(actSpacePt).multiply(valFn);
 				futureVal = futureVal.sumOut(p.getStatesPrime());
 				futureVal = futureVal.multiply(discount);

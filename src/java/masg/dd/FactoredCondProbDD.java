@@ -12,11 +12,12 @@ import masg.dd.operations.MultiplicationOperation;
 import masg.dd.representation.DDElement;
 import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
+import masg.dd.variables.DDVariableSpace;
 
 public class FactoredCondProbDD {
 	private ArrayList<CondProbDD> indepFns = new ArrayList<CondProbDD>();
 	
-	public FactoredCondProbDD(ArrayList<ArrayList<ArrayList<DDVariable>>> varsLst, List<Closure<Double>> closures) {
+	public FactoredCondProbDD(ArrayList<ArrayList<DDVariableSpace>> varsLst, List<Closure<Double>> closures) {
 		
 		ArrayList<CondProbDD> indepFns = new ArrayList<CondProbDD>();
 		for(int i=0;i<varsLst.size();++i) {
@@ -63,8 +64,7 @@ public class FactoredCondProbDD {
 				ArrayList<DDElement> commonDDs = new ArrayList<DDElement>();
 				commonDDs.add(dd.getFunction().getFunction());
 				
-				HashSet<DDVariable> condProbVars = new HashSet<DDVariable>();
-				condProbVars.addAll(dd.getConditionalVariables());
+				DDVariableSpace condProbVars = dd.getConditionalVariables();
 				
 				boolean foundCommon = false;
 				
@@ -76,20 +76,19 @@ public class FactoredCondProbDD {
 							continue;
 						}
 						
-						HashSet<DDVariable> tempCondVars = new HashSet<DDVariable>(ddOther.getConditionalVariables());
-						tempCondVars.retainAll(condProbVars);
+						DDVariableSpace tempCondVars = ddOther.getConditionalVariables().intersect(condProbVars);
 						
 						if(!tempCondVars.isEmpty()) {
 							processedDDs.add(ddOther);
 							commonDDs.add(ddOther.getFunction().getFunction());
 							
-							condProbVars.addAll(ddOther.getConditionalVariables());
+							condProbVars = condProbVars.union(ddOther.getConditionalVariables());
 							foundCommon = true;
 						}
 					}
 				} while (foundCommon);
 				
-				dd = new CondProbDD(new ArrayList<DDVariable>(), new ArrayList<DDVariable>(condProbVars),new AlgebraicDD(DDBuilder.build(new ArrayList<DDVariable>(condProbVars), commonDDs, new MultiplicationOperation())));
+				dd = new CondProbDD(new DDVariableSpace(), condProbVars,new AlgebraicDD(DDBuilder.build(condProbVars, commonDDs, new MultiplicationOperation())));
 				dd = dd.normalize();
 			}
 
@@ -133,15 +132,15 @@ public class FactoredCondProbDD {
 	
 	public ProbDD toProbabilityDD() {
 		ArrayList<DDElement> pertinentFns = new ArrayList<DDElement>();
-		HashSet<DDVariable> vars = new HashSet<DDVariable>();
+		DDVariableSpace vars = new DDVariableSpace();
 		for(CondProbDD ddThis:indepFns) {
-			if(ddThis.getConditionalVariables().size()>0) {
+			if(!ddThis.getConditionalVariables().isEmpty()) {
 				return null;
 			}
-			vars.addAll(ddThis.getFunction().getVariables());
+			vars = vars.union(ddThis.getFunction().getVariables());
 			pertinentFns.add(ddThis.getFunction().getFunction());
 		}
-		AlgebraicDD dd = new AlgebraicDD(DDBuilder.build(new ArrayList<DDVariable>(vars), pertinentFns, new MultiplicationOperation()));
+		AlgebraicDD dd = new AlgebraicDD(DDBuilder.build(vars, pertinentFns, new MultiplicationOperation()));
 		
 		return new ProbDD(dd);
 	}
@@ -151,12 +150,10 @@ public class FactoredCondProbDD {
 		ArrayList<AlgebraicDD> pertinentFns = new ArrayList<AlgebraicDD>();
 		
 		for(CondProbDD ddThis:indepFns) {
-			HashSet<DDVariable> intersection = new HashSet<DDVariable>(ddThis.getPosteriorVariables());
-			intersection.retainAll(dd.getVariables());
+			DDVariableSpace intersection = ddThis.getPosteriorVariables().intersect(dd.getVariables());
 			
-			if(intersection.size()>0) {
-				ArrayList<DDVariable> sumOutVars = new ArrayList<DDVariable>(ddThis.getPosteriorVariables());
-				sumOutVars.removeAll(intersection);
+			if(!intersection.isEmpty()) {
+				DDVariableSpace sumOutVars = ddThis.getPosteriorVariables().exclude(intersection);
 				
 				ddThis = ddThis.sumOut(sumOutVars);
 				
@@ -173,29 +170,27 @@ public class FactoredCondProbDD {
 		ArrayList<CondProbDD> indepFnsConditional = null;
 		ArrayList<CondProbDD> indepFnsPosterior = null;
 		
-		HashSet<DDVariable> conditionalVariables1 = new HashSet<DDVariable>();
-		HashSet<DDVariable> conditionalVariables2 = new HashSet<DDVariable>();
-		HashSet<DDVariable> posteriorVariables1 = new HashSet<DDVariable>();
-		HashSet<DDVariable> posteriorVariables2 = new HashSet<DDVariable>();
+		DDVariableSpace conditionalVariables1 = new DDVariableSpace();
+		DDVariableSpace conditionalVariables2 = new DDVariableSpace();
+		DDVariableSpace posteriorVariables1 = new DDVariableSpace();
+		DDVariableSpace posteriorVariables2 = new DDVariableSpace();
 		
 		for(CondProbDD ddThis:indepFns) {
-			conditionalVariables1.addAll(ddThis.getConditionalVariables());
-			posteriorVariables1.addAll(ddThis.getPosteriorVariables());
+			conditionalVariables1 = conditionalVariables1.union(ddThis.getConditionalVariables());
+			posteriorVariables1 = posteriorVariables1.union(ddThis.getPosteriorVariables());
 		}
 		
 		for(CondProbDD ddThis:cpdd.indepFns) {
-			conditionalVariables2.addAll(ddThis.getConditionalVariables());
-			posteriorVariables2.addAll(ddThis.getPosteriorVariables());
+			conditionalVariables2 = conditionalVariables2.union(ddThis.getConditionalVariables());
+			posteriorVariables2 = posteriorVariables2.union(ddThis.getPosteriorVariables());
 		}
 		
-		HashSet<DDVariable> satisfied1 = new HashSet<DDVariable>(conditionalVariables1);
-		satisfied1.retainAll(posteriorVariables2);
+		DDVariableSpace satisfied1 =  conditionalVariables1.intersect(posteriorVariables2);
 		
-		HashSet<DDVariable> satisfied2 = new HashSet<DDVariable>(conditionalVariables2);
-		satisfied2.retainAll(posteriorVariables1);
+		DDVariableSpace satisfied2 = conditionalVariables2.intersect(posteriorVariables1);
 		
 		//Variables which would not be "transitioned" to the result
-		HashSet<DDVariable> danglingVariables = new HashSet<DDVariable>();
+		DDVariableSpace danglingVariables = new DDVariableSpace();
 				
 		//Only conditional probabilities complicate things...
 		if(!conditionalVariables1.isEmpty() || !conditionalVariables2.isEmpty()) {
@@ -209,18 +204,15 @@ public class FactoredCondProbDD {
 			}
 			
 			if(satisfied1.isEmpty()) {
-				danglingVariables = new HashSet<DDVariable>(posteriorVariables1);
-				danglingVariables.removeAll(satisfied2);
+				danglingVariables = posteriorVariables1.exclude(satisfied2);
 				
 			}
 			else {
-				danglingVariables = new HashSet<DDVariable>(posteriorVariables2);
-				danglingVariables.removeAll(satisfied1);
+				danglingVariables = posteriorVariables2.exclude(satisfied1);
 			}
 		}
 		else {
-			danglingVariables = new HashSet<DDVariable>(posteriorVariables1);
-			danglingVariables.removeAll(posteriorVariables2);
+			danglingVariables = posteriorVariables1.exclude(posteriorVariables2);
 		}
 		
 		if(satisfied1.isEmpty()) {
@@ -242,26 +234,22 @@ public class FactoredCondProbDD {
 			for(CondProbDD ddOther:indepFnsConditional) {
 				
 				
-				HashSet<DDVariable> satisfiedCondVars = new HashSet<DDVariable>(ddThis.getConditionalVariables());
-				satisfiedCondVars.retainAll(ddOther.getPosteriorVariables());
+				DDVariableSpace satisfiedCondVars = ddThis.getConditionalVariables().intersect(ddOther.getPosteriorVariables());
 				
 				if(!satisfiedCondVars.isEmpty()) {
 					
-					HashSet<DDVariable> unusedPosteriorVariables = new HashSet<DDVariable>(ddOther.getPosteriorVariables());
-					unusedPosteriorVariables.removeAll(satisfiedCondVars);
+					DDVariableSpace unusedPosteriorVariables = ddOther.getPosteriorVariables().exclude(satisfiedCondVars);
 					
-					childToAncestors.get(ddThis).add(ddOther.sumOut(new ArrayList<DDVariable>(unusedPosteriorVariables)));
+					childToAncestors.get(ddThis).add(ddOther.sumOut(unusedPosteriorVariables));
 				}
 				else if(ddThis.getConditionalVariables().isEmpty() && ddOther.getConditionalVariables().isEmpty()) {
 					
-					HashSet<DDVariable> satisfiedPostVars = new HashSet<DDVariable>(ddOther.getPosteriorVariables());
-					satisfiedPostVars.retainAll(ddThis.getPosteriorVariables());
+					DDVariableSpace satisfiedPostVars = ddOther.getPosteriorVariables().intersect(ddThis.getPosteriorVariables());
 					
 					if(!satisfiedPostVars.isEmpty()) {
-						HashSet<DDVariable> unusedPosteriorVariables = new HashSet<DDVariable>(ddOther.getPosteriorVariables());
-						unusedPosteriorVariables.removeAll(ddThis.getPosteriorVariables());
+						DDVariableSpace unusedPosteriorVariables = ddOther.getPosteriorVariables().exclude(ddThis.getPosteriorVariables());
 					
-						childToAncestors.get(ddThis).add(ddOther.sumOut(new ArrayList<DDVariable>(unusedPosteriorVariables)));
+						childToAncestors.get(ddThis).add(ddOther.sumOut(unusedPosteriorVariables));
 					}
 					
 				}
@@ -273,22 +261,38 @@ public class FactoredCondProbDD {
 		
 		for(Entry<CondProbDD, ArrayList<CondProbDD>> e: childToAncestors.entrySet()) {
 			CondProbDD temp = e.getKey();
-			for(CondProbDD other:e.getValue()) {
-				temp = temp.multiply(other);
+			
+			if(temp==null) {
+				System.out.println("Test");
 			}
+			
+			for(CondProbDD other:e.getValue()) {
+				if(temp==null) {
+					System.out.println("Test");
+				}
+				
+				CondProbDD temp2 = temp.multiply(other);
+				
+				if(temp2==null) {
+					System.out.println("Test");
+					temp2 = temp.multiply(other);
+				}
+				
+				temp = temp2;
+				
+			}
+			
 			
 			newIndepFns.add(temp);
 		}
 		
 		if(!danglingVariables.isEmpty()) {
 			for(CondProbDD ddOther:indepFnsConditional) {
-				HashSet<DDVariable> temp = new HashSet<DDVariable>(ddOther.getPosteriorVariables());
-				temp.retainAll(danglingVariables);
+				DDVariableSpace temp = ddOther.getPosteriorVariables().intersect(danglingVariables);
 				
 				if(!temp.isEmpty()) {
-					HashSet<DDVariable> temp2 = new HashSet<DDVariable>(ddOther.getPosteriorVariables());
-					temp2.removeAll(temp);
-					CondProbDD newDD = ddOther.sumOut(new ArrayList<DDVariable>(temp2));
+					DDVariableSpace temp2 = ddOther.getPosteriorVariables().exclude(temp);
+					CondProbDD newDD = ddOther.sumOut(temp2);
 					newIndepFns.add(newDD);
 				}
 			}
@@ -298,7 +302,7 @@ public class FactoredCondProbDD {
 	}
 	
 	
-	public FactoredCondProbDD sumOut(ArrayList<DDVariable> vars) {
+	public FactoredCondProbDD sumOut(DDVariableSpace vars) {
 		ArrayList<CondProbDD> newIndepFns = new ArrayList<CondProbDD>();
 		
 		boolean needsReconcile = false;

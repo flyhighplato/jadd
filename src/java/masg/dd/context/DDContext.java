@@ -1,20 +1,17 @@
 package masg.dd.context;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 
 import masg.dd.variables.DDVariable;
 import masg.dd.variables.DDVariableSpace;
 
 public class DDContext {
-	protected DDVariableSpace varSpace = new DDVariableSpace();
+	protected DDVariableSpace varSpace = null;
 	double tolerance = 0.0001f;
 	
 	public static ArrayList<DDVariable> canonicalVariableOrdering = new ArrayList<DDVariable>();
-	
-	protected DDContext() {
-		
-	}
 	
 	public DDContext(DDVariableSpace varSpace) {
 		this.varSpace = new DDVariableSpace(varSpace.getVariables());
@@ -28,7 +25,7 @@ public class DDContext {
 		return varSpace;
 	}
 	
-	public ArrayList<DDVariable> getVariables() {
+	public Collection<DDVariable> getVariables() {
 		return varSpace.getVariables();
 	}
 	

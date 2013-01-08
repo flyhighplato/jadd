@@ -1,10 +1,10 @@
 package masg.dd.representation;
 
 import java.util.HashMap;
-import java.util.HashSet;
 
 import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
+import masg.dd.variables.DDVariableSpace;
 
 public class DDLeaf extends BaseDDElement implements Comparable<DDLeaf> {
 	private Double value;
@@ -64,7 +64,7 @@ public class DDLeaf extends BaseDDElement implements Comparable<DDLeaf> {
 	}
 
 	@Override
-	public HashSet<DDVariable> getVariables() {
+	public DDVariableSpace getVariables() {
 		return info.getVariables();
 	}
 

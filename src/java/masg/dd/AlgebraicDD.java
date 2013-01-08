@@ -4,7 +4,6 @@ import groovy.lang.Closure;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 
 import masg.dd.operations.AbsDiffOperation;
 import masg.dd.operations.AdditionOperation;
@@ -21,32 +20,33 @@ import masg.dd.representation.DDInfo;
 import masg.dd.representation.DDLeaf;
 import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
+import masg.dd.variables.DDVariableSpace;
 
 public class AlgebraicDD {
 	protected DDElement ruleCollection;
-	protected ArrayList<DDVariable> variables;
+	protected DDVariableSpace variables;
 	
 	public final DDElement getFunction() {
 		return ruleCollection;
 	}
 	
-	public AlgebraicDD(ArrayList<DDVariable> vars, Closure<Double> c, boolean isMeasure) {
+	public AlgebraicDD(DDVariableSpace vars, Closure<Double> c, boolean isMeasure) {
 		variables = vars;
 		ruleCollection = DDBuilder.build(new DDInfo(vars,isMeasure), c).getRootNode();
 	}
 	
-	public AlgebraicDD(ArrayList<DDVariable> vars, Closure<Double>... c) {
+	public AlgebraicDD(DDVariableSpace vars, Closure<Double>... c) {
 		variables = vars;
 		ruleCollection = DDBuilder.build(new DDInfo(vars,true), c).getRootNode();
 	}
 	
-	public AlgebraicDD(ArrayList<DDVariable> vars, double val) {
+	public AlgebraicDD(DDVariableSpace vars, double val) {
 		variables = vars;
 		ruleCollection = DDBuilder.build(new DDInfo(vars,true), val).getRootNode();
 	}
 	
 	public AlgebraicDD(DDElement immutableDDElement) {
-		variables = new ArrayList<DDVariable>(immutableDDElement.getVariables());
+		variables = new DDVariableSpace(immutableDDElement.getVariables());
 		ruleCollection = immutableDDElement;
 	}
 	
@@ -54,7 +54,7 @@ public class AlgebraicDD {
 		return ruleCollection.getValue(varSpacePoint);
 	}
 	
-	public ArrayList<DDVariable> getVariables() {
+	public DDVariableSpace getVariables() {
 		return variables;
 	}
 	
@@ -94,10 +94,10 @@ public class AlgebraicDD {
 		return oper(new MaxOperation(),dd);
 	}
 	
-	public AlgebraicDD sumOut(ArrayList<DDVariable> vars) {
+	public AlgebraicDD sumOut(DDVariableSpace vars) {
 		boolean needsSumOut = false;
 		
-		for(DDVariable var:vars) {
+		for(DDVariable var:vars.getVariables()) {
 			if(ruleCollection.getVariables().contains(var)) {
 				needsSumOut = true;
 				break;
@@ -115,30 +115,28 @@ public class AlgebraicDD {
 	}
 	
 	protected AlgebraicDD oper(BinaryOperation oper, AlgebraicDD ddOther) {
-		HashSet<DDVariable> vars = new HashSet<DDVariable>(getVariables());
-		vars.addAll(ddOther.getVariables());
+		DDVariableSpace vars = getVariables().union(ddOther.getVariables());
 		
 		ArrayList<DDElement> dDs = new ArrayList<DDElement>();
 		dDs.add(ruleCollection);
 		dDs.add(ddOther.ruleCollection);
-		return new AlgebraicDD(DDBuilder.build(new ArrayList<DDVariable>(vars), dDs, oper));
+		return new AlgebraicDD(DDBuilder.build(vars, dDs, oper));
 	}
 	
 	protected AlgebraicDD oper(BinaryOperation oper, ArrayList<AlgebraicDD> ddOtherList) {
 		ArrayList<DDElement> dDs = new ArrayList<DDElement>();
 		dDs.add(ruleCollection);
 		
-		HashSet<DDVariable> vars = new HashSet<DDVariable>();
-		vars.addAll(getVariables());
+		DDVariableSpace vars = getVariables();
 		for(AlgebraicDD dd:ddOtherList) {
 			dDs.add(dd.ruleCollection);
-			vars.addAll(dd.getVariables());
+			vars = vars.union(dd.getVariables());
 		}
-		return new AlgebraicDD(DDBuilder.build(new ArrayList<DDVariable>(vars), dDs, oper));
+		return new AlgebraicDD(DDBuilder.build(vars, dDs, oper));
 	}
 	
 	public AlgebraicDD normalize() {
-		return new AlgebraicDD(DDBuilder.normalize(new ArrayList<DDVariable>(ruleCollection.getVariables()),ruleCollection));
+		return new AlgebraicDD(DDBuilder.normalize(ruleCollection.getVariables(),ruleCollection));
 	}
 	public AlgebraicDD prime() {
 		return new AlgebraicDD(DDBuilder.prime(ruleCollection).getRootNode());
@@ -149,7 +147,7 @@ public class AlgebraicDD {
 	}
 	
 	public Double getTotalWeight() {
-		return ((DDLeaf)DDBuilder.eliminate(new ArrayList<DDVariable>(ruleCollection.getVariables()), ruleCollection)).getValue();
+		return ((DDLeaf)DDBuilder.eliminate(ruleCollection.getVariables(), ruleCollection)).getValue();
 	}
 	
 	public String toString() {

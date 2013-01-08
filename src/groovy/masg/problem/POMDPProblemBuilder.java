@@ -13,6 +13,7 @@ import masg.dd.ProbDD;
 import masg.dd.context.DDContext;
 import masg.dd.pomdp.POMDP;
 import masg.dd.variables.DDVariable;
+import masg.dd.variables.DDVariableSpace;
 
 public class POMDPProblemBuilder {
 	private HashMap<String,DDVariable> stateVariables = new HashMap<String,DDVariable>();
@@ -20,10 +21,10 @@ public class POMDPProblemBuilder {
 	private HashMap<String,DDVariable> obsVariables = new HashMap<String,DDVariable>();
 	private HashMap<String,DDVariable> actVariables = new HashMap<String,DDVariable>();
 	
-	private ArrayList<ArrayList<ArrayList<DDVariable>>> tFnParameters = new ArrayList<ArrayList<ArrayList<DDVariable>>>();
+	private ArrayList<ArrayList<DDVariableSpace>> tFnParameters = new ArrayList<ArrayList<DDVariableSpace>>();
 	private ArrayList<Closure<Double>> tFunctions = new ArrayList<Closure<Double>>();
 	
-	private ArrayList<ArrayList<ArrayList<DDVariable>>> oFnParameters = new ArrayList<ArrayList<ArrayList<DDVariable>>>();
+	private ArrayList<ArrayList<DDVariableSpace>> oFnParameters = new ArrayList<ArrayList<DDVariableSpace>>();
 	private ArrayList<Closure<Double>> oFunctions = new ArrayList<Closure<Double>>();
 	
 	private Closure<Double> initialBeliefFn = null;
@@ -133,12 +134,12 @@ public class POMDPProblemBuilder {
 	}
 	
 	void addTransition(List<String> stateVars, List<String> actVars, List<String> statePrimeVars, Closure<Double> c) throws Exception {
-		ArrayList<DDVariable> varsConditional = new ArrayList<DDVariable>(toStateVariableList(stateVars));
-		varsConditional.addAll(toActionVariableList(actVars));
+		DDVariableSpace varsConditional = new DDVariableSpace(toStateVariableList(stateVars));
+		varsConditional = varsConditional.union(toActionVariableList(actVars));
 		
-		ArrayList<DDVariable> varsDependent = new ArrayList<DDVariable>(toStatePrimeVariableList(statePrimeVars));
+		DDVariableSpace varsDependent = new DDVariableSpace(toStatePrimeVariableList(statePrimeVars));
 		
-		ArrayList<ArrayList<DDVariable>> fnParameters = new ArrayList<ArrayList<DDVariable>>();
+		ArrayList<DDVariableSpace> fnParameters = new ArrayList<DDVariableSpace>();
 		fnParameters.add(varsConditional);
 		fnParameters.add(varsDependent);
 		
@@ -147,12 +148,12 @@ public class POMDPProblemBuilder {
 	}
 	
 	void addObservation(List<String> statePrimeVars, List<String> actVars, List<String> obsVars, Closure<Double> c) throws Exception {
-		ArrayList<DDVariable> varsConditional = new ArrayList<DDVariable>(toStatePrimeVariableList(statePrimeVars));
-		varsConditional.addAll(toActionVariableList(actVars));
+		DDVariableSpace varsConditional = new DDVariableSpace(toStatePrimeVariableList(statePrimeVars));
+		varsConditional = varsConditional.union(toActionVariableList(actVars));
 		
-		ArrayList<DDVariable> varsDependent = new ArrayList<DDVariable>(toObservationVariableList(obsVars));
+		DDVariableSpace varsDependent = new DDVariableSpace(toObservationVariableList(obsVars));
 		
-		ArrayList<ArrayList<DDVariable>> fnParameters = new ArrayList<ArrayList<DDVariable>>();
+		ArrayList<DDVariableSpace> fnParameters = new ArrayList<DDVariableSpace>();
 		fnParameters.add(varsConditional);
 		fnParameters.add(varsDependent);
 		
@@ -171,15 +172,15 @@ public class POMDPProblemBuilder {
 		
 		FactoredCondProbDD tFn = new FactoredCondProbDD(tFnParameters,tFunctions);
 		FactoredCondProbDD oFn = new FactoredCondProbDD(oFnParameters,oFunctions);
-		AlgebraicDD rFn = new AlgebraicDD(rFnParameters,rFunction,false);
+		AlgebraicDD rFn = new AlgebraicDD(new DDVariableSpace(rFnParameters),rFunction,false);
 		
-		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(stateVariables.values());
+		DDVariableSpace vars = new DDVariableSpace(stateVariables.values());
 		
 		ArrayList<CondProbDD> beliefFns = new ArrayList<CondProbDD>();
 		beliefFns.add(new ProbDD(vars, initialBeliefFn));
 		
 		FactoredCondProbDD initBelief = new FactoredCondProbDD(beliefFns);
 		
-		return new POMDP(initBelief,rFn,tFn,oFn,vars,new ArrayList<DDVariable>(obsVariables.values()),new ArrayList<DDVariable>(actVariables.values()));
+		return new POMDP(initBelief,rFn,tFn,oFn,vars,new DDVariableSpace(obsVariables.values()),new DDVariableSpace(actVariables.values()));
 	}
 }

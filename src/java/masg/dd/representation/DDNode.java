@@ -6,6 +6,7 @@ import java.util.HashSet;
 
 import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
+import masg.dd.variables.DDVariableSpace;
 
 public class DDNode extends BaseDDElement implements DDElement {
 	private DDVariable v;
@@ -105,7 +106,7 @@ public class DDNode extends BaseDDElement implements DDElement {
 	}
 
 	@Override
-	public HashSet<DDVariable> getVariables() {
+	public DDVariableSpace getVariables() {
 		return info.getVariables();
 	}
 

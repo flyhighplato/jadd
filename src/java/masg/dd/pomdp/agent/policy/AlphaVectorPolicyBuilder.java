@@ -38,11 +38,9 @@ public class AlphaVectorPolicyBuilder {
 	}
 	
 	public AlphaVectorPolicy buildPureStrategyAlphas() {
-		ArrayList<DDVariable> qFnVars = new ArrayList<DDVariable>();
-		qFnVars.addAll(p.getStates());
-		qFnVars.addAll(p.getStatesPrime());
+		//DDVariableSpace qFnVars = p.getStates().union(p.getStatesPrime());
 		
-		for(HashMap<DDVariable,Integer> actSpacePt:p.getActionSpace()) {
+		for(HashMap<DDVariable,Integer> actSpacePt:p.getActions()) {
 			FactoredCondProbDD currBel = p.getInitialBelief();
 			
 			System.out.println("Generating pure strategy for action:" + actSpacePt);
@@ -263,7 +261,7 @@ public class AlphaVectorPolicyBuilder {
 			
 			FactoredCondProbDD belFn = b.getBeliefFunction();
 			
-			for(HashMap<DDVariable,Integer> actSpacePt:p.getActionSpace()) {
+			for(HashMap<DDVariable,Integer> actSpacePt:p.getActions()) {
 				double actValue = belFn.multiply(p.getRewardFunction(actSpacePt)).getTotalWeight();
 				
 				for(Entry<HashMap<DDVariable, Integer>, Double> e:b.getObservationProbabilities(actSpacePt).entrySet()) {

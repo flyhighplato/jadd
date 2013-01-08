@@ -11,10 +11,10 @@ class POMDP {
 	private final AlgebraicDD rewFn;
 	private final FactoredCondProbDD transnFn;
 	private final FactoredCondProbDD observFn;
-	private final ArrayList<DDVariable> states;
-	private final ArrayList<DDVariable> statesPrime;
-	private final ArrayList<DDVariable> observations;
-	private final ArrayList<DDVariable> actions;
+	private final DDVariableSpace states;
+	private final DDVariableSpace statesPrime;
+	private final DDVariableSpace observations;
+	private final DDVariableSpace actions;
 	
 	private Map actRestrTransnFn = [:]
 	private Map actRestrObservFn = [:]
@@ -27,7 +27,7 @@ class POMDP {
 	private DDVariableSpace actSpace;
 	private DDVariableSpace obsSpace;
 	
-	public POMDP(FactoredCondProbDD initialBelief, AlgebraicDD rewFn, FactoredCondProbDD transnFn, FactoredCondProbDD observFn, ArrayList<DDVariable> states, ArrayList<DDVariable> observations, ArrayList<DDVariable> actions) {
+	public POMDP(FactoredCondProbDD initialBelief, AlgebraicDD rewFn, FactoredCondProbDD transnFn, FactoredCondProbDD observFn, DDVariableSpace states, DDVariableSpace observations, DDVariableSpace actions) {
 		transnFn = transnFn.normalize();
 		observFn = observFn.normalize();
 		
@@ -38,19 +38,16 @@ class POMDP {
 		this.states = states;
 		
 		ArrayList<DDVariable> temp = new ArrayList<DDVariable>();
-		for(DDVariable var:states) {
+		for(DDVariable var:states.getVariables()) {
 			temp.add(var.getPrimed());
 		}
-		statesPrime = temp;
+		statesPrime = new DDVariableSpace(temp);
 		
 		this.observations = observations;
 		this.actions = actions;
 		
-		actSpace = new DDVariableSpace(actions);
-		obsSpace = new DDVariableSpace(observations);
 		
-		
-		actSpace.each{ HashMap<DDVariable,Integer> actSpacePt ->
+		actions.each{ HashMap<DDVariable,Integer> actSpacePt ->
 			actRestrTransnFn[actSpacePt]=transnFn.restrict(actSpacePt);
 			actRestrObservFn[actSpacePt]=observFn.restrict(actSpacePt);
 			actRestrRewFn[actSpacePt]=rewFn.restrict(actSpacePt);
@@ -68,7 +65,7 @@ class POMDP {
 			FactoredCondProbDD restrTransObsFn = restrTransFn.multiply(restrObsFn);
 			actRestTransObservFn[actSpacePt] = restrTransObsFn.normalize();
 			
-			obsSpace.each { HashMap<DDVariable,Integer> obsSpacePt ->
+			observations.each { HashMap<DDVariable,Integer> obsSpacePt ->
 				actObsRestrObservFn[actSpacePt][obsSpacePt] = ((FactoredCondProbDD)actRestrObservFn[actSpacePt]).restrict(obsSpacePt).normalize()
 			}
 		}
@@ -115,27 +112,19 @@ class POMDP {
 		return actRestTransObservFn[actSpacePt]
 	}
 	
-	public final ArrayList<DDVariable> getStates() {
+	public final DDVariableSpace getStates() {
 		return states;
 	}
 	
-	public final ArrayList<DDVariable> getStatesPrime() {
+	public final DDVariableSpace getStatesPrime() {
 		return statesPrime;
 	}
 	
-	public final ArrayList<DDVariable> getObservations() {
+	public final DDVariableSpace getObservations() {
 		return observations;
 	}
 	
-	public final DDVariableSpace getObservationSpace() {
-		return obsSpace;
-	}
-	
-	public final ArrayList<DDVariable> getActions() {
+	public final DDVariableSpace getActions() {
 		return actions;
-	}
-	
-	public final DDVariableSpace getActionSpace() {
-		return actSpace;
 	}
 }

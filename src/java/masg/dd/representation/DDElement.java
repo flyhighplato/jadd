@@ -1,9 +1,9 @@
 package masg.dd.representation;
 
 import java.util.HashMap;
-import java.util.HashSet;
 
 import masg.dd.variables.DDVariable;
+import masg.dd.variables.DDVariableSpace;
 
 public interface DDElement  {
 	public boolean isMeasure();
@@ -11,7 +11,7 @@ public interface DDElement  {
 	public Double getTotalWeight();
 	public Double getValue(HashMap<DDVariable,Integer> path);
 	public DDVariable getVariable();
-	public HashSet<DDVariable> getVariables();
+	public DDVariableSpace getVariables();
 	public boolean equals(Object o);
 	public String toString(String spacer);
 }

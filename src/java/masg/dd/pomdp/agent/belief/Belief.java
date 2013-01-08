@@ -11,6 +11,7 @@ import masg.dd.ProbDD;
 import masg.dd.alphavector.BeliefAlphaVector;
 import masg.dd.pomdp.POMDP;
 import masg.dd.variables.DDVariable;
+import masg.dd.variables.DDVariableSpace;
 
 public class Belief {
 	final POMDP p;
@@ -30,7 +31,7 @@ public class Belief {
 		this.beliefFn = fn;
 		
 		
-		for(HashMap<DDVariable,Integer> actSpacePt:p.getActionSpace()) {
+		for(HashMap<DDVariable,Integer> actSpacePt:p.getActions()) {
 			immRewardFns.put(actSpacePt, beliefFn.multiply(p.getRewardFunction(actSpacePt)) );
 			
 			FactoredCondProbDD tempRestrTransFn = p.getTransitionFunction(actSpacePt).multiply(beliefFn);
@@ -46,7 +47,7 @@ public class Belief {
 			nextBeliefFns.put(actSpacePt, new HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD>());
 			obsProbs.put(actSpacePt, new HashMap<HashMap<DDVariable,Integer>, Double>());
 			
-			for(HashMap<DDVariable,Integer> obsSpacePt:p.getObservationSpace()) {
+			for(HashMap<DDVariable,Integer> obsSpacePt:p.getObservations()) {
 				double obsProb = obsProbFn.getValue(obsSpacePt);
 				
 				obsProbs.get(actSpacePt).put(obsSpacePt, obsProb);
@@ -59,14 +60,6 @@ public class Belief {
 					FactoredCondProbDD nextBelief =  p.getTransitionFunction(actSpacePt);
 					nextBelief = nextBelief.multiply(beliefFn);
 					nextBelief = nextBelief.multiply(tempRestrObsFn);
-					
-					//TODO: Remove this debug code
-					/*if(nextBelief==null) {
-						
-						nextBelief =  p.getTransitionFunction(actSpacePt);
-						nextBelief = nextBelief.multiply(beliefFn);
-						nextBelief = nextBelief.multiply(tempRestrObsFn);
-					}*/
 					nextBelief = nextBelief.normalize();
 					nextBelief = nextBelief.unprime();
 					
@@ -168,12 +161,11 @@ public class Belief {
 		return sampleSpacePoint(p.getStates(),beliefFn);
 	}
 	
-	public HashMap<DDVariable,Integer> sampleSpacePoint(ArrayList<DDVariable> variables, FactoredCondProbDD probFn) {
+	public HashMap<DDVariable,Integer> sampleSpacePoint(DDVariableSpace variables, FactoredCondProbDD probFn) {
 		HashMap<DDVariable,Integer> point = new HashMap<DDVariable,Integer>();
 		
-		for(DDVariable variable:variables) {
-			ArrayList<DDVariable> sumOutVars = new ArrayList<DDVariable>(variables);
-			sumOutVars.remove(variable);
+		for(DDVariable variable:variables.getVariables()) {
+			DDVariableSpace sumOutVars = variables.exclude(variable);
 			
 			ProbDD probTempFn = probFn.sumOut(sumOutVars).toProbabilityDD();
 			

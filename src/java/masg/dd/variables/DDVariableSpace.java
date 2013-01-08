@@ -1,20 +1,39 @@
 package masg.dd.variables;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
+
+import masg.dd.context.DDContext;
 
 public class DDVariableSpace implements Iterable<HashMap<DDVariable,Integer>> {
-	protected DDVariable[] variables;
+	protected HashSet<DDVariable> variables;
+	
+	protected ArrayList<DDVariable> variablesInOrder = new ArrayList<DDVariable>();
 	
 	public DDVariableSpace() {
-		
+		init(new HashSet<DDVariable>());
 	}
 	
-	public DDVariableSpace(ArrayList<DDVariable> variables) {
-		this.variables = variables.toArray(new DDVariable[variables.size()]);
+	public DDVariableSpace(Collection<DDVariable> variables) {
+		init(variables);
+	}
+	
+	public DDVariableSpace(DDVariableSpace space) {
+		init(space.variables);
+	}
+	
+	private void init(Collection<DDVariable> variables) {
+		this.variables = new HashSet<DDVariable>(variables);
+		
+		for(DDVariable v:DDContext.canonicalVariableOrdering) {
+			if(this.variables.contains(v)) {
+				variablesInOrder.add(v);
+			}
+		}
 	}
 	
 	@Override
@@ -23,59 +42,23 @@ public class DDVariableSpace implements Iterable<HashMap<DDVariable,Integer>> {
 	}
 	
 	public int getVariableCount() {
-		return variables==null?0:variables.length;
+		return variables.size();
 	}
 	
-	public DDVariable getVariable(int index) {
-		return variables[index];
+	public final DDVariable getVariable(int index) {
+		return variablesInOrder.get(index);
 	}
 	
-	public final ArrayList<DDVariable> getVariables() {
-		if(variables != null)
-			return new ArrayList<DDVariable>(Arrays.asList(variables));
-		else
-			return new ArrayList<DDVariable>();
+	public final Set<DDVariable> getVariables() {
+		return Collections.unmodifiableSet(variables);
 	}
 	
-	public void addVariable(DDVariable var) {
-		ArrayList<DDVariable> listVars;
-		
-		if(variables!=null) {
-			listVars = new ArrayList<DDVariable>(Arrays.asList(variables));
-		}
-		else {
-			listVars = new ArrayList<DDVariable>();
-		}
-		listVars.add(var);
-		variables = listVars.toArray(new DDVariable[listVars.size()]);
-	}
-	
-	public void addVariables(Collection<DDVariable> var) {
-		ArrayList<DDVariable> listVars;
-		
-		if(variables!=null) {
-			listVars = new ArrayList<DDVariable>(Arrays.asList(variables));
-		}
-		else {
-			listVars = new ArrayList<DDVariable>();
-		}
-		listVars.addAll(var);
-		variables = listVars.toArray(new DDVariable[listVars.size()]);
-	}
-	
-	public int getBitCount() {
-		int sumNumBits = 0;
-		
-		if(variables!=null) {
-			for(DDVariable var:variables) {
-				sumNumBits += var.numBits;
-			}
-		}
-		return sumNumBits;
+	public boolean isEmpty() {
+		return variables.size() == 0;
 	}
 	
 	public void unprime() throws Exception {
-		ArrayList<DDVariable> newVars = new ArrayList<DDVariable>();
+		HashSet<DDVariable> newVars = new HashSet<DDVariable>();
 		for(DDVariable var:variables) {
 			DDVariable varUnprime = var.getUnprimed();
 			if(newVars.contains(varUnprime)){
@@ -83,11 +66,11 @@ public class DDVariableSpace implements Iterable<HashMap<DDVariable,Integer>> {
 			}
 			newVars.add(varUnprime);
 		}
-		variables = newVars.toArray(new DDVariable[newVars.size()]);
+		variables = newVars;
 	}
 	
 	public void prime() throws Exception {
-		ArrayList<DDVariable> newVars = new ArrayList<DDVariable>();
+		HashSet<DDVariable> newVars = new HashSet<DDVariable>();
 		for(DDVariable var:variables) {
 			DDVariable varPrime = var.getPrimed();
 			
@@ -97,30 +80,64 @@ public class DDVariableSpace implements Iterable<HashMap<DDVariable,Integer>> {
 			newVars.add(varPrime);
 		}
 		
-		variables = newVars.toArray(new DDVariable[newVars.size()]);
+		variables = newVars;
 	}
 	
-	public DDVariableSpace plus(DDVariableSpace otherVarSpace) {
-		DDVariableSpace newVarSpace = new DDVariableSpace();
-		if(variables != null) {
-			newVarSpace.variables = new DDVariable[variables.length + otherVarSpace.variables.length];
-			System.arraycopy(variables, 0, newVarSpace.variables, 0, variables.length);
-			System.arraycopy(otherVarSpace.variables, 0, newVarSpace.variables, variables.length, otherVarSpace.variables.length);
-		}
-		else {
-			newVarSpace.variables = new DDVariable[otherVarSpace.variables.length];
-			System.arraycopy(otherVarSpace.variables, 0, newVarSpace.variables, 0, otherVarSpace.variables.length);
-		}
-		return newVarSpace;
+	public boolean contains(DDVariable v) {
+		return variables.contains(v);
+	}
+	
+	public DDVariableSpace exclude(DDVariableSpace vars) {
+		return exclude(vars.getVariables());
+	}
+	
+	public DDVariableSpace exclude(Collection<DDVariable> excludeVars) {
+		HashSet<DDVariable> temp = new HashSet<DDVariable>(variables);
+		temp.removeAll(excludeVars);
+		
+		return new DDVariableSpace(temp);
+	}
+	
+	public DDVariableSpace exclude(DDVariable excludeVar) {
+		HashSet<DDVariable> temp = new HashSet<DDVariable>(variables);
+		temp.remove(excludeVar);
+		
+		return new DDVariableSpace(temp);
+	}
+	
+	public DDVariableSpace intersect(DDVariableSpace vars) {
+		return intersect(vars.getVariables());
+	}
+	
+	public DDVariableSpace intersect(Collection<DDVariable> retainVars) {
+		HashSet<DDVariable> temp = new HashSet<DDVariable>(variables);
+		temp.retainAll(retainVars);
+		
+		return new DDVariableSpace(temp);
+	}
+	
+	public DDVariableSpace union(DDVariableSpace vars) {
+		return union(vars.getVariables());
+	}
+	
+	public DDVariableSpace union(Collection<DDVariable> unionVars) {
+		HashSet<DDVariable> temp = new HashSet<DDVariable>(variables);
+		temp.addAll(unionVars);
+		
+		return new DDVariableSpace(temp);
 	}
 	
 	@SuppressWarnings("unchecked")
 	public boolean equals(Object o) {
 		if(o instanceof Collection) {
-			return (new HashSet<DDVariable>(Arrays.asList(variables))).equals(new HashSet<DDVariable>((Collection<DDVariable>)o));
+			return (new HashSet<DDVariable>(variables)).equals(new HashSet<DDVariable>((Collection<DDVariable>)o));
 		}
 		else{
 			return o == this;
 		}
+	}
+	
+	public String toString() {
+		return variablesInOrder.toString();
 	}
 }

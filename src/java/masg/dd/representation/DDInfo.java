@@ -1,26 +1,23 @@
 package masg.dd.representation;
 
-import java.util.Collection;
-import java.util.HashSet;
-
-import masg.dd.variables.DDVariable;
+import masg.dd.variables.DDVariableSpace;
 
 public class DDInfo {
-	HashSet<DDVariable> variables;
+	DDVariableSpace variables;
 	boolean isMeasure = false;
 	
-	public DDInfo(Collection<DDVariable> ddVariables, boolean isMeasure) {
+	public DDInfo(DDVariableSpace ddVariables, boolean isMeasure) {
 		updateInfo(ddVariables,isMeasure);
 	}
-	public HashSet<DDVariable> getVariables() {
+	public DDVariableSpace getVariables() {
 		return variables;
 	}
 	public boolean isMeasure() {
 		return isMeasure;
 	}
 	
-	public void updateInfo(Collection<DDVariable> ddVariables, boolean isMeasure) {
-		variables = new HashSet<DDVariable>(ddVariables);
+	public void updateInfo(DDVariableSpace ddVariables, boolean isMeasure) {
+		variables = new DDVariableSpace(ddVariables);
 		this.isMeasure = isMeasure;
 	}
 }
