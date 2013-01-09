@@ -12,8 +12,9 @@ public class ProbDD extends CondProbDD {
 		super(new ArrayList<DDVariable>(), vars, c);
 	}
 	
-	protected ProbDD(AlgebraicDD fn) {
+	public ProbDD(AlgebraicDD fn) {
 		super(new ArrayList<DDVariable>(), fn.getVariables(), fn);
 	}
+	
 
 }

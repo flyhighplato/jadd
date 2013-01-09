@@ -36,7 +36,9 @@ public class FactoredCondProbDD {
 		this.indepFns.addAll(indepFns);
 	}
 	
-	
+	public final ArrayList<CondProbDD> getFunctions() {
+		return new ArrayList<CondProbDD>(indepFns);
+	}
 	
 	public Double getValue(HashMap<DDVariable,Integer> varSpacePoint) {
 		double val = 1.0f;
