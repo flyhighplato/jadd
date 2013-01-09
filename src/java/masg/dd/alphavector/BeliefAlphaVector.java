@@ -20,6 +20,10 @@ public class BeliefAlphaVector {
 	public final AlgebraicDD getValueFunction() {
 		return valueFn;
 	}
+
+	public final ProbDD getWitnessPoint() {
+		return witnessPt;
+	}
 	
 	public final HashMap<DDVariable,Integer> getAction() {
 		return new HashMap<DDVariable,Integer>(action);
