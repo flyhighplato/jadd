@@ -23,22 +23,23 @@ import masg.problem.tag.TagProblem;
 import masg.problem.tag.TagProblemSimulator
 import spock.lang.Shared;
 import spock.lang.Specification
-
+import spock.lang.Ignore
 class TagProblemSimulatorSpec extends Specification {
 
 	@Shared
 	TagProblem problem = new TagProblem()
 	
-	int numSamples = 100
+	int numSamples = 1000
 	int numIterations = 100
 	
 	int numSteps = 100;
-	int numTrials = 100;
+	int numTrials = 1000;
 	
 	String fileName = "${numSamples}_${numIterations}_${numSteps}.policy"
 	
 	TagProblemSimulator simulator = new TagProblemSimulator();
 	
+	@Ignore
 	def "agents are simulated correctly from generated policy"() {
 		when:
 			Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()
@@ -56,6 +57,7 @@ class TagProblemSimulatorSpec extends Specification {
 			
 	}
 	
+	//@Ignore
 	def "agents are simulated correctly from policy file"() {
 		when:
 			

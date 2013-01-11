@@ -1,11 +1,15 @@
 package masg.problem.tag
 
+import java.text.SimpleDateFormat
 import java.util.Random;
 
 import masg.dd.FactoredCondProbDD
 import masg.dd.ProbDD
+import masg.dd.pomdp.agent.policy.AlphaVectorPolicy
 import masg.dd.pomdp.agent.policy.Policy
+import masg.dd.pomdp.agent.policy.serialization.AlphaVectorPolicyWriter
 import masg.dd.variables.DDVariable
+import masg.dd.variables.DDVariableSpace
 import masg.problem.tag.simulator.TagAgent
 import masg.problem.tag.simulator.TagGrid
 import masg.problem.tag.simulator.TagWumpus
@@ -25,11 +29,32 @@ class TagProblemSimulator {
 	
 	Random random = new Random();
 	
-	public simulate(TagProblem problem, Policy pol, int numTrials, int numSteps) {
+	private String filePath = System.getProperty("user.dir") + "/experiments/tagproblem/runs/" +  new SimpleDateFormat("MM-dd-yy hh.mm.ss.SS a").format(new Date())
+	
+	public void simulate(TagProblem problem, Policy pol, int numTrials, int numSteps) {
+		
+		new File(System.getProperty("user.dir") + "/experiments").mkdir()
+		new File(System.getProperty("user.dir") + "/experiments/tagproblem").mkdir()
+		new File(System.getProperty("user.dir") + "/experiments/tagproblem/runs").mkdir()
+		new File(filePath).mkdir()
+		new File(filePath + "/policy").mkdir()
+		
+		if(pol instanceof AlphaVectorPolicy) {
+			BufferedWriter writer = new BufferedWriter(new FileWriter(filePath + "/policy/runPolicy.policy",false));
+			AlphaVectorPolicyWriter policyWriter = new AlphaVectorPolicyWriter(pol);
+			policyWriter.write(writer);
+			writer.flush();
+			writer.close();
+		}
+		
 		int numColocations = 0;
 		int totalColocations = 0;
 		
-		numTrials.times {
+		numTrials.times { trialIx ->
+			
+			
+			BufferedWriter fileWriter = new BufferedWriter(new FileWriter(filePath + "/" + (trialIx+1) + ".trial"))
+			
 			TagAgent agent1 = new TagAgent(problem.getPOMDP(),pol)
 			TagAgent agent2 = new TagAgent(problem.getPOMDP(),pol)
 			TagWumpus wumpus = new TagWumpus(problem.getPOMDP())
@@ -38,7 +63,6 @@ class TagProblemSimulator {
 			numColocations = 0;
 			numSteps.times {
 				
-				HashMap<DDVariable,Integer> action1 = pol.getAction(agent1.currBelief);
 				
 				HashMap<DDVariable,Integer> actualStateAgt1 = new HashMap<DDVariable,Integer>()
 				actualStateAgt1[a1_row] = agent1.row
@@ -48,7 +72,6 @@ class TagProblemSimulator {
 				actualStateAgt1[w_row] = wumpus.row
 				actualStateAgt1[w_col] = wumpus.column
 				
-				HashMap<DDVariable,Integer> action2 = pol.getAction(agent2.currBelief);
 				HashMap<DDVariable,Integer> actualStateAgt2 = new HashMap<DDVariable,Integer>()
 				actualStateAgt2[a1_row] = agent2.row
 				actualStateAgt2[a1_col] = agent2.column
@@ -57,42 +80,94 @@ class TagProblemSimulator {
 				actualStateAgt2[w_row] = wumpus.row
 				actualStateAgt2[w_col] = wumpus.column
 				
+				String strInfo = "STEP #$it\n"
+				strInfo += "=============================================================\n"
+				
+				strInfo += "\n"
+				strInfo += "\tActual State\n"
+				strInfo += "\t============\n"
+				
+				StringWriter sw = new StringWriter()
+				grid.draw(new BufferedWriter(sw))
+				//grid.draw(fileWriter)
+				
+				strInfo += sw.toString() + "\n"
+				
+				strInfo += "\tWumpus: row = ${wumpus.row}, col = ${wumpus.column} \n"
+				strInfo += "\tAgent1: row = ${agent1.row}, col = ${agent1.column} \n"
+				strInfo += "\tAgent2: row = ${agent2.row}, col = ${agent2.column} \n"
+				
+				DDVariableSpace space = new DDVariableSpace(new ArrayList<DDVariable>([w_row,w_col]))
+				
+				
+				FactoredCondProbDD summedOutBelief1 = agent1.currBelief.getBeliefFunction().sumOut(new ArrayList<DDVariable>([a1_row,a1_col,a2_row,a2_col]))
+				
+				strInfo += "\n"
+				strInfo += "\tAgent1 Believes\n"
+				strInfo += "\t=============\n"
+				
+				space.each{ pt ->
+					strInfo += "\t$pt = ${Math.round(summedOutBelief1.getValue(pt)*100000)/100000}\n"
+				}
+				
+				
 				if((wumpus.row==agent1.row && wumpus.column==agent1.column) || (wumpus.row==agent2.row && wumpus.column==agent2.column)) {
 					++numColocations;
 				}
+				
+				strInfo += "\n"
+				strInfo += "\tAccumulated Reward\n"
+				strInfo += "\t=======\n"
+				strInfo += "\tColocations: $numColocations \n"
+				
+				
+				HashMap<DDVariable,Integer> action1 = pol.getAction(agent1.currBelief);
+				HashMap<DDVariable,Integer> action2 = pol.getAction(agent2.currBelief);
+				
+				strInfo += "\n"
+				strInfo += "\tTaking Action\n"
+				strInfo += "\t======\n"
+				strInfo += "\tAgent1: $action1 \n"
+				strInfo += "\tAgent2: $action2 \n"
+				
+				
 				
 				FactoredCondProbDD restrTransFn1 = problem.getPOMDP().getTransitionFunction(action1)
 				restrTransFn1 = restrTransFn1.restrict(actualStateAgt1)
 				restrTransFn1 = restrTransFn1.normalize();
 				
+				
+				FactoredCondProbDD restrTransFn2 = problem.getPOMDP().getTransitionFunction(action2)
+				restrTransFn2 = restrTransFn2.restrict(actualStateAgt2)
+				restrTransFn2 = restrTransFn2.normalize();
+				
 				HashMap<DDVariable,Integer> actualStateAgt1New = sampleSpacePoint(problem.getPOMDP().getStatesPrime(), restrTransFn1)
+				HashMap<DDVariable,Integer> actualStateAgt2New = sampleSpacePoint(problem.getPOMDP().getStatesPrime(), restrTransFn2)
 				
 				wumpus.moveRandomly(5, 5)
 				
 				actualStateAgt1New[w_row.getPrimed()] = wumpus.row
 				actualStateAgt1New[w_col.getPrimed()] = wumpus.column
 				
-				FactoredCondProbDD restrTransFn2 = problem.getPOMDP().getTransitionFunction(action2)
-				restrTransFn2 = restrTransFn2.restrict(actualStateAgt2)
-				restrTransFn2 = restrTransFn2.normalize();
+				actualStateAgt2New[w_row.getPrimed()] = wumpus.row
+				actualStateAgt2New[w_col.getPrimed()] = wumpus.column
 				
-				HashMap<DDVariable,Integer> actualStateAgt2New = sampleSpacePoint(problem.getPOMDP().getStatesPrime(), restrTransFn2)
 				
 				HashMap<DDVariable,Integer> actualStateNewAg1Primed = new HashMap<DDVariable,Integer>();
 				actualStateNewAg1Primed[a1_row.getPrimed()] = actualStateAgt1New[a1_row.getPrimed()]
 				actualStateNewAg1Primed[a1_col.getPrimed()] = actualStateAgt1New[a1_col.getPrimed()]
 				actualStateNewAg1Primed[a2_row.getPrimed()] = actualStateAgt2New[a1_row.getPrimed()]
 				actualStateNewAg1Primed[a2_col.getPrimed()] = actualStateAgt2New[a1_col.getPrimed()]
-				actualStateNewAg1Primed[w_row.getPrimed()] = actualStateAgt1New[w_row.getPrimed()]
-				actualStateNewAg1Primed[w_col.getPrimed()] = actualStateAgt1New[w_col.getPrimed()]
+				actualStateNewAg1Primed[w_row.getPrimed()] = wumpus.row
+				actualStateNewAg1Primed[w_col.getPrimed()] = wumpus.column
 				
 				HashMap<DDVariable,Integer> actualStateNewAg2Primed = new HashMap<DDVariable,Integer>();
 				actualStateNewAg2Primed[a1_row.getPrimed()] = actualStateAgt2New[a1_row.getPrimed()]
 				actualStateNewAg2Primed[a1_col.getPrimed()] = actualStateAgt2New[a1_col.getPrimed()]
 				actualStateNewAg2Primed[a2_row.getPrimed()] = actualStateAgt1New[a1_row.getPrimed()]
 				actualStateNewAg2Primed[a2_col.getPrimed()] = actualStateAgt1New[a1_col.getPrimed()]
-				actualStateNewAg2Primed[w_row.getPrimed()] = actualStateAgt1New[w_row.getPrimed()]
-				actualStateNewAg2Primed[w_col.getPrimed()] = actualStateAgt1New[w_col.getPrimed()]
+				actualStateNewAg2Primed[w_row.getPrimed()] = wumpus.row
+				actualStateNewAg2Primed[w_col.getPrimed()] = wumpus.column
 				
 				
 				FactoredCondProbDD restrObsFn1 = problem.getPOMDP().getObservationFunction().restrict(action1)
@@ -106,36 +181,67 @@ class TagProblemSimulator {
 				HashMap<DDVariable,Integer> obs1 = sampleSpacePoint(problem.getPOMDP().getObservations(), restrObsFn1);
 				HashMap<DDVariable,Integer> obs2 = sampleSpacePoint(problem.getPOMDP().getObservations(), restrObsFn2);
 				
-				println "Agent1"
-				println "     action: $action1"
-				println "     actual new state: $actualStateNewAg1Primed"
-				println "     observation: $obs1"
-				println "Agent2"
-				println "     action: $action2"
-				println "     actual new state: $actualStateNewAg2Primed"
-				println "     observation: $obs2"
-				println "Colocations: $numColocations"
+				strInfo += "\n"
+				strInfo += "\tWill Get Observation\n"
+				strInfo += "\t===========\n"
+				strInfo += "\tAgent1: $obs1 \n"
+				strInfo += "\tAgent2: $obs2 \n"
+				
+				println strInfo
+				
+				fileWriter.write(strInfo)
+				fileWriter.newLine()
+				
+				
 				
 				agent1.currBelief = agent1.currBelief.getNextBelief(action1, obs1)
 				agent1.row = actualStateNewAg1Primed[a1_row.getPrimed()]
 				agent1.column = actualStateNewAg1Primed[a1_col.getPrimed()]
 				
 				agent2.currBelief = agent2.currBelief.getNextBelief(action2, obs2)
-				agent2.row = actualStateNewAg1Primed[a2_row.getPrimed()]
-				agent2.column = actualStateNewAg1Primed[a2_col.getPrimed()]
+				agent2.row = actualStateNewAg2Primed[a1_row.getPrimed()]
+				agent2.column = actualStateNewAg2Primed[a1_col.getPrimed()]
 				
-				wumpus.row = actualStateNewAg1Primed[w_row.getPrimed()]
-				wumpus.column = actualStateNewAg1Primed[w_col.getPrimed()]
 				
-				grid.draw()
+				
 				
 			}
 			
 			
 			totalColocations+=numColocations;
 			
-			println "Total colocations: $totalColocations (in ${it+1} runs)"
+			fileWriter.flush();
+			fileWriter.close();
+			
+			fileWriter = new BufferedWriter(new FileWriter(filePath + "/trial" + (trialIx+1) + "Summary.summary"))
+			
+			String summary = "Total colocations: $numColocations \n"
+			
+			println summary
+			
+			fileWriter.write(summary)
+			fileWriter.newLine()
+			
+			fileWriter.flush();
+			fileWriter.close();
+			
+			
+			
 		}
+		
+		BufferedWriter fileWriter = new BufferedWriter(new FileWriter(filePath + "/runSummary.summary"))
+		
+		String summary = "Total colocations: $totalColocations \n"
+		summary += "Total trials: $numTrials "
+		summary += "Steps per trial: $numSteps) "
+		
+		println summary
+		
+		fileWriter.write(summary)
+		fileWriter.newLine()
+		
+		fileWriter.flush();
+		fileWriter.close();
 	}
 	
 	private HashMap<DDVariable,Integer> sampleSpacePoint(ArrayList<DDVariable> variables, FactoredCondProbDD probFn) {

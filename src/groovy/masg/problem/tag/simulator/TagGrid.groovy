@@ -17,54 +17,62 @@ public class TagGrid {
 		this.wumpus = wumpus
 	}
 	
-	public void draw()
+	public void draw() {
+		draw(new BufferedWriter(new PrintWriter(System.out)))	
+	}
+	
+	public void draw(BufferedWriter w)
 	{
 		for(int j=0;j<width;j++)
 		{
-			print("-----");
+			w.write("-----");
 		}
 		
-		System.out.println();
+		w.newLine();
 		
 		height.times { int i ->
 			
 			width.times { int j ->
-				print "|"
+				w.write "|"
 				
 				if(agent1.column == j && agent1.row == i)
-					print "1"
+					w.write "1"
 				else
-					print " "
+					w.write " "
 				
 				if(wumpus.column == j && wumpus.row == i)
-					print "W"
+					w.write "W"
 				else
-					print " ";
+					w.write " ";
 				
-				print "  "
+				w.write "  "
 			}
 			
-			println "|"
+			w.write "|"
+			w.newLine()
 			
 			width.times { int j ->
-				print "|"
+				w.write "|"
 				if(agent2.column == j && agent2.row == i)
-					print "2"
+					w.write "2"
 				else
-					print " "
+					w.write " "
 				
-				print " "
+				w.write " "
 				
-				print "  "
+				w.write "  "
 			}
 			
-			println "|"
+			w.write "|"
+			w.newLine()
 			
 			width.times { 
-				print "-----"
+				w.write "-----"
 			}
 			
-			println()
+			w.newLine()
 		}
+		
+		w.flush()
 	}
 }
