@@ -3,6 +3,7 @@ package masg.problem.tag.simulator
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.Map.Entry
 
 import masg.dd.AlgebraicDD;
 import masg.dd.FactoredCondProbDD;
@@ -42,24 +43,39 @@ class TagProblemSimulatorSpec extends Specification {
 	@Ignore
 	def "agents are simulated correctly from generated policy"() {
 		when:
-			Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()
-			BeliefRegion belReg = new BeliefRegion(numSamples, numSteps, problem.getPOMDP(), pol)
+		
+			fileName = "1000_100_100.policy"
+			BufferedReader reader = new BufferedReader(new FileReader(fileName));
+			AlphaVectorPolicyReader policyReader = new AlphaVectorPolicyReader(reader);
+			AlphaVectorPolicy avPol = policyReader.read()
+			reader.close()
+		
+			//Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()
+			BeliefRegion belReg = new BeliefRegion(numSamples, numSteps, problem.getPOMDP(), avPol)
+			
+			avPol.alphaVectors.each{
+				belReg.beliefSamples << new Belief(problem.getPOMDP(),new FactoredCondProbDD(it.witnessPt))
+			}
 			
 			AlphaVectorPolicyBuilder polBuilder = new AlphaVectorPolicyBuilder(problem.getPOMDP())
-			pol = polBuilder.build(belReg, numIterations)
+			
+			polBuilder.bestAlphas.addAll(avPol.alphaVectors)
+			
+			Policy pol = polBuilder.build(belReg, numIterations)
 			BufferedWriter writer = new BufferedWriter(new FileWriter(fileName,false));
 			AlphaVectorPolicyWriter policyWriter = new AlphaVectorPolicyWriter(pol);
 			policyWriter.write(writer);
 			writer.flush();
 			writer.close();
 		then:
-			simulator.simulate(problem, pol, numTrials, numSteps);
+			simulator.simulate(problem, pol, pol, numTrials, numSteps);
 			
 	}
 	
 	//@Ignore
 	def "agents are simulated correctly from policy file"() {
 		when:
+			fileName = "1000_100_100.policy"
 			
 			BufferedReader reader = new BufferedReader(new FileReader(fileName));
 			AlphaVectorPolicyReader policyReader = new AlphaVectorPolicyReader(reader);
@@ -67,9 +83,24 @@ class TagProblemSimulatorSpec extends Specification {
 			reader.close()
 			
 		then:
-			simulator.simulate(problem, pol, numTrials, numSteps);
+			simulator.simulate(problem, pol, pol, 1, 1000);
 			
 	}
 	
+	class BeliefNode {
+		FactoredCondProbDD belief;
+		BeliefAlphaVector alpha;
+		
+		HashMap<HashMap<DDVariable,Integer>,BeliefNode> obsPlanNodes=[:];
+		
+		public String toString() {
+			String str = "${hashCode()} ${alpha.hashCode()} \n"
+			obsPlanNodes.each{HashMap<DDVariable,Integer> observation, BeliefNode nextNode ->
+				str += "  $observation : ${nextNode.hashCode()} ${nextNode.alpha.hashCode()}\n"
+			}
+			
+			return str;
+		}
+	}
 	
 }

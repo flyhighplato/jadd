@@ -31,7 +31,7 @@ class TagProblemSimulator {
 	
 	private String filePath = System.getProperty("user.dir") + "/experiments/tagproblem/runs/" +  new SimpleDateFormat("MM-dd-yy hh.mm.ss.SS a").format(new Date())
 	
-	public void simulate(TagProblem problem, Policy pol, int numTrials, int numSteps) {
+	public void simulate(TagProblem problem, Policy pol1, Policy pol2, int numTrials, int numSteps) {
 		
 		new File(System.getProperty("user.dir") + "/experiments").mkdir()
 		new File(System.getProperty("user.dir") + "/experiments/tagproblem").mkdir()
@@ -39,24 +39,47 @@ class TagProblemSimulator {
 		new File(filePath).mkdir()
 		new File(filePath + "/policy").mkdir()
 		
-		if(pol instanceof AlphaVectorPolicy) {
+		if(pol1 instanceof AlphaVectorPolicy) {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(filePath + "/policy/runPolicy.policy",false));
-			AlphaVectorPolicyWriter policyWriter = new AlphaVectorPolicyWriter(pol);
+			AlphaVectorPolicyWriter policyWriter = new AlphaVectorPolicyWriter(pol1);
 			policyWriter.write(writer);
 			writer.flush();
 			writer.close();
 		}
 		
+		HashMap<HashMap<DDVariable,Integer>, Long> actNumberValue = [:]
+		HashMap<HashMap<DDVariable,Integer>, Long> obsNumberValue = [:]
+		
+		long val = 0;
+		problem.getPOMDP().getObservationSpace().each{ HashMap<DDVariable,Integer> obs ->
+			obsNumberValue[obs] = val;
+			val++;
+		}
+		
+		val = 0;
+		problem.getPOMDP().getActionSpace().each{ HashMap<DDVariable,Integer> act ->
+			actNumberValue[act] = val;
+			val++;
+		}
+		
+		BufferedWriter traceWriter = new BufferedWriter(new FileWriter(filePath + "/trace.trace"))
+		
+		
+		
 		int numColocations = 0;
 		int totalColocations = 0;
 		
+		
 		numTrials.times { trialIx ->
 			
+			ArrayList<HashMap<DDVariable,Integer>> actions = [];
+			ArrayList<HashMap<DDVariable,Integer>> observations = [];
 			
 			BufferedWriter fileWriter = new BufferedWriter(new FileWriter(filePath + "/" + (trialIx+1) + ".trial"))
 			
-			TagAgent agent1 = new TagAgent(problem.getPOMDP(),pol)
-			TagAgent agent2 = new TagAgent(problem.getPOMDP(),pol)
+			
+			TagAgent agent1 = new TagAgent(problem.getPOMDP(),pol1)
+			TagAgent agent2 = new TagAgent(problem.getPOMDP(),pol2)
 			TagWumpus wumpus = new TagWumpus(problem.getPOMDP())
 			TagGrid grid = new TagGrid(5,5, agent1, agent2, wumpus)
 			
@@ -121,8 +144,11 @@ class TagProblemSimulator {
 				strInfo += "\tColocations: $numColocations \n"
 				
 				
-				HashMap<DDVariable,Integer> action1 = pol.getAction(agent1.currBelief);
-				HashMap<DDVariable,Integer> action2 = pol.getAction(agent2.currBelief);
+				HashMap<DDVariable,Integer> action1 = pol1.getAction(agent1.currBelief);
+				HashMap<DDVariable,Integer> action2 = pol2.getAction(agent2.currBelief);
+				
+				assert actNumberValue[action1]!=null
+				actions << actNumberValue[action1];
 				
 				strInfo += "\n"
 				strInfo += "\tTaking Action\n"
@@ -181,6 +207,11 @@ class TagProblemSimulator {
 				HashMap<DDVariable,Integer> obs1 = sampleSpacePoint(problem.getPOMDP().getObservations(), restrObsFn1);
 				HashMap<DDVariable,Integer> obs2 = sampleSpacePoint(problem.getPOMDP().getObservations(), restrObsFn2);
 				
+				
+				
+				assert obsNumberValue[obs1]!=null
+				observations << obsNumberValue[obs1];
+				
 				strInfo += "\n"
 				strInfo += "\tWill Get Observation\n"
 				strInfo += "\t===========\n"
@@ -225,10 +256,13 @@ class TagProblemSimulator {
 			fileWriter.flush();
 			fileWriter.close();
 			
-			
+			traceWriter.write(actions.join(",") + "\n");
+			traceWriter.write(observations.join(",") + "\n\n");
+			traceWriter.flush();
 			
 		}
 		
+		traceWriter.close();
 		BufferedWriter fileWriter = new BufferedWriter(new FileWriter(filePath + "/runSummary.summary"))
 		
 		String summary = "Total colocations: $totalColocations \n"
