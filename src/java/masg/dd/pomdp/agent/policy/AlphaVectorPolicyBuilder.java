@@ -37,6 +37,8 @@ public class AlphaVectorPolicyBuilder {
 		this.p = p;
 	}
 	
+	
+	
 	public AlphaVectorPolicy buildPureStrategyAlphas() {
 		ArrayList<DDVariable> qFnVars = new ArrayList<DDVariable>();
 		qFnVars.addAll(p.getStates());
@@ -71,7 +73,21 @@ public class AlphaVectorPolicyBuilder {
 			
 			System.out.println(DDBuilder.findMaxLeaf(actionAlpha.getFunction()));
 			System.out.println(DDBuilder.findMaxLeaf(actionAlpha.multiply(-1.0f).getFunction()));
-			bestAlphas.add(new BeliefAlphaVector(actSpacePt, actionAlpha, currBel.toProbabilityDD()));
+			
+			BeliefAlphaVector alpha = new BeliefAlphaVector(actSpacePt, actionAlpha, currBel.toProbabilityDD());
+			
+			
+			boolean dominated = false;
+			for(BeliefAlphaVector oldAlpha:bestAlphas) {
+				if(DDBuilder.findMaxLeaf(alpha.getValueFunction().minus(oldAlpha.getValueFunction()).getFunction()).getValue()<tolerance) {
+					dominated = true;
+					break;
+				}
+			}
+			
+			if(!dominated) {
+				bestAlphas.add(alpha);
+			}
 		}
 		
 		return new AlphaVectorPolicy(bestAlphas);
@@ -161,7 +177,10 @@ public class AlphaVectorPolicyBuilder {
 		System.out.println("Took " + ( new Date().getTime() - startTime) + " milliseconds");
 		
 		double bestImprovement = 1.0d;
-		for(int i=0;i<numIterations && bestImprovement>0.001d && bestAlphas.size()<numIterations;++i){
+		int numImprovements = 1;
+		for(int i=0;i<numIterations && numImprovements>0;++i){
+			numImprovements = 0;
+			
 			System.out.println("Iteration #" + i);
 			
 			bestImprovement = 0.001d;
@@ -205,9 +224,11 @@ public class AlphaVectorPolicyBuilder {
 						}
 						
 						if(!dominated) {
+							
 							bestAlphas.add(newAlpha);
 							beliefAlphas = updateBeliefValues(beliefAlphas, newAlpha, beliefsTemp);
 							System.out.println("Num alphas:" + bestAlphas.size());
+							numImprovements++;
 						}
 						
 					}
@@ -250,6 +271,8 @@ public class AlphaVectorPolicyBuilder {
 		final private List<BeliefAlphaVector> alphas;
 		final private Belief b;
 		
+		final private HashMap<HashMap<DDVariable, Integer>,BeliefAlphaVector> conditionalPlans = new HashMap<HashMap<DDVariable, Integer>,BeliefAlphaVector>();
+		
 		public BeliefBackup(Belief b, List<BeliefAlphaVector> alphas) {
 			this.b = b;
 			this.alphas = Collections.unmodifiableList(alphas);
@@ -257,7 +280,7 @@ public class AlphaVectorPolicyBuilder {
 		
 		@Override
 		public void run() {
-			HashMap<HashMap<DDVariable, Integer>,BeliefAlphaVector> conditionalPlans = new HashMap<HashMap<DDVariable, Integer>,BeliefAlphaVector>();
+			
 			HashMap<DDVariable,Integer> bestAct = null;
 			double bestActValue = -Double.MAX_VALUE;
 			
