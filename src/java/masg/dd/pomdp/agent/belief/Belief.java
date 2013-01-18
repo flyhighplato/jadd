@@ -60,13 +60,6 @@ public class Belief {
 					nextBelief = nextBelief.multiply(beliefFn);
 					nextBelief = nextBelief.multiply(tempRestrObsFn);
 					
-					//TODO: Remove this debug code
-					/*if(nextBelief==null) {
-						
-						nextBelief =  p.getTransitionFunction(actSpacePt);
-						nextBelief = nextBelief.multiply(beliefFn);
-						nextBelief = nextBelief.multiply(tempRestrObsFn);
-					}*/
 					nextBelief = nextBelief.normalize();
 					nextBelief = nextBelief.unprime();
 					
@@ -78,6 +71,10 @@ public class Belief {
 	}
 	
 	public BeliefAlphaVector pickBestAlpha(List<BeliefAlphaVector> alphas) {
+		return pickBestAlpha(alphas,beliefFn);
+	}
+	
+	public static BeliefAlphaVector pickBestAlpha(List<BeliefAlphaVector> alphas, FactoredCondProbDD beliefFn) {
 		double bestVal = -Double.MAX_VALUE;
 		BeliefAlphaVector bestAlpha = null;
 		
@@ -92,7 +89,7 @@ public class Belief {
 				bestAlpha = alpha;
 			}
 		}
-		//System.out.println("action:" + bestAlpha.getAction() + "bestVal:" + bestVal);
+		
 		return bestAlpha;
 	}
 	
