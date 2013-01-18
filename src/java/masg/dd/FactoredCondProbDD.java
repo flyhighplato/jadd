@@ -31,6 +31,12 @@ public class FactoredCondProbDD {
 		init(indepFns);
 	}
 	
+	public FactoredCondProbDD(CondProbDD fn) {
+		ArrayList<CondProbDD> indepFns = new ArrayList<CondProbDD>();
+		indepFns.add(fn);
+		init(indepFns);
+	}
+	
 	private void init(ArrayList<CondProbDD> indepFns) {
 		this.indepFns = new ArrayList<CondProbDD>();
 		this.indepFns.addAll(indepFns);
