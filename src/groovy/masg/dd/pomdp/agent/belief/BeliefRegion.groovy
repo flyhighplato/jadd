@@ -19,15 +19,28 @@ class BeliefRegion {
 		return beliefSamples;
 	}
 	
-	public BeliefRegion(int numSamples, int episodeLength, POMDP p, Policy policy) {
+	public BeliefRegion(int numSamples, int episodeLength, POMDP p, Policy policy, List<Belief> startingBeliefs = []) {
 		this.p = p
 		
-		beliefSamples << new Belief(p, p.getInitialBelief())
-
-			Belief belief = new Belief(p, p.getInitialBelief())
+		if(!startingBeliefs) {
+			sampleStartingWith(new Belief(p, p.getInitialBelief()),numSamples,episodeLength, p, policy);
+		}
+		else {
 			
+			startingBeliefs.each{
+				sampleStartingWith(it,(int)Math.ceil(numSamples/startingBeliefs.size()),episodeLength, p, policy);
+			}
+		}
+	}
+	
+	public sampleStartingWith(Belief initBelief,int numSamples, int episodeLength, POMDP p, Policy policy){
+			beliefSamples << initBelief
+
+			Belief belief = initBelief
+			
+			int samplesTaken = 1;
 			int episodeStep = 0;
-			while(beliefSamples.size()<numSamples) {
+			while(samplesTaken<numSamples) {
 				
 				
 				if(beliefSamples.size()%10==0) {
@@ -35,7 +48,7 @@ class BeliefRegion {
 				}
 				
 				if(episodeStep>=episodeLength) {
-					belief = new Belief(p, p.getInitialBelief())
+					belief = initBelief
 					episodeStep = 0;
 				}
 				
@@ -68,6 +81,7 @@ class BeliefRegion {
 				}
 				
 				if(goodSample) {
+					samplesTaken++;
 					beliefSamples << belief
 				}
 				
