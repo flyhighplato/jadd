@@ -16,7 +16,7 @@ import masg.dd.AlgebraicDD;
 import masg.dd.FactoredCondProbDD;
 import masg.dd.alphavector.BeliefAlphaVector;
 import masg.dd.pomdp.POMDP;
-import masg.dd.pomdp.agent.belief.Belief;
+import masg.dd.pomdp.agent.belief.POMDPBelief;
 import masg.dd.pomdp.agent.belief.BeliefRegion;
 import masg.dd.representation.DDInfo;
 import masg.dd.representation.builder.DDBuilder;
@@ -93,14 +93,14 @@ public class AlphaVectorPolicyBuilder {
 		return new AlphaVectorPolicy(bestAlphas);
 	}
 	
-	private HashMap<Belief,BeliefAlphaVector> updateBeliefValues(HashMap<Belief,BeliefAlphaVector> oldValues, BeliefAlphaVector newAlpha, List<Belief> beliefsTemp) {
+	private HashMap<POMDPBelief,BeliefAlphaVector> updateBeliefValues(HashMap<POMDPBelief,BeliefAlphaVector> oldValues, BeliefAlphaVector newAlpha, List<POMDPBelief> beliefsTemp) {
 		
-		HashMap<Belief,BeliefAlphaVector> newValues = new HashMap<Belief,BeliefAlphaVector>();
+		HashMap<POMDPBelief,BeliefAlphaVector> newValues = new HashMap<POMDPBelief,BeliefAlphaVector>();
 		
-		for(Entry<Belief, BeliefAlphaVector> e:oldValues.entrySet()) {
+		for(Entry<POMDPBelief, BeliefAlphaVector> e:oldValues.entrySet()) {
 
 				BeliefAlphaVector oldAlpha = e.getValue();
-				Belief b = e.getKey();
+				POMDPBelief b = e.getKey();
 				
 				AlgebraicDD oldValueDD = b.getBeliefFunction().multiply(oldAlpha.getValueFunction());
 				AlgebraicDD newValueDD = b.getBeliefFunction().multiply(newAlpha.getValueFunction());
@@ -119,14 +119,14 @@ public class AlphaVectorPolicyBuilder {
 		return newValues;	
 	}
 	
-	private double getMaxImprovement(HashMap<Belief,BeliefAlphaVector> oldValues, BeliefAlphaVector newAlpha) {
+	private double getMaxImprovement(HashMap<POMDPBelief,BeliefAlphaVector> oldValues, BeliefAlphaVector newAlpha) {
 		
 		double maxImprovement = -Double.MAX_VALUE;
 		
-		for(Entry<Belief, BeliefAlphaVector> e:oldValues.entrySet()) {
+		for(Entry<POMDPBelief, BeliefAlphaVector> e:oldValues.entrySet()) {
 
 				BeliefAlphaVector oldAlpha = e.getValue();
-				Belief b = e.getKey();
+				POMDPBelief b = e.getKey();
 						
 				AlgebraicDD oldValueDD = b.getBeliefFunction().multiply(oldAlpha.getValueFunction());
 				AlgebraicDD newValueDD = b.getBeliefFunction().multiply(newAlpha.getValueFunction());
@@ -149,16 +149,16 @@ public class AlphaVectorPolicyBuilder {
 		if(bestAlphas.size()<=0)
 			buildPureStrategyAlphas();
 			
-		List<Belief> beliefs = belRegion.getBeliefSamples();
+		List<POMDPBelief> beliefs = belRegion.getBeliefSamples();
 
 		ArrayList<Future<BeliefGetBestAlpha>> futureBestPicks = new ArrayList<Future<BeliefGetBestAlpha>>();
-		for(Belief belief:beliefs) {
+		for(POMDPBelief belief:beliefs) {
 			BeliefGetBestAlpha getBestAlphaTask = new BeliefGetBestAlpha(belief,bestAlphas);
 			futureBestPicks.add( pool.submit(getBestAlphaTask,getBestAlphaTask) );
 		}
 		
 		long startTime = new Date().getTime();
-		HashMap<Belief,BeliefAlphaVector> beliefAlphas = new HashMap<Belief,BeliefAlphaVector>();
+		HashMap<POMDPBelief,BeliefAlphaVector> beliefAlphas = new HashMap<POMDPBelief,BeliefAlphaVector>();
 		System.out.println("Picking best initial alpha vectors");
 		for(Future<BeliefGetBestAlpha> f:futureBestPicks) {
 			try {
@@ -190,11 +190,11 @@ public class AlphaVectorPolicyBuilder {
 			Random r = new Random();
 			
 			
-			List<Belief> beliefsTemp = new ArrayList<Belief>(beliefs);
+			List<POMDPBelief> beliefsTemp = new ArrayList<POMDPBelief>(beliefs);
 			while(beliefsTemp.size()>0) {
 				
 				int ix = r.nextInt(beliefsTemp.size());
-				Belief belief = beliefsTemp.remove(ix);
+				POMDPBelief belief = beliefsTemp.remove(ix);
 				
 				BeliefAlphaVector oldBestBeliefAlpha = beliefAlphas.get(belief);
 				double oldBeliefValue = belief.getBeliefFunction().multiply(oldBestBeliefAlpha.getValueFunction()).getTotalWeight();
@@ -252,9 +252,9 @@ public class AlphaVectorPolicyBuilder {
 		public BeliefAlphaVector result;
 		
 		final private List<BeliefAlphaVector> alphas;
-		final private Belief b;
+		final private POMDPBelief b;
 		
-		public BeliefGetBestAlpha(Belief b, List<BeliefAlphaVector> alphas) {
+		public BeliefGetBestAlpha(POMDPBelief b, List<BeliefAlphaVector> alphas) {
 			this.b = b;
 			this.alphas = Collections.unmodifiableList(alphas);
 		}
@@ -269,11 +269,11 @@ public class AlphaVectorPolicyBuilder {
 		public BeliefAlphaVector result;
 		
 		final private List<BeliefAlphaVector> alphas;
-		final private Belief b;
+		final private POMDPBelief b;
 		
 		final private HashMap<HashMap<DDVariable, Integer>,BeliefAlphaVector> conditionalPlans = new HashMap<HashMap<DDVariable, Integer>,BeliefAlphaVector>();
 		
-		public BeliefBackup(Belief b, List<BeliefAlphaVector> alphas) {
+		public BeliefBackup(POMDPBelief b, List<BeliefAlphaVector> alphas) {
 			this.b = b;
 			this.alphas = Collections.unmodifiableList(alphas);
 		}

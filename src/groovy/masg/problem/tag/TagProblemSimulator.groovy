@@ -5,6 +5,7 @@ import java.util.Random;
 
 import masg.dd.FactoredCondProbDD
 import masg.dd.ProbDD
+import masg.dd.pomdp.agent.belief.POMDPBelief
 import masg.dd.pomdp.agent.policy.AlphaVectorPolicy
 import masg.dd.pomdp.agent.policy.Policy
 import masg.dd.pomdp.agent.policy.serialization.AlphaVectorPolicyWriter
@@ -31,7 +32,7 @@ class TagProblemSimulator {
 	
 	private String filePath = System.getProperty("user.dir") + "/experiments/tagproblem/runs/" +  new SimpleDateFormat("MM-dd-yy hh.mm.ss.SS a").format(new Date())
 	
-	public void simulate(TagProblem problem, Policy pol1, Policy pol2, int numTrials, int numSteps) {
+	public void simulate(TagProblemModel problem, Policy pol1, Policy pol2, int numTrials, int numSteps) {
 		
 		new File(System.getProperty("user.dir") + "/experiments").mkdir()
 		new File(System.getProperty("user.dir") + "/experiments/tagproblem").mkdir()
@@ -47,25 +48,6 @@ class TagProblemSimulator {
 			writer.close();
 		}
 		
-		HashMap<HashMap<DDVariable,Integer>, Long> actNumberValue = [:]
-		HashMap<HashMap<DDVariable,Integer>, Long> obsNumberValue = [:]
-		
-		long val = 0;
-		problem.getPOMDP().getObservationSpace().each{ HashMap<DDVariable,Integer> obs ->
-			obsNumberValue[obs] = val;
-			val++;
-		}
-		
-		val = 0;
-		problem.getPOMDP().getActionSpace().each{ HashMap<DDVariable,Integer> act ->
-			actNumberValue[act] = val;
-			val++;
-		}
-		
-		BufferedWriter traceWriter = new BufferedWriter(new FileWriter(filePath + "/trace.trace"))
-		
-		
-		
 		int numColocations = 0;
 		int totalColocations = 0;
 		
@@ -78,9 +60,9 @@ class TagProblemSimulator {
 			BufferedWriter fileWriter = new BufferedWriter(new FileWriter(filePath + "/" + (trialIx+1) + ".trial"))
 			
 			
-			TagAgent agent1 = new TagAgent(problem.getPOMDP(),pol1)
-			TagAgent agent2 = new TagAgent(problem.getPOMDP(),pol2)
-			TagWumpus wumpus = new TagWumpus(problem.getPOMDP())
+			TagAgent agent1 = new TagAgent()
+			TagAgent agent2 = new TagAgent()
+			TagWumpus wumpus = new TagWumpus()
 			TagGrid grid = new TagGrid(5,5, agent1, agent2, wumpus)
 			
 			numColocations = 0;
@@ -112,7 +94,6 @@ class TagProblemSimulator {
 				
 				StringWriter sw = new StringWriter()
 				grid.draw(new BufferedWriter(sw))
-				//grid.draw(fileWriter)
 				
 				strInfo += sw.toString() + "\n"
 				
@@ -147,9 +128,6 @@ class TagProblemSimulator {
 				HashMap<DDVariable,Integer> action1 = pol1.getAction(agent1.currBelief);
 				HashMap<DDVariable,Integer> action2 = pol2.getAction(agent2.currBelief);
 				
-				assert actNumberValue[action1]!=null
-				actions << actNumberValue[action1];
-				
 				strInfo += "\n"
 				strInfo += "\tTaking Action\n"
 				strInfo += "\t======\n"
@@ -158,12 +136,12 @@ class TagProblemSimulator {
 				
 				
 				
-				FactoredCondProbDD restrTransFn1 = problem.getPOMDP().getTransitionFunction(action1)
+				FactoredCondProbDD restrTransFn1 = problem.getPOMDP().getTransitionFunction().restrict(action1).restrict(action2)
 				restrTransFn1 = restrTransFn1.restrict(actualStateAgt1)
 				restrTransFn1 = restrTransFn1.normalize();
 				
 				
-				FactoredCondProbDD restrTransFn2 = problem.getPOMDP().getTransitionFunction(action2)
+				FactoredCondProbDD restrTransFn2 = problem.getPOMDP().getTransitionFunction().restrict(action1).restrict(action2)
 				restrTransFn2 = restrTransFn2.restrict(actualStateAgt2)
 				restrTransFn2 = restrTransFn2.normalize();
 				
@@ -196,21 +174,17 @@ class TagProblemSimulator {
 				actualStateNewAg2Primed[w_col.getPrimed()] = wumpus.column
 				
 				
-				FactoredCondProbDD restrObsFn1 = problem.getPOMDP().getObservationFunction().restrict(action1)
+				FactoredCondProbDD restrObsFn1 = problem.getPOMDP().getObservationFunction().restrict(action1).restrict(action2)
 				restrObsFn1 = restrObsFn1.restrict(actualStateNewAg1Primed)
 				restrObsFn1 = restrObsFn1.normalize()
 				
-				FactoredCondProbDD restrObsFn2 = problem.getPOMDP().getObservationFunction().restrict(action2)
+				FactoredCondProbDD restrObsFn2 = problem.getPOMDP().getObservationFunction().restrict(action1).restrict(action2)
 				restrObsFn2 = restrObsFn2.restrict(actualStateNewAg2Primed)
 				restrObsFn2 = restrObsFn2.normalize()
 				
 				HashMap<DDVariable,Integer> obs1 = sampleSpacePoint(problem.getPOMDP().getObservations(), restrObsFn1);
 				HashMap<DDVariable,Integer> obs2 = sampleSpacePoint(problem.getPOMDP().getObservations(), restrObsFn2);
 				
-				
-				
-				assert obsNumberValue[obs1]!=null
-				observations << obsNumberValue[obs1];
 				
 				strInfo += "\n"
 				strInfo += "\tWill Get Observation\n"
@@ -222,20 +196,21 @@ class TagProblemSimulator {
 				
 				fileWriter.write(strInfo)
 				fileWriter.newLine()
-				
-				
-				
-				agent1.currBelief = agent1.currBelief.getNextBelief(action1, obs1)
+
+				if(agent1.currBelief instanceof POMDPBelief) {
+					POMDPBelief b = agent1.currBelief
+					agent1.currBelief = b.getNextBelief(action1, obs1)
+				}
 				agent1.row = actualStateNewAg1Primed[a1_row.getPrimed()]
 				agent1.column = actualStateNewAg1Primed[a1_col.getPrimed()]
 				
-				agent2.currBelief = agent2.currBelief.getNextBelief(action2, obs2)
+				if(agent2.currBelief instanceof POMDPBelief) {
+					POMDPBelief b = agent2.currBelief
+					agent2.currBelief = b.getNextBelief(action2, obs2)
+				}
+				
 				agent2.row = actualStateNewAg2Primed[a1_row.getPrimed()]
 				agent2.column = actualStateNewAg2Primed[a1_col.getPrimed()]
-				
-				
-				
-				
 			}
 			
 			
@@ -255,14 +230,8 @@ class TagProblemSimulator {
 			
 			fileWriter.flush();
 			fileWriter.close();
-			
-			traceWriter.write(actions.join(",") + "\n");
-			traceWriter.write(observations.join(",") + "\n\n");
-			traceWriter.flush();
-			
 		}
 		
-		traceWriter.close();
 		BufferedWriter fileWriter = new BufferedWriter(new FileWriter(filePath + "/runSummary.summary"))
 		
 		String summary = "Total colocations: $totalColocations \n"

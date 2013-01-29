@@ -6,24 +6,24 @@ import masg.dd.AlgebraicDD
 import masg.dd.FactoredCondProbDD;
 import masg.dd.ProbDD;
 import masg.dd.pomdp.POMDP;
-import masg.dd.pomdp.agent.belief.Belief;
+import masg.dd.pomdp.agent.belief.POMDPBelief;
 import masg.dd.pomdp.agent.policy.Policy
 import masg.dd.pomdp.agent.policy.RandomPolicy;
 import masg.dd.variables.DDVariable;
 
 class BeliefRegion {
 	POMDP p
-	ArrayList<Belief> beliefSamples = []
+	ArrayList<POMDPBelief> beliefSamples = []
 	
-	public final List<Belief> getBeliefSamples() {
+	public final List<POMDPBelief> getBeliefSamples() {
 		return beliefSamples;
 	}
 	
-	public BeliefRegion(int numSamples, int episodeLength, POMDP p, Policy policy, List<Belief> startingBeliefs = []) {
+	public BeliefRegion(int numSamples, int episodeLength, POMDP p, Policy policy, List<POMDPBelief> startingBeliefs = []) {
 		this.p = p
 		
 		if(!startingBeliefs) {
-			sampleStartingWith(new Belief(p, p.getInitialBelief()),numSamples,episodeLength, p, policy);
+			sampleStartingWith(new POMDPBelief(p, p.getInitialBelief()),numSamples,episodeLength, p, policy);
 		}
 		else {
 			
@@ -33,10 +33,10 @@ class BeliefRegion {
 		}
 	}
 	
-	public sampleStartingWith(Belief initBelief,int numSamples, int episodeLength, POMDP p, Policy policy){
+	public sampleStartingWith(POMDPBelief initBelief,int numSamples, int episodeLength, POMDP p, Policy policy){
 			beliefSamples << initBelief
 
-			Belief belief = initBelief
+			POMDPBelief belief = initBelief
 			
 			int samplesTaken = 1;
 			int episodeStep = 0;
@@ -63,7 +63,7 @@ class BeliefRegion {
 				ProbDD beliefProbDD = belief.beliefFn.toProbabilityDD()
 				boolean goodSample = true;
 				for(int i=0;i<beliefSamples.size();i++) {
-					Belief beliefOther = beliefSamples.get(i)
+					POMDPBelief beliefOther = beliefSamples.get(i)
 					
 					AlgebraicDD absDiffDD = beliefOther.beliefFn.toProbabilityDD().getFunction().absDiff(beliefProbDD.getFunction())
 					absDiffDD = absDiffDD.multiply(absDiffDD);

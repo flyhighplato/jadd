@@ -2,13 +2,13 @@ package masg.dd.alphavector.serialization
 
 import masg.dd.alphavector.BeliefAlphaVector
 import masg.dd.variables.DDVariableSpace
-import masg.problem.tag.TagProblem
+import masg.problem.tag.TagProblemPOMDP
 import spock.lang.Shared;
 import spock.lang.Specification
 
 class BeliefAlphaVectorSerializationSpec extends Specification {
 	@Shared
-	TagProblem problem = new TagProblem()
+	TagProblemPOMDP problem = new TagProblemPOMDP()
 	
 	def "alpha vector can be written"() {
 		when:

@@ -9,7 +9,7 @@ import masg.dd.AlgebraicDD;
 import masg.dd.FactoredCondProbDD;
 import masg.dd.ProbDD;
 import masg.dd.alphavector.BeliefAlphaVector
-import masg.dd.pomdp.agent.belief.Belief
+import masg.dd.pomdp.agent.belief.POMDPBelief
 import masg.dd.pomdp.agent.belief.BeliefRegion
 import masg.dd.pomdp.agent.policy.AlphaVectorPolicy
 import masg.dd.pomdp.agent.policy.Policy
@@ -20,7 +20,7 @@ import masg.dd.pomdp.agent.policy.serialization.AlphaVectorPolicyReader
 import masg.dd.pomdp.agent.policy.serialization.AlphaVectorPolicyWriter
 import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable
-import masg.problem.tag.TagProblem;
+import masg.problem.tag.TagProblemPOMDP;
 import masg.problem.tag.TagProblemSimulator
 import spock.lang.Shared;
 import spock.lang.Specification
@@ -28,7 +28,7 @@ import spock.lang.Ignore
 class TagProblemSimulatorSpec extends Specification {
 
 	@Shared
-	TagProblem problem = new TagProblem()
+	TagProblemPOMDP problem = new TagProblemPOMDP()
 	
 	int numSamples = 1000
 	int numIterations = 100
@@ -54,7 +54,7 @@ class TagProblemSimulatorSpec extends Specification {
 			BeliefRegion belReg = new BeliefRegion(numSamples, numSteps, problem.getPOMDP(), avPol)
 			
 			avPol.alphaVectors.each{
-				belReg.beliefSamples << new Belief(problem.getPOMDP(),new FactoredCondProbDD(it.witnessPt))
+				belReg.beliefSamples << new POMDPBelief(problem.getPOMDP(),new FactoredCondProbDD(it.witnessPt))
 			}
 			
 			AlphaVectorPolicyBuilder polBuilder = new AlphaVectorPolicyBuilder(problem.getPOMDP())

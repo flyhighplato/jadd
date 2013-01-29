@@ -3,13 +3,13 @@ package masg.dd.pomdp.agent.policy.serialization
 import masg.dd.alphavector.BeliefAlphaVector
 import masg.dd.pomdp.agent.policy.AlphaVectorPolicy
 import masg.dd.variables.DDVariableSpace
-import masg.problem.tag.TagProblem;
+import masg.problem.tag.TagProblemPOMDP;
 import spock.lang.Shared;
 import spock.lang.Specification
 
 class AlphaVectorPolicySerializationSpec extends Specification {
 	@Shared
-	TagProblem problem = new TagProblem()
+	TagProblemPOMDP problem = new TagProblemPOMDP()
 	@Shared
 	BeliefAlphaVector alpha = new BeliefAlphaVector(new DDVariableSpace(problem.getPOMDP().getActions()).iterator().next(), problem.getPOMDP().getRewardFunction(),problem.getPOMDP().getInitialBelief().toProbabilityDD())
 	

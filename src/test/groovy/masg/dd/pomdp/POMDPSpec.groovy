@@ -10,14 +10,14 @@ import masg.dd.pomdp.agent.policy.AlphaVectorPolicyBuilder;
 import masg.dd.pomdp.agent.policy.RandomPolicy;
 import masg.dd.variables.DDVariable;
 import masg.dd.variables.DDVariableSpace;
-import masg.problem.tag.TagProblem;
+import masg.problem.tag.TagProblemPOMDP;
 import spock.lang.Shared;
 import spock.lang.Specification
 import spock.lang.Ignore;
 
 class POMDPSpec extends Specification {
 	@Shared
-	TagProblem problem = new TagProblem()
+	TagProblemPOMDP problem = new TagProblemPOMDP()
 
 	
 	def "POMDP initial belief is correct"() {

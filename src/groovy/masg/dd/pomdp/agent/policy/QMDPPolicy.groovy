@@ -4,7 +4,8 @@ import java.util.HashMap;
 import java.util.Map.Entry
 
 import masg.dd.AlgebraicDD;
-import masg.dd.pomdp.agent.belief.Belief;
+import masg.dd.pomdp.agent.belief.Belief
+import masg.dd.pomdp.agent.belief.POMDPBelief;
 import masg.dd.variables.DDVariable;
 
 class QMDPPolicy implements Policy {
@@ -16,6 +17,7 @@ class QMDPPolicy implements Policy {
 	
 	@Override
 	public HashMap<DDVariable, Integer> getAction(Belief belief) {
+		
 		HashMap<DDVariable,Integer> bestAct = null;
 		double bestActVal = -Double.MAX_VALUE;
 		

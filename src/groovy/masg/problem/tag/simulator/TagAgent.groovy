@@ -2,12 +2,12 @@ package masg.problem.tag.simulator;
 
 import masg.dd.pomdp.POMDP;
 import masg.dd.pomdp.agent.belief.Belief
+import masg.dd.pomdp.agent.belief.POMDPBelief
 import masg.dd.pomdp.agent.policy.Policy
 import masg.dd.variables.DDVariable
 
 public class TagAgent {
-	protected POMDP pomdp;
-	protected Policy policy;
+	//protected Policy policy;
 	
 	private Belief currBelief;
 	
@@ -16,13 +16,12 @@ public class TagAgent {
 	public DDVariable rowVar
 	public DDVariable colVar
 	
-	public TagAgent(POMDP pomdp, Policy policy) {
+	public TagAgent(Belief initBelief) {
 		rowVar = new DDVariable('a1_row',5)
 		colVar = new DDVariable('a1_col',5)
 		
-		this.pomdp = pomdp;
-		this.policy = policy;
-		this.currBelief = new Belief(pomdp, pomdp.getInitialBelief());
+		//this.policy = policy;
+		this.currBelief = initBelief;
 		
 		updateState();
 	}

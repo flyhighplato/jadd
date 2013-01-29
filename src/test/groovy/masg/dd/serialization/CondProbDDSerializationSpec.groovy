@@ -1,12 +1,12 @@
 package masg.dd.serialization
 
-import masg.problem.tag.TagProblem
+import masg.problem.tag.TagProblemPOMDP
 import spock.lang.Specification
 import spock.lang.Shared;
 
 class CondProbDDSerializationSpec extends Specification {
 	@Shared
-	TagProblem problem = new TagProblem()
+	TagProblemPOMDP problem = new TagProblemPOMDP()
 	
 	def "conditional probability dd can be written"() {
 		when:

@@ -9,16 +9,16 @@ import masg.dd.ProbDD;
 import masg.dd.context.DDContext;
 import masg.dd.pomdp.POMDP;
 import masg.dd.variables.DDVariable;
-import masg.problem.POMDPProblemBuilder
+import masg.problem.builder.POMDPProblemBuilder;
 
-class TagProblem {
+class TagProblemPOMDP implements TagProblemModel{
 	int gridWidth = 5, gridHeight = 5;
 	
 	POMDP p;
 	
 	boolean directionalObservation = false;
 	
-	public TagProblem() {
+	public TagProblemPOMDP() {
 		
 		POMDPProblemBuilder builder = new POMDPProblemBuilder();
 		
