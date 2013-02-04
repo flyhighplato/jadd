@@ -1,9 +1,9 @@
 package masg.dd.pomdp.agent.policy;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import masg.dd.AlgebraicDD;
+import masg.dd.FactoredCondProbDD;
 import masg.dd.pomdp.POMDP;
 import masg.dd.representation.DDInfo;
 import masg.dd.representation.builder.DDBuilder;
@@ -11,7 +11,6 @@ import masg.dd.variables.DDVariable;
 
 public class QMDPPolicyBuilder {
 	POMDP p;
-	double discount = 0.9f;
 	
 	public QMDPPolicyBuilder(POMDP p) {
 		this.p = p;
@@ -20,11 +19,6 @@ public class QMDPPolicyBuilder {
 	public QMDPPolicy build() {
 		
 		AlgebraicDD valFn = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStatesPrime(),false),0.0f).getRootNode());
-		
-		
-		ArrayList<DDVariable> qFnVars = new ArrayList<DDVariable>();
-		qFnVars.addAll(p.getStates());
-		qFnVars.addAll(p.getStatesPrime());
 		
 		HashMap<HashMap<DDVariable,Integer>, AlgebraicDD> qFn = new HashMap<HashMap<DDVariable,Integer>, AlgebraicDD>();
 		
@@ -36,11 +30,12 @@ public class QMDPPolicyBuilder {
 			DDBuilder ddResult = null;
 			AlgebraicDD valFnNew = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStates(),false),-Double.MAX_VALUE).getRootNode());
 			for(HashMap<DDVariable,Integer> actSpacePt:p.getActionSpace()) {
-				AlgebraicDD futureVal = p.getTransitionFunction(actSpacePt).multiply(valFn);
+				FactoredCondProbDD transFn = p.getTransitionFunction(actSpacePt);
+				AlgebraicDD futureVal = transFn.multiply(valFn);
 				futureVal = futureVal.sumOut(p.getStatesPrime());
-				futureVal = futureVal.multiply(discount);
+				futureVal = futureVal.multiply(p.getDiscount());
 				futureVal = futureVal.plus(p.getRewardFunction(actSpacePt));
-				ddResult = DDBuilder.approximate(futureVal.getFunction(), bellmanError * (1.0d-discount)/2.0d);
+				ddResult = DDBuilder.approximate(futureVal.getFunction(), bellmanError * (1.0d-p.getDiscount())/2.0d);
 				futureVal = new AlgebraicDD(ddResult.getRootNode());
 				System.out.println("computed action:" + actSpacePt);
 				

@@ -5,6 +5,7 @@ import java.util.HashMap;
 
 import masg.dd.alphavector.BeliefAlphaVector;
 import masg.dd.pomdp.agent.belief.Belief;
+import masg.dd.pomdp.agent.belief.POMDPBelief;
 import masg.dd.variables.DDVariable;
 
 public class AlphaVectorPolicy implements Policy {
@@ -21,6 +22,11 @@ public class AlphaVectorPolicy implements Policy {
 	
 	@Override
 	public HashMap<DDVariable, Integer> getAction(Belief belief) {
-		return belief.pickBestAlpha(alphaVectors).getAction();
+		
+		if(belief instanceof POMDPBelief) {
+			return ((POMDPBelief) belief).pickBestAlpha(alphaVectors).getAction();
+		}
+		
+		return null;
 	}
 }

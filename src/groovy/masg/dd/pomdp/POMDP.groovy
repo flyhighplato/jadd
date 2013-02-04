@@ -45,6 +45,10 @@ class POMDP extends AbstractPOMDP {
 		
 	}
 	
+	public double getDiscount() {
+		return 0.85d;
+	}
+	
 	
 	public final AlgebraicDD getRewardFunction(HashMap<DDVariable,Integer> actSpacePt) {
 		return actRestrRewFn[actSpacePt];

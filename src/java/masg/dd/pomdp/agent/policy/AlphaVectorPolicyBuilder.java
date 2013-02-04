@@ -24,7 +24,6 @@ import masg.dd.variables.DDVariable;
 
 
 public class AlphaVectorPolicyBuilder {
-	double discFactor = 0.9f;
 	double tolerance = 0.00001f;
 	
 	ArrayList<BeliefAlphaVector> bestAlphas = new ArrayList<BeliefAlphaVector>();
@@ -59,9 +58,9 @@ public class AlphaVectorPolicyBuilder {
 				AlgebraicDD actionAlphaNew = p.getTransitionFunction(actSpacePt).multiply(actionAlpha);
 				
 				actionAlphaNew = actionAlphaNew.sumOut(p.getStatesPrime());
-				actionAlphaNew = actionAlphaNew.multiply(discFactor);
+				actionAlphaNew = actionAlphaNew.multiply(p.getDiscount());
 				
-				actionAlphaNew = new AlgebraicDD(DDBuilder.approximate(actionAlphaNew.getFunction(), bellmanError * (1.0d-discFactor)/2.0d).getRootNode());
+				actionAlphaNew = new AlgebraicDD(DDBuilder.approximate(actionAlphaNew.getFunction(), bellmanError * (1.0d-p.getDiscount())/2.0d).getRootNode());
 				
 				actionAlphaNew = actionAlphaNew.plus(p.getRewardFunction(actSpacePt));
 				
@@ -310,7 +309,7 @@ public class AlphaVectorPolicyBuilder {
 							
 						}
 						
-						actValue += discFactor*obsProb*bestObsValue;
+						actValue += p.getDiscount()*obsProb*bestObsValue;
 					}
 				}
 				
@@ -326,7 +325,7 @@ public class AlphaVectorPolicyBuilder {
 				HashMap<DDVariable, Integer> obs = cp.getKey();
 				BeliefAlphaVector alpha = cp.getValue();
 				double obsProb = b.getObservationProbabilities(bestAct).get(obs);
-				nextValFn = nextValFn.plus(alpha.getValueFunction().multiply(obsProb*discFactor));
+				nextValFn = nextValFn.plus(alpha.getValueFunction().multiply(obsProb*p.getDiscount()));
 				
 			}
 			
