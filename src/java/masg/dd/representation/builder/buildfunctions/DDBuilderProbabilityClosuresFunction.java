@@ -5,6 +5,7 @@ import groovy.lang.Closure;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import masg.dd.representation.DDLeaf;
 import masg.dd.variables.DDVariable;
 
 public class DDBuilderProbabilityClosuresFunction implements DDBuilderFunction {
@@ -16,7 +17,7 @@ public class DDBuilderProbabilityClosuresFunction implements DDBuilderFunction {
 	}
 	
 	@Override
-	public Double invoke(HashMap<DDVariable, Integer> varValues) {
+	public DDLeaf invoke(HashMap<DDVariable, Integer> varValues) {
 		HashMap<String,Integer> args = new HashMap<String,Integer>();
 		for(Entry<DDVariable,Integer> e:varValues.entrySet()) {
 			args.put(e.getKey().getName(), e.getValue());
@@ -30,6 +31,6 @@ public class DDBuilderProbabilityClosuresFunction implements DDBuilderFunction {
 			}
 		}
 		
-		return val;
+		return new DDLeaf(null,val);
 	}
 }

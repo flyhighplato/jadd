@@ -1,5 +1,7 @@
 package masg.dd.operations;
 
+import masg.dd.representation.DDLeaf;
+
 public class ConstantAdditionOperation implements UnaryOperation {
 
 	final double constant;
@@ -8,8 +10,8 @@ public class ConstantAdditionOperation implements UnaryOperation {
 	}
 	
 	@Override
-	public double invoke(Double val1) {
-		return val1 + constant;
+	public DDLeaf invoke(Double val1) {
+		return new DDLeaf(null,val1 + constant);
 	}
 
 }

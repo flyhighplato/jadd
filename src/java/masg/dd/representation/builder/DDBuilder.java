@@ -33,7 +33,7 @@ import masg.dd.variables.DDVariable;
 
 public class DDBuilder {
 	
-	HashMap<Double, DDLeaf> leaves = new HashMap<Double, DDLeaf>();
+	HashMap<Double, ArrayList<DDLeaf>> leaves = new HashMap<Double, ArrayList<DDLeaf>>();
 	HashMap<DDVariable, ArrayList< HashMap<DDElement, HashSet<DDNode>> > >  nodes = new HashMap<DDVariable, ArrayList< HashMap<DDElement, HashSet<DDNode>> > >();
 	
 	BaseDDElement rootNode = null;
@@ -76,6 +76,12 @@ public class DDBuilder {
 	public static DDBuilder build(DDInfo info, Closure<Double> c) {
 		DDBuilder dd = new DDBuilder(info);
 		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.getDDInfo().getVariables(), new DDBuilderClosureFunction(c));
+		return dd;
+	}
+	
+	public static DDBuilder build(DDInfo info, DDBuilderFunction fn) {
+		DDBuilder dd = new DDBuilder(info);
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.getDDInfo().getVariables(), fn);
 		return dd;
 	}
 	
@@ -222,12 +228,14 @@ public class DDBuilder {
 	public static DDLeaf findMaxLeaf(DDBuilder tdd) {
 		DDLeaf res = null;
 				
-		for(DDLeaf l:tdd.leaves.values()) {
-			if(res == null) {
-				res = l;
-			}
-			else if(l.getValue()>res.getValue()) {
-				res = l;
+		for(ArrayList<DDLeaf> leafList:tdd.leaves.values()) {
+			for(DDLeaf l:leafList) {
+				if(res == null) {
+					res = l;
+				}
+				else if(l.getValue()>res.getValue()) {
+					res = l;
+				}
 			}
 		}
 		
@@ -253,12 +261,27 @@ public class DDBuilder {
 		return info;
 	}
 	
-	protected DDLeaf makeLeaf(Double value) {
-		DDLeaf l = leaves.get(value);
+	protected DDLeaf makeLeaf(DDLeaf likeThisLeaf) {
+		ArrayList<DDLeaf> leafList = leaves.get(likeThisLeaf.getValue());
+		
+		DDLeaf l = null;
+		
+		if(leafList != null) {
+			for(DDLeaf candidateLeaf:leafList) {
+				if(candidateLeaf.equals(likeThisLeaf)) {
+					l = candidateLeaf;
+					break;
+				}
+			}
+		}
 		
 		if(l==null) {
-			l = new DDLeaf(getDDInfo(),value);
-			leaves.put(value, l);
+			l = new DDLeaf(getDDInfo(),likeThisLeaf.getValue());
+			
+			if(leaves.get(likeThisLeaf.getValue()) == null) {
+				leaves.put(likeThisLeaf.getValue(),new ArrayList<DDLeaf>());
+			}
+			leaves.get(l.getValue()).add(l);
 		}
 		
 		return l;
@@ -345,7 +368,7 @@ public class DDBuilder {
 		
 		if(el instanceof DDLeaf) {
 			DDLeaf l = (DDLeaf) el;
-			DDLeaf lNew = makeLeaf(l.getValue());
+			DDLeaf lNew = makeLeaf(l);
 			
 			int findIx = Collections.binarySearch(newLeaves,lNew);
 			
@@ -480,7 +503,7 @@ public class DDBuilder {
 			DDElement result = applyOperation(el, new ConstantMultiplicationOperation(multiplier), new HashMap<DDElement,DDElement>());
 			
 			if(result instanceof DDLeaf) {
-				result = makeLeaf(((DDLeaf) result).getValue());
+				result = makeLeaf((DDLeaf) result);
 			}
 			else if(result instanceof DDNode) {
 				if(subtreeElimVars.size()>1) {
@@ -513,7 +536,7 @@ public class DDBuilder {
 				}
 				
 				if(result instanceof DDLeaf) {
-					result = makeLeaf(((DDLeaf) result).getValue());
+					result = makeLeaf((DDLeaf) result);
 				}
 				
 				applyCache.put(el, result);
@@ -602,7 +625,7 @@ public class DDBuilder {
 			DDLeaf l1 = (DDLeaf) el1;
 			DDLeaf l2 = (DDLeaf) el2;
 			
-			DDLeaf lNew = makeLeaf(op.invoke(l1.getValue(), l2.getValue()));
+			DDLeaf lNew = makeLeaf(op.invoke(l1, l2));
 			applyCache.get(el1).put(el2, lNew);
 			return lNew;
 		}

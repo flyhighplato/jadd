@@ -2,6 +2,7 @@ package masg.dd.representation.builder.buildfunctions;
 
 import java.util.HashMap;
 
+import masg.dd.representation.DDLeaf;
 import masg.dd.variables.DDVariable;
 
 public class DDBuilderConstantFunction implements DDBuilderFunction {
@@ -12,8 +13,8 @@ public class DDBuilderConstantFunction implements DDBuilderFunction {
 	}
 	
 	@Override
-	public Double invoke(HashMap<DDVariable, Integer> varValues) {
-		return val;
+	public DDLeaf invoke(HashMap<DDVariable, Integer> varValues) {
+		return new DDLeaf(null,val);
 	}
 
 }

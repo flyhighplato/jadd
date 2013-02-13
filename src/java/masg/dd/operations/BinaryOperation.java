@@ -1,5 +1,7 @@
 package masg.dd.operations;
 
+import masg.dd.representation.DDLeaf;
+
 public interface BinaryOperation {
-	public double invoke(Double val1, Double val2);
+	public DDLeaf invoke(DDLeaf val1, DDLeaf val2);
 }

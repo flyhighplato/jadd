@@ -3,6 +3,7 @@ package masg.dd.representation.builder.buildfunctions;
 import java.util.HashMap;
 
 import masg.dd.representation.DDElement;
+import masg.dd.representation.DDLeaf;
 import masg.dd.variables.DDVariable;
 
 public class DDBuilderRestrictFunction implements DDBuilderFunction {
@@ -16,13 +17,13 @@ public class DDBuilderRestrictFunction implements DDBuilderFunction {
 	}
 	
 	@Override
-	public Double invoke(HashMap<DDVariable, Integer> varValues) {
+	public DDLeaf invoke(HashMap<DDVariable, Integer> varValues) {
 		
 		HashMap<DDVariable,Integer> varValuesAll = new HashMap<DDVariable,Integer>();
 		varValuesAll.putAll(varValues);
 		varValuesAll.putAll(restrictVarValues);
 		
-		return dag.getValue(varValuesAll);
+		return new DDLeaf(null, dag.getValue(varValuesAll));
 	}
 
 	

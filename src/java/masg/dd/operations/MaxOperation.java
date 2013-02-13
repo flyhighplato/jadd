@@ -1,10 +1,12 @@
 package masg.dd.operations;
 
+import masg.dd.representation.DDLeaf;
+
 public class MaxOperation implements BinaryOperation {
 
 	@Override
-	public double invoke(Double val1, Double val2) {
-		return Math.max(val1, val2);
+	public DDLeaf invoke(DDLeaf val1, DDLeaf val2) {
+		return new DDLeaf(null,Math.max(val1.getValue(), val2.getValue()));
 	}
 
 }

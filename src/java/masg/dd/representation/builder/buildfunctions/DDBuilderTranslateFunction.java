@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 
 import masg.dd.representation.DDElement;
+import masg.dd.representation.DDLeaf;
 import masg.dd.variables.DDVariable;
 
 public class DDBuilderTranslateFunction implements DDBuilderFunction {
@@ -16,14 +17,14 @@ public class DDBuilderTranslateFunction implements DDBuilderFunction {
 	}
 	
 	@Override
-	public Double invoke(HashMap<DDVariable, Integer> varValues) {
+	public DDLeaf invoke(HashMap<DDVariable, Integer> varValues) {
 		HashMap<DDVariable, Integer> varValuesNew = new HashMap<DDVariable, Integer>();
 		
 		for(Entry<DDVariable, Integer> e: varValues.entrySet()) {
 			varValuesNew.put(varMap.get(e.getKey()), e.getValue());
 		}
 		
-		return dag.getValue(varValuesNew);
+		return new DDLeaf(null, dag.getValue(varValuesNew));
 	}
 
 }

@@ -1,12 +1,14 @@
 package masg.dd.operations;
 
+import masg.dd.representation.DDLeaf;
+
 public class DivisionOperation implements BinaryOperation {
 
 	@Override
-	public double invoke(Double val1, Double val2) {
-		if(val1==0)
-			return 0.0f;
-		return val1/val2;
+	public DDLeaf invoke(DDLeaf val1, DDLeaf val2) {
+		if(val1.getValue()==0)
+			return new DDLeaf(null,0.0f);
+		return new DDLeaf(null,val1.getValue()/val2.getValue());
 	}
 
 }

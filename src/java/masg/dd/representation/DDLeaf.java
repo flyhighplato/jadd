@@ -7,7 +7,7 @@ import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
 
 public class DDLeaf extends BaseDDElement implements Comparable<DDLeaf> {
-	private Double value;
+	protected Double value;
 	private DDInfo info;
 	
 	public DDLeaf(DDInfo info, double value) {
@@ -29,7 +29,7 @@ public class DDLeaf extends BaseDDElement implements Comparable<DDLeaf> {
 		if(o instanceof DDLeaf) {
 			DDLeaf otherLeaf = (DDLeaf) o;
 			
-			return Math.abs(otherLeaf.value - value)<Double.MIN_VALUE;
+			return Math.abs(otherLeaf.value - value) < Double.MIN_VALUE;
 		}
 		
 		return false;
