@@ -20,6 +20,7 @@ import masg.dd.operations.UnaryOperation;
 import masg.dd.representation.BaseDDElement;
 import masg.dd.representation.DDElement;
 import masg.dd.representation.DDInfo;
+import masg.dd.representation.DDInteractiveLeaf;
 import masg.dd.representation.DDLeaf;
 import masg.dd.representation.DDNode;
 import masg.dd.representation.builder.buildfunctions.DDBuilderClosureFunction;
@@ -276,8 +277,14 @@ public class DDBuilder {
 		}
 		
 		if(l==null) {
-			l = new DDLeaf(getDDInfo(),likeThisLeaf.getValue());
-			
+			if(likeThisLeaf instanceof DDInteractiveLeaf) {
+				DDInteractiveLeaf il = (DDInteractiveLeaf) likeThisLeaf;
+				
+				l = new DDInteractiveLeaf(getDDInfo(),il.getValue(),il.getFunctionDistribution());
+			}
+			else {
+				l = new DDLeaf(getDDInfo(),likeThisLeaf.getValue());
+			}
 			if(leaves.get(likeThisLeaf.getValue()) == null) {
 				leaves.put(likeThisLeaf.getValue(),new ArrayList<DDLeaf>());
 			}
@@ -710,7 +717,7 @@ public class DDBuilder {
 	}
 	
 	
-	public static String toString(DDElement el, HashSet<Long> processed) {
+	public static String toString(DDElement el, HashSet<Long> processed, String labelPrefix) {
 		String str = "";
 		
 		if(processed.contains(el.getId())) {
@@ -723,7 +730,8 @@ public class DDBuilder {
 		if(el instanceof DDNode) {
 			DDNode n = (DDNode) el;
 			
-			String parentLabel = "	\"" + n.getKey() + "\"";
+			String parentUniqLabel = "	\""  + labelPrefix + n.getKey() + "\"";
+			String parentCommonLabel = n.getVariable().getName();
 			
 			HashMap<DDElement,HashSet<Integer>> childrenPaths = new HashMap<DDElement,HashSet<Integer>>();
 			for(int i=0;i<n.getChildren().length;i++) {
@@ -740,27 +748,56 @@ public class DDBuilder {
 			for(Entry<DDElement, HashSet<Integer>> e:childrenPaths.entrySet()) {
 				DDElement child = e.getKey();
 				
-				String childLabel = "";
+				String childLabel = "" + labelPrefix;
 				
-				if(child instanceof DDNode) {
-					DDNode nChild = (DDNode) child;
-					childLabel = nChild.getKey();
-				}
-				else if (child instanceof DDLeaf) {
-					DDLeaf lChild = (DDLeaf) child;
+				str += parentUniqLabel + " [label=\"" + parentCommonLabel + "\"];\n";
+				if (child instanceof DDInteractiveLeaf) {
+					DDInteractiveLeaf lChild = (DDInteractiveLeaf) child;
 					childLabel = lChild.getId() + ":" + lChild.getValue();
+					
+					str += parentUniqLabel + " -> \"dummy_" + lChild.getId() + "\" [ lhead=\"cluster_" + lChild.getId() + "\",label = \"" + e.getValue() + "\" ];\n";
 				}
-				
-				str += parentLabel + " -> \"" + childLabel + "\" [ label = \"" + e.getValue() + "\" ];\n";
-				
-				if(child instanceof DDNode) {
-					str += toString(child,processed);
+				else {
+					if(child instanceof DDNode) {
+						DDNode nChild = (DDNode) child;
+						childLabel = nChild.getKey();
+					}
+					else if (child instanceof DDLeaf) {
+						DDLeaf lChild = (DDLeaf) child;
+						childLabel = lChild.getId() + ":" + lChild.getValue();
+					}
+					
+					
+					str += parentUniqLabel + " -> \"" + childLabel + "\" [ label = \"" + e.getValue() + "\" ];\n";
+				}
+				if(child instanceof DDNode || child instanceof DDInteractiveLeaf) {
+					str += toString(child,processed,labelPrefix);
 				}
 			}
 		}
+		else if (el instanceof DDInteractiveLeaf) {
+			DDInteractiveLeaf l = (DDInteractiveLeaf) el;
+			
+			str += "	subgraph \"cluster_" + l.getId() + "\" { \n";
+			str += " 		label=\"" + l.getValue() + "\";\n";
+			str += "		\"dummy_" + l.getId() + "\" [style=invisible];\n";
+			
+			int clusternum = 0;
+			for(Entry<DDElement, Double> e:l.getFunctionDistribution().entrySet()) {
+				
+				str += "		subgraph \"cluster_" + l.getId() + "_" + clusternum + "\" { \n";
+				str += " 			label=\"" + e.getValue() + "\";\n";
+				str += "			" + toString(e.getKey(),new HashSet<Long>(),l.getId() + "_" + clusternum + "_" + labelPrefix);
+				str += "		}\n";
+				clusternum++;
+			}
+			
+			str += "	}\n";
+			
+		}
 		else if (el instanceof DDLeaf) {
 			DDLeaf l = (DDLeaf) el;
-			str += "	\"" + l.getValue() + "\"\n";
+			str += "	\"" + labelPrefix + l.getId() + ":" + l.getValue() + "\" [label=\"" + l.getValue() + "\"]\n";
 		}
 		
 		
@@ -772,8 +809,9 @@ public class DDBuilder {
 		str += "digraph add {\n";
 		str += "	rankdir=LR;\n";
 		str += "	node [shape = circle];\n";
-
-		str += toString(el, new HashSet<Long>());
+		str += "	compound=true;\n";
+		
+		str += toString(el, new HashSet<Long>(),"");
 		
 		str += "}\n";
 		

@@ -192,7 +192,7 @@ public class DDCollection {
 		HashSet<Long> processed =  new HashSet<Long>();
 		
 		for(DDElement el:roots) {
-			str += DDBuilder.toString(el, processed);
+			str += DDBuilder.toString(el, processed,"");
 		}
 		
 		str += "}\n";
