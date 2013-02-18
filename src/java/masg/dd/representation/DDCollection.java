@@ -107,7 +107,7 @@ public class DDCollection {
 		return info;
 	}
 	
-	int round = 10000;
+	int round = 1000000;
 	
 	protected DDLeaf findLeaf(Double value) {
 		

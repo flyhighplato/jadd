@@ -717,7 +717,7 @@ public class DDBuilder {
 	}
 	
 	
-	public static String toString(DDElement el, HashSet<Long> processed, String labelPrefix) {
+	public static String toString(DDElement el, HashSet<Long> processed, final String labelPrefix) {
 		String str = "";
 		
 		if(processed.contains(el.getId())) {
@@ -750,7 +750,19 @@ public class DDBuilder {
 				
 				String childLabel = "" + labelPrefix;
 				
-				str += parentUniqLabel + " [label=\"" + parentCommonLabel + "\"];\n";
+				int colorIx = DDContext.getVariableIndex(n.getVariable()) % 7 + 1;
+				
+				int styleIx = ((DDContext.getVariableIndex(n.getVariable()) - colorIx)/8)%3;
+				
+				String style = "solid";
+				if(styleIx==1) {
+					style = "dashed";
+				}
+				else if(styleIx==2) {
+					style = "dotted";
+				}
+				
+				str += parentUniqLabel + " [label=\"" + parentCommonLabel + "\", penwidth=5, colorscheme = \"dark27\", color = \"" + colorIx + "\", style=\"" + style + "\"];\n";
 				if (child instanceof DDInteractiveLeaf) {
 					DDInteractiveLeaf lChild = (DDInteractiveLeaf) child;
 					childLabel = lChild.getId() + ":" + lChild.getValue();
@@ -760,11 +772,14 @@ public class DDBuilder {
 				else {
 					if(child instanceof DDNode) {
 						DDNode nChild = (DDNode) child;
-						childLabel = nChild.getKey();
+						childLabel += nChild.getKey();
 					}
 					else if (child instanceof DDLeaf) {
 						DDLeaf lChild = (DDLeaf) child;
-						childLabel = lChild.getId() + ":" + lChild.getValue();
+						childLabel += lChild.getId() + ":" + lChild.getValue();
+						
+						str += "\"" + childLabel + "\" [label=\"" + lChild.getValue() + "\", penwidth=1 ];\n";
+						
 					}
 					
 					
@@ -779,6 +794,9 @@ public class DDBuilder {
 			DDInteractiveLeaf l = (DDInteractiveLeaf) el;
 			
 			str += "	subgraph \"cluster_" + l.getId() + "\" { \n";
+			str += "	node  [fontsize=12];\n";
+			str += "	edge  [fontsize=12];\n";
+			str += "	graph [fontsize=12];\n";
 			str += " 		label=\"" + l.getValue() + "\";\n";
 			str += "		\"dummy_" + l.getId() + "\" [style=invisible];\n";
 			

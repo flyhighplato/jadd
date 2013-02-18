@@ -10,6 +10,7 @@ import masg.dd.context.DDContext;
 import masg.dd.pomdp.POMDP;
 import masg.dd.variables.DDVariable;
 import masg.problem.builder.POMDPProblemBuilder;
+import masg.problem.tag.TagProblemModel;
 
 class TagProblemPOMDP implements TagProblemModel{
 	int gridWidth = 5, gridHeight = 5;
