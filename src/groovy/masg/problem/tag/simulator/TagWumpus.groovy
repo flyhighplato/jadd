@@ -12,10 +12,11 @@ public class TagWumpus extends TagAgent {
 	Random random = new Random()
 	
 	public TagWumpus(POMDP pomdp) {
-		super(pomdp, new RandomPolicy(pomdp));
-		
 		rowVar = new DDVariable('w_row',5)
 		colVar = new DDVariable('w_col',5)
+		
+		row = random.nextInt(5)
+		column = random.nextInt(5)
 	}
 	
 	public moveRandomly(int height, int width) {

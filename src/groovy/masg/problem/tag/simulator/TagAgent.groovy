@@ -26,6 +26,10 @@ public class TagAgent {
 		updateState();
 	}
 	
+	protected TagAgent() {
+		
+	}
+	
 	private void updateState(HashMap<DDVariable,Integer> observation) {
 		HashMap<DDVariable,Integer> statePoint = currBelief.sampleCurrentState();
 		row = statePoint.get(rowVar);

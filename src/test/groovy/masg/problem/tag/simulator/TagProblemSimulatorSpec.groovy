@@ -40,18 +40,22 @@ class TagProblemSimulatorSpec extends Specification {
 	
 	TagProblemSimulator simulator = new TagProblemSimulator();
 	
-	@Ignore
 	def "agents are simulated correctly from generated policy"() {
 		when:
 		
 			fileName = "1000_100_100.policy"
 			BufferedReader reader = new BufferedReader(new FileReader(fileName));
 			AlphaVectorPolicyReader policyReader = new AlphaVectorPolicyReader(reader);
-			AlphaVectorPolicy avPol = policyReader.read()
+			AlphaVectorPolicy pol1 = policyReader.read()
+			reader.close()
+			
+			reader = new BufferedReader(new FileReader(fileName));
+			policyReader = new AlphaVectorPolicyReader(reader);
+			AlphaVectorPolicy pol2 = policyReader.read()
 			reader.close()
 		
 			//Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()
-			BeliefRegion belReg = new BeliefRegion(numSamples, numSteps, problem.getPOMDP(), avPol)
+			/*BeliefRegion belReg = new BeliefRegion(numSamples, numSteps, problem.getPOMDP(), avPol)
 			
 			avPol.alphaVectors.each{
 				belReg.beliefSamples << new POMDPBelief(problem.getPOMDP(),new FactoredCondProbDD(it.witnessPt))
@@ -66,13 +70,14 @@ class TagProblemSimulatorSpec extends Specification {
 			AlphaVectorPolicyWriter policyWriter = new AlphaVectorPolicyWriter(pol);
 			policyWriter.write(writer);
 			writer.flush();
-			writer.close();
+			writer.close();*/
+			
 		then:
-			simulator.simulate(problem, pol, pol, numTrials, numSteps);
+			simulator.simulate(problem, pol1, pol2, numTrials, numSteps, [new AlessandroTagSimRecorder()]);
 			
 	}
 	
-	//@Ignore
+	@Ignore
 	def "agents are simulated correctly from policy file"() {
 		when:
 			fileName = "1000_100_100.policy"
