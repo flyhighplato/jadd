@@ -1,4 +1,4 @@
-package masg.problem.tag
+package masg.problem.tag.simulator
 
 import java.text.SimpleDateFormat
 import java.util.Random;
@@ -12,10 +12,7 @@ import masg.dd.pomdp.agent.policy.Policy
 import masg.dd.pomdp.agent.policy.serialization.AlphaVectorPolicyWriter
 import masg.dd.variables.DDVariable
 import masg.dd.variables.DDVariableSpace
-import masg.problem.tag.simulator.TagAgent
-import masg.problem.tag.simulator.TagGrid
-import masg.problem.tag.simulator.TagSimulationRecorder
-import masg.problem.tag.simulator.TagWumpus
+import masg.problem.tag.TagProblemModel;
 
 class TagProblemSimulator {
 	
@@ -79,8 +76,6 @@ class TagProblemSimulator {
 			
 			BufferedWriter fileWriter = new BufferedWriter(new FileWriter(filePath + "/" + (trialIx+1) + ".trial"))
 			
-			
-			
 			TagAgent agent1 = new TagAgent(new POMDPBelief(problem.getPOMDP(),problem.getPOMDP().initialBelief))
 			TagAgent agent2 = new TagAgent(new POMDPBelief(problem.getPOMDP(),problem.getPOMDP().initialBelief))
 			TagWumpus wumpus = new TagWumpus(problem.getPOMDP())
@@ -88,8 +83,7 @@ class TagProblemSimulator {
 			
 			numColocations = 0;
 			numSteps.times {
-				
-				
+
 				HashMap<DDVariable,Integer> actualStateAgt1 = new HashMap<DDVariable,Integer>()
 				actualStateAgt1[a1_row] = agent1.row
 				actualStateAgt1[a1_col] = agent1.column

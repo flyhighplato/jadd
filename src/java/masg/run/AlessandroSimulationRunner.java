@@ -8,8 +8,8 @@ import java.util.ArrayList;
 import masg.dd.pomdp.agent.policy.AlphaVectorPolicy;
 import masg.dd.pomdp.agent.policy.serialization.AlphaVectorPolicyReader;
 import masg.problem.tag.TagProblemPOMDP;
-import masg.problem.tag.TagProblemSimulator;
 import masg.problem.tag.simulator.AlessandroTagSimRecorder;
+import masg.problem.tag.simulator.TagProblemSimulator;
 
 public class AlessandroSimulationRunner {
 

@@ -21,7 +21,6 @@ import masg.dd.pomdp.agent.policy.serialization.AlphaVectorPolicyWriter
 import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable
 import masg.problem.tag.TagProblemPOMDP;
-import masg.problem.tag.TagProblemSimulator
 import spock.lang.Shared;
 import spock.lang.Specification
 import spock.lang.Ignore

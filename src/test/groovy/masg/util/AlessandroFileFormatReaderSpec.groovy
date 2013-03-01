@@ -1,7 +1,7 @@
 package masg.util
 
 import masg.dd.pomdp.agent.policy.FSCPolicy
-import masg.problem.tag.TagProblemSimulator;
+import masg.problem.tag.simulator.TagProblemSimulator;
 import spock.lang.Specification
 
 class AlessandroFileFormatReaderSpec extends Specification {
