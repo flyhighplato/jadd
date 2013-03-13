@@ -14,14 +14,14 @@ public class CondProbDD {
 	
 	private AlgebraicDD fn;
 	
-	public CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, Closure<Double> c) {
+	public CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, int defaultScopeId, Closure<Double> c) {
 		this.condVars.addAll(new HashSet<DDVariable>(condVars));
 		this.uncondVars.addAll(new HashSet<DDVariable>(uncondVars));
 		
 		ArrayList<DDVariable> allVariables = new ArrayList<DDVariable>(this.uncondVars);
 		allVariables.addAll(this.condVars);
 		
-		fn = new AlgebraicDD(allVariables, c, true);
+		fn = new AlgebraicDD(allVariables, defaultScopeId, c, true);
 	}
 	
 	public CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, AlgebraicDD fn) {

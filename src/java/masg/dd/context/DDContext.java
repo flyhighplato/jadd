@@ -10,7 +10,23 @@ public class DDContext {
 	protected DDVariableSpace varSpace = new DDVariableSpace();
 	double tolerance = 0.0001f;
 	
-	public static ArrayList<DDVariable> canonicalVariableOrdering = new ArrayList<DDVariable>();
+	private static ArrayList<DDVariable> canonicalVariableOrdering = new ArrayList<DDVariable>();
+	private static HashMap<DDVariable,Integer> varIndices = null;
+	
+	
+	public static ArrayList<DDVariable> getCanonicalVariableOrdering() {
+		return canonicalVariableOrdering;
+	}
+	
+	public static void setCanonicalVariableOrdering(ArrayList<DDVariable> newVariableOrdering) {
+
+		canonicalVariableOrdering = newVariableOrdering;
+		varIndices = new HashMap<DDVariable,Integer>();
+		
+		for(int i=0;i<canonicalVariableOrdering.size();++i) {
+			varIndices.put(canonicalVariableOrdering.get(i), i);
+		}
+	}
 	
 	protected DDContext() {
 		
@@ -32,15 +48,9 @@ public class DDContext {
 		return varSpace.getVariables();
 	}
 	
-	private static HashMap<DDVariable,Integer> varIndices = null;
 	public static int getVariableIndex(DDVariable v) {
-		if(varIndices==null) {
-			varIndices = new HashMap<DDVariable,Integer>();
-			for(int i=0;i<canonicalVariableOrdering.size();++i) {
-				varIndices.put(canonicalVariableOrdering.get(i), i);
-			}
-		}
-		
 		return varIndices.get(v);
 	}
+	
+
 }

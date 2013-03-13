@@ -13,6 +13,7 @@ import masg.dd.operations.ConstantAdditionOperation;
 import masg.dd.operations.ConstantMultiplicationOperation;
 import masg.dd.operations.DivisionOperation;
 import masg.dd.operations.MaxOperation;
+import masg.dd.operations.MinOperation;
 import masg.dd.operations.MultiplicationOperation;
 import masg.dd.operations.SubtractionOperation;
 import masg.dd.operations.UnaryOperation;
@@ -30,14 +31,14 @@ public class AlgebraicDD {
 		return ruleCollection;
 	}
 	
-	public AlgebraicDD(ArrayList<DDVariable> vars, Closure<Double> c, boolean isMeasure) {
+	public AlgebraicDD(ArrayList<DDVariable> vars, int defaultScopeId, Closure<Double> c, boolean isMeasure) {
 		variables = vars;
-		ruleCollection = DDBuilder.build(new DDInfo(vars,isMeasure), c).getRootNode();
+		ruleCollection = DDBuilder.build(new DDInfo(vars,isMeasure), defaultScopeId, c).getRootNode();
 	}
 	
-	public AlgebraicDD(ArrayList<DDVariable> vars, Closure<Double>... c) {
+	public AlgebraicDD(ArrayList<DDVariable> vars, int defaultScopeId, Closure<Double>... c) {
 		variables = vars;
-		ruleCollection = DDBuilder.build(new DDInfo(vars,true), c).getRootNode();
+		ruleCollection = DDBuilder.build(new DDInfo(vars,true), defaultScopeId, c).getRootNode();
 	}
 	
 	public AlgebraicDD(ArrayList<DDVariable> vars, double val) {
@@ -92,6 +93,10 @@ public class AlgebraicDD {
 	
 	public AlgebraicDD max(AlgebraicDD dd) {
 		return oper(new MaxOperation(),dd);
+	}
+	
+	public AlgebraicDD min(AlgebraicDD dd) {
+		return oper(new MinOperation(),dd);
 	}
 	
 	public AlgebraicDD sumOut(ArrayList<DDVariable> vars) {

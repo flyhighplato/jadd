@@ -16,11 +16,11 @@ import masg.dd.variables.DDVariable;
 public class FactoredCondProbDD {
 	private ArrayList<CondProbDD> indepFns = new ArrayList<CondProbDD>();
 	
-	public FactoredCondProbDD(ArrayList<ArrayList<ArrayList<DDVariable>>> varsLst, List<Closure<Double>> closures) {
+	public FactoredCondProbDD(ArrayList<ArrayList<ArrayList<DDVariable>>> varsLst, int defaultScopeId, List<Closure<Double>> closures) {
 		
 		ArrayList<CondProbDD> indepFns = new ArrayList<CondProbDD>();
 		for(int i=0;i<varsLst.size();++i) {
-			CondProbDD cpdd = new CondProbDD(varsLst.get(i).get(0), varsLst.get(i).get(1), closures.get(i));
+			CondProbDD cpdd = new CondProbDD(varsLst.get(i).get(0), varsLst.get(i).get(1), defaultScopeId, closures.get(i));
 			indepFns.add(cpdd);
 		}
 		

@@ -14,13 +14,17 @@ import masg.problem.builder.POMDPProblemBuilder;
 class TagProblemPOMDP implements TagProblemModel{
 	int gridWidth = 5, gridHeight = 5;
 	
-	POMDP p;
+	POMDP p = null;
+	protected POMDPProblemBuilder builder;
 	
 	boolean directionalObservation = false;
 	
-	public TagProblemPOMDP() {
+	public TagProblemPOMDP(Integer scope = null) {
 		
-		POMDPProblemBuilder builder = new POMDPProblemBuilder();
+		builder = new POMDPProblemBuilder();
+		
+		if(scope!=null)
+			builder.scope = scope
 		
 		builder.addAction("act", 4);
 		
@@ -47,7 +51,7 @@ class TagProblemPOMDP implements TagProblemModel{
 			return 1.0d/Math.pow(gridWidth*gridHeight,3.0d)
 		}
 		
-		builder.setRewardFunction(["w_row","w_col","a1_row","a1_col"], ["act"]) { Map variables ->
+		builder.setRewardFunction(["w_row","w_col","a1_row","a1_col"], []) { Map variables ->
 			int w_row = variables["w_row"]
 			int w_col = variables["w_col"]
 			int a1_row = variables["a1_row"]
@@ -166,7 +170,7 @@ class TagProblemPOMDP implements TagProblemModel{
 		
 		
 		if(directionalObservation) {
-			builder.addObservation(["w_row'","w_col'","a1_row'","a1_col'"], ["act"], ["w_pres"]) { Map variables ->
+			builder.addObservation(["w_row'","w_col'","a1_row'","a1_col'"], [], ["w_pres"]) { Map variables ->
 				int w_row = variables["w_row'"]
 				int w_col = variables["w_col'"]
 				int a1_row = variables["a1_row'"]
@@ -205,7 +209,7 @@ class TagProblemPOMDP implements TagProblemModel{
 			}
 		}
 		else {
-			builder.addObservation(["w_row'","w_col'","a1_row'","a1_col'"], ["act"], ["w_pres"]) { Map variables ->
+			builder.addObservation(["w_row'","w_col'","a1_row'","a1_col'"], [], ["w_pres"]) { Map variables ->
 				int w_row = variables["w_row'"]
 				int w_col = variables["w_col'"]
 				int a1_row = variables["a1_row'"]
@@ -222,7 +226,7 @@ class TagProblemPOMDP implements TagProblemModel{
 			}
 		}
 		
-		builder.addObservation(["a1_col'"], ["act"], ["a1_col_loc"]) { Map variables ->
+		builder.addObservation(["a1_col'"], [], ["a1_col_loc"]) { Map variables ->
 			int a1_col = variables["a1_col'"]
 			int a1_col_loc = variables["a1_col_loc"]
 			
@@ -232,7 +236,7 @@ class TagProblemPOMDP implements TagProblemModel{
 			return 0.0d;
 		}
 		
-		builder.addObservation(["a1_row'"], ["act"], ["a1_row_loc"]) { Map variables ->
+		builder.addObservation(["a1_row'"], [], ["a1_row_loc"]) { Map variables ->
 				
 				int a1_row = variables["a1_row'"]
 				int a1_row_loc = variables["a1_row_loc"]
@@ -243,12 +247,20 @@ class TagProblemPOMDP implements TagProblemModel{
 				return 0.0d;
 			}
 		
-		p = builder.buildPOMDP();
+		
 	}
 	
 	public POMDP getPOMDP() {
+		if(p==null) {
+			p = builder.buildPOMDP();
+		}
 		return p;
 	}
+	
+	public POMDPProblemBuilder getBuilder() {
+		return builder;
+	}
+	
 	
 	Map getPossibleMoves(int col, int row, List acts) {
 		

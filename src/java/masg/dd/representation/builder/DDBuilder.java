@@ -67,21 +67,21 @@ public class DDBuilder {
 		}
 	}
 	
-	public static DDBuilder build(DDInfo info, Closure<Double>... closures) {
+	public static DDBuilder build(DDInfo info, int defaultScopeId, Closure<Double>... closures) {
 		DDBuilder dd = new DDBuilder(info);
-		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.getDDInfo().getVariables(), new DDBuilderProbabilityClosuresFunction(closures));
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderProbabilityClosuresFunction(defaultScopeId, closures));
 		return dd;
 	}
 	
-	public static DDBuilder build(DDInfo info, Closure<Double> c) {
+	public static DDBuilder build(DDInfo info,  int defaultScopeId, Closure<Double> c) {
 		DDBuilder dd = new DDBuilder(info);
-		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.getDDInfo().getVariables(), new DDBuilderClosureFunction(c));
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderClosureFunction(defaultScopeId, c));
 		return dd;
 	}
 	
 	public static DDBuilder build(DDInfo info, double constVal) {
 		DDBuilder dd = new DDBuilder(info);
-		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.getDDInfo().getVariables(), new DDBuilderConstantFunction(constVal));
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderConstantFunction(constVal));
 		return dd;
 	}
 	
@@ -134,7 +134,7 @@ public class DDBuilder {
 		vars = putInCanonicalOrder(vars);
 		
 		DDBuilder dd = new DDBuilder(vars,dag.isMeasure());
-		return dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.getDDInfo().getVariables(), new DDBuilderRestrictFunction(dag,restrictVarValues));
+		return dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderRestrictFunction(dag,restrictVarValues));
 	}
 	
 	public static DDElement eliminate(ArrayList<DDVariable> elimVars, DDElement dag) {
@@ -184,7 +184,7 @@ public class DDBuilder {
 		
 		DDInfo info = new DDInfo(vars, dag.isMeasure());
 		DDBuilder dd = new DDBuilder(info);
-		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.getDDInfo().getVariables(), new DDBuilderTranslateFunction(dag,translation));
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderTranslateFunction(dag,translation));
 		
 		info.updateInfo(vars, dag.isMeasure());
 		return dd;
@@ -203,7 +203,7 @@ public class DDBuilder {
 		
 		DDInfo info = new DDInfo(vars, dag.isMeasure());
 		DDBuilder dd = new DDBuilder(info);
-		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.canonicalVariableOrdering, dd.getDDInfo().getVariables(), new DDBuilderTranslateFunction(dag,translation));
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderTranslateFunction(dag,translation));
 		info.updateInfo(vars, dag.isMeasure());
 		return dd;
 		
@@ -236,8 +236,8 @@ public class DDBuilder {
 	
 	private static ArrayList<DDVariable> putInCanonicalOrder(ArrayList<DDVariable> vars) {
 		ArrayList<DDVariable> retVars = new ArrayList<DDVariable>();
-		for(int i=0;i<DDContext.canonicalVariableOrdering.size();i++) {
-			DDVariable currVar = DDContext.canonicalVariableOrdering.get(i);
+		for(int i=0;i<DDContext.getCanonicalVariableOrdering().size();i++) {
+			DDVariable currVar = DDContext.getCanonicalVariableOrdering().get(i);
 			if(vars.contains(currVar)) {
 				retVars.add(currVar);
 			}

@@ -10,16 +10,28 @@ import masg.dd.variables.DDVariable;
 public class DDBuilderProbabilityClosuresFunction implements DDBuilderFunction {
 
 	Closure<Double>[] closures;
+	int defaultScopeId = 0;
 	
-	public DDBuilderProbabilityClosuresFunction(Closure<Double>... closures) {
+	public DDBuilderProbabilityClosuresFunction(int defaultScopeId, Closure<Double>... closures) {
 		this.closures = closures;
+		this.defaultScopeId = defaultScopeId;
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public Double invoke(HashMap<DDVariable, Integer> varValues) {
-		HashMap<String,Integer> args = new HashMap<String,Integer>();
+		HashMap args = new HashMap();
 		for(Entry<DDVariable,Integer> e:varValues.entrySet()) {
-			args.put(e.getKey().getName(), e.getValue());
+			
+			if(e.getKey().getScope()!=defaultScopeId) {
+				HashMap val = new HashMap();
+				val.put(e.getKey().getName(), e.getValue());
+				args.put(e.getKey().getScope(), val);
+				
+			}
+			else {
+				args.put(e.getKey().getName(), e.getValue());
+			}
 		}
 		
 		double val = 1.0d;

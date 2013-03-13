@@ -20,14 +20,28 @@ public abstract class AbstractMDPProblemBuilder {
 	protected ArrayList<ArrayList<ArrayList<DDVariable>>> oFnParameters = new ArrayList<ArrayList<ArrayList<DDVariable>>>();
 	protected ArrayList<Closure<Double>> oFunctions = new ArrayList<Closure<Double>>();
 	
-	protected Closure<Double> initialBeliefFn = null;
 	
 	protected ArrayList<DDVariable> rFnParameters = new ArrayList<DDVariable>();
 	protected Closure<Double> rFunction = null;
 	
-
+	protected Closure<Double> initialBeliefFn = null;
+	
+	protected int scope = 0;
+	
+	void setScope(int scope) {
+		this.scope = scope;
+	}
+	
+	int getScope() {
+		return scope;
+	}
+	
+	void setInitialBelief(Closure<Double> c) throws Exception {
+		initialBeliefFn = c;
+	}
+	
 	void addAction(String name, int numValues) throws Exception {
-		DDVariable v = new DDVariable(name,numValues);
+		DDVariable v = new DDVariable(scope, name,numValues);
 		if(varExists(v)) {
 			throw new Exception("Variable " + v + " already exists");
 		}
@@ -51,7 +65,7 @@ public abstract class AbstractMDPProblemBuilder {
 	}
 	
 	void addState(String name, int numValues) throws Exception {
-		DDVariable v = new DDVariable(name,numValues);
+		DDVariable v = new DDVariable(scope, name,numValues);
 		if(varExists(v)) {
 			throw new Exception("Variable " + v + " already exists");
 		}
@@ -60,7 +74,7 @@ public abstract class AbstractMDPProblemBuilder {
 	}
 	
 	void addObservation(String name, int numValues) throws Exception {
-		DDVariable v = new DDVariable(name,numValues);
+		DDVariable v = new DDVariable(scope, name,numValues);
 		if(varExists(v)) {
 			throw new Exception("Variable " + v + " already exists");
 		}

@@ -15,9 +15,6 @@ import masg.dd.variables.DDVariable;
 
 public class POMDPProblemBuilder extends AbstractMDPProblemBuilder {
 	
-	void setInitialBelief(Closure<Double> c) throws Exception {
-		initialBeliefFn = c;
-	}
 	
 	void setRewardFunction(List<String> stateVars, List<String> actVars, Closure<Double> c) throws Exception {
 		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(toStateVariableList(stateVars));
@@ -62,16 +59,16 @@ public class POMDPProblemBuilder extends AbstractMDPProblemBuilder {
 		canVars.addAll(stateVariables.values());
 		canVars.addAll(statePrimeVariables.values());
 		
-		DDContext.canonicalVariableOrdering = canVars;
+		DDContext.setCanonicalVariableOrdering(canVars);
 		
-		FactoredCondProbDD tFn = new FactoredCondProbDD(tFnParameters,tFunctions);
-		FactoredCondProbDD oFn = new FactoredCondProbDD(oFnParameters,oFunctions);
-		AlgebraicDD rFn = new AlgebraicDD(rFnParameters,rFunction,false);
+		FactoredCondProbDD tFn = new FactoredCondProbDD(tFnParameters,scope,tFunctions);
+		FactoredCondProbDD oFn = new FactoredCondProbDD(oFnParameters,scope,oFunctions);
+		AlgebraicDD rFn = new AlgebraicDD(rFnParameters,scope,rFunction,false);
 		
 		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(stateVariables.values());
 		
 		ArrayList<CondProbDD> beliefFns = new ArrayList<CondProbDD>();
-		beliefFns.add(new ProbDD(vars, initialBeliefFn));
+		beliefFns.add(new ProbDD(vars, scope, initialBeliefFn));
 		
 		FactoredCondProbDD initBelief = new FactoredCondProbDD(beliefFns);
 		

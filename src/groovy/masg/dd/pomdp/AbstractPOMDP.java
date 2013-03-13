@@ -86,4 +86,12 @@ public abstract class AbstractPOMDP {
 	public final DDVariableSpace getActionSpace() {
 		return actSpace;
 	}
+	
+	public double getDiscount() {
+		return 0.85d;
+	}
+	
+	public double getTolerance() {
+		return 0.0001d;
+	}
 }
