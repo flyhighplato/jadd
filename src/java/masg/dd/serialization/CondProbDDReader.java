@@ -40,7 +40,7 @@ public class CondProbDDReader {
 			String varName = params[0];
 			int valCount = Integer.parseInt(params[1]);
 			
-			condVars.add(new DDVariable(varName,valCount));
+			condVars.add(new DDVariable(0,varName,valCount));
 		}
 		
 		ArrayList<DDVariable> postVars = new ArrayList<DDVariable>();
@@ -55,7 +55,7 @@ public class CondProbDDReader {
 			String varName = params[0];
 			int valCount = Integer.parseInt(params[1]);
 			
-			postVars.add(new DDVariable(varName,valCount));
+			postVars.add(new DDVariable(0,varName,valCount));
 		}
 		
 		return new CondProbDD(condVars,postVars,dd);

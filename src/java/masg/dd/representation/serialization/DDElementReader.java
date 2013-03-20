@@ -52,7 +52,7 @@ public class DDElementReader {
 			String varName = params[1];
 			int valCount = Integer.parseInt(params[2]);
 			
-			DDVariable v = new DDVariable(varName,valCount);
+			DDVariable v = new DDVariable(0,varName,valCount);
 			vars.add(v);
 			varByIndex.put(ix, v);
 			

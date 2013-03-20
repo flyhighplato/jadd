@@ -7,13 +7,6 @@ public class DDVariable {
 	
 	protected final int scope;
 	
-	public DDVariable(String name, int numValues) {
-		this.scope = 0;
-		this.name = name;
-		this.numValues = numValues;		
-		numBits = (int) Math.floor(Math.log(numValues)/Math.log(2) + 1.0f);
-	}
-	
 	public DDVariable(int scope, String name, int numValues) {
 		this.scope = scope;
 		this.name = name;
@@ -63,12 +56,12 @@ public class DDVariable {
 		
 		if(o instanceof DDVariable) {
 			DDVariable otherVar = (DDVariable) o;
-			return otherVar.scope==scope && otherVar.numValues==numValues && otherVar.name.hashCode() == name.hashCode() && otherVar.name.equals(name);
+			return otherVar.scope == scope && otherVar.numValues==numValues && otherVar.name.hashCode() == name.hashCode() && otherVar.name.equals(name);
 		}
 		return false;
 	}
 	
 	public int hashCode() {
-		return name.hashCode() + numValues + scope;
+		return (name.hashCode() + numValues) * (scope+1);
 	}
 }

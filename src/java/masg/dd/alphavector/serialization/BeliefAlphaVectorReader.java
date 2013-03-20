@@ -32,7 +32,7 @@ public class BeliefAlphaVectorReader {
 			String varName = params[0];
 			int valCount = Integer.parseInt(params[1]);
 			
-			DDVariable v = new DDVariable(varName,valCount);
+			DDVariable v = new DDVariable(0,varName,valCount);
 			int valAssigned = Integer.parseInt(params[2]);
 			
 			action.put(v, valAssigned);
