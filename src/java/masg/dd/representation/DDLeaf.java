@@ -36,7 +36,9 @@ public class DDLeaf extends BaseDDElement implements Comparable<DDLeaf> {
 	}
 	
 	public int compareTo(DDLeaf l) {
-		return Double.compare(l.value, value);
+		int temp =  Double.compare(l.value, value);
+		
+		return temp*-1;
 	}
 	
 	public int hashCode() {

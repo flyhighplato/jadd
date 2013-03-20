@@ -203,6 +203,10 @@ public class CondProbDD {
 		
 	}
 	
+	public CondProbDD approximate(double approxFactor) {
+		return new CondProbDD(condVars,uncondVars,fn.approximate(approxFactor));
+	}
+	
 	public String toString() {
 		String str = this.condVars + "\n";
 		str += this.uncondVars + "\n";

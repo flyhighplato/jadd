@@ -257,8 +257,8 @@ public class FactoredCondProbDD {
 					
 					HashSet<DDVariable> unusedPosteriorVariables = new HashSet<DDVariable>(ddOther.getPosteriorVariables());
 					unusedPosteriorVariables.removeAll(satisfiedCondVars);
-					
-					childToAncestors.get(ddThis).add(ddOther.sumOut(new ArrayList<DDVariable>(unusedPosteriorVariables)));
+					ddOther = ddOther.sumOut(new ArrayList<DDVariable>(unusedPosteriorVariables));
+					childToAncestors.get(ddThis).add(ddOther);
 				}
 				else if(ddThis.getConditionalVariables().isEmpty() && ddOther.getConditionalVariables().isEmpty()) {
 					
@@ -269,7 +269,8 @@ public class FactoredCondProbDD {
 						HashSet<DDVariable> unusedPosteriorVariables = new HashSet<DDVariable>(ddOther.getPosteriorVariables());
 						unusedPosteriorVariables.removeAll(ddThis.getPosteriorVariables());
 					
-						childToAncestors.get(ddThis).add(ddOther.sumOut(new ArrayList<DDVariable>(unusedPosteriorVariables)));
+						ddOther = ddOther.sumOut(new ArrayList<DDVariable>(unusedPosteriorVariables));
+						childToAncestors.get(ddThis).add(ddOther);
 					}
 					
 				}
@@ -329,6 +330,14 @@ public class FactoredCondProbDD {
 		ArrayList<CondProbDD> newIndepFns = new ArrayList<CondProbDD>();
 		for(CondProbDD dd:indepFns) {
 			newIndepFns.add(dd.normalize());
+		}
+		return new FactoredCondProbDD(newIndepFns);
+	}
+	
+	public FactoredCondProbDD approximate(double approxFactor) {
+		ArrayList<CondProbDD> newIndepFns = new ArrayList<CondProbDD>();
+		for(CondProbDD dd:indepFns) {
+			newIndepFns.add(dd.approximate(approxFactor));
 		}
 		return new FactoredCondProbDD(newIndepFns);
 	}

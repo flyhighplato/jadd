@@ -16,6 +16,7 @@ import masg.dd.operations.AdditionOperation;
 import masg.dd.operations.BinaryOperation;
 import masg.dd.operations.ConstantMultiplicationOperation;
 import masg.dd.operations.DivisionOperation;
+import masg.dd.operations.MultiplicationOperation;
 import masg.dd.operations.UnaryOperation;
 import masg.dd.representation.BaseDDElement;
 import masg.dd.representation.DDElement;
@@ -75,12 +76,17 @@ public class DDBuilder {
 	
 	public static DDBuilder build(DDInfo info,  int defaultScopeId, Closure<Double> c) {
 		DDBuilder dd = new DDBuilder(info);
-		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderClosureFunction(defaultScopeId, c));
+		
+		ArrayList<DDVariable> varOrder = putInCanonicalOrder(new ArrayList<DDVariable>(dd.getDDInfo().getVariables()));
+
+		
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), varOrder, dd.getDDInfo().getVariables(), new DDBuilderClosureFunction(defaultScopeId, c));
 		return dd;
 	}
 	
 	public static DDBuilder build(DDInfo info, double constVal) {
 		DDBuilder dd = new DDBuilder(info);
+		
 		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderConstantFunction(constVal));
 		return dd;
 	}
@@ -134,7 +140,7 @@ public class DDBuilder {
 		vars = putInCanonicalOrder(vars);
 		
 		DDBuilder dd = new DDBuilder(vars,dag.isMeasure());
-		return dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderRestrictFunction(dag,restrictVarValues));
+		return dd.makeSubGraph(new HashMap<DDVariable,Integer>(), putInCanonicalOrder(new ArrayList<DDVariable>(dd.getDDInfo().getVariables())), dd.getDDInfo().getVariables(), new DDBuilderRestrictFunction(dag,restrictVarValues));
 	}
 	
 	public static DDElement eliminate(ArrayList<DDVariable> elimVars, DDElement dag) {
@@ -184,7 +190,12 @@ public class DDBuilder {
 		
 		DDInfo info = new DDInfo(vars, dag.isMeasure());
 		DDBuilder dd = new DDBuilder(info);
-		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderTranslateFunction(dag,translation));
+		
+		ArrayList<DDVariable> varOrder = new ArrayList<DDVariable>(dd.getDDInfo().getVariables());
+		varOrder.addAll(dag.getVariables());
+		varOrder = putInCanonicalOrder(varOrder);
+		
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), varOrder, dd.getDDInfo().getVariables(), new DDBuilderTranslateFunction(dag,translation));
 		
 		info.updateInfo(vars, dag.isMeasure());
 		return dd;
@@ -203,7 +214,12 @@ public class DDBuilder {
 		
 		DDInfo info = new DDInfo(vars, dag.isMeasure());
 		DDBuilder dd = new DDBuilder(info);
-		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderTranslateFunction(dag,translation));
+		
+		ArrayList<DDVariable> varOrder = new ArrayList<DDVariable>(dd.getDDInfo().getVariables());
+		varOrder.addAll(dag.getVariables());
+		varOrder = putInCanonicalOrder(varOrder);
+		
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), varOrder, dd.getDDInfo().getVariables(), new DDBuilderTranslateFunction(dag,translation));
 		info.updateInfo(vars, dag.isMeasure());
 		return dd;
 		
@@ -357,6 +373,7 @@ public class DDBuilder {
 				int ubIx = -(findIx + 1);
 				if(ubIx == 0){
 					newLeaves.add(lNew);
+					Collections.sort(newLeaves);
 					approxCache.put(el, lNew);
 					return lNew;
 				}
@@ -616,6 +633,16 @@ public class DDBuilder {
 			currVar = n2.getVariable();
 			children = new BaseDDElement[n2.getVariable().getValueCount()];
 			
+			// Shortcut hack
+			if(op instanceof MultiplicationOperation) {
+				DDLeaf l1 = (DDLeaf) el1;
+				if(l1.getValue() == 0.0d) {
+					DDLeaf lNew = makeLeaf(l1.getValue());
+					applyCache.get(el1).put(el2, lNew);
+					return lNew;
+				}
+			}
+			
 			for(int i=0;i<n2.getVariable().getValueCount();i++) {
 				children[i] = applyOperation(el1,n2.getChild(i),op, applyCache);
 			}
@@ -624,6 +651,16 @@ public class DDBuilder {
 			DDNode n1 = (DDNode) el1;
 			currVar = n1.getVariable();
 			children = new BaseDDElement[n1.getVariable().getValueCount()];
+			
+			// Shortcut hack
+			if(op instanceof MultiplicationOperation) {
+				DDLeaf l2 = (DDLeaf) el2;
+				if(l2.getValue() == 0.0d) {
+					DDLeaf lNew = makeLeaf(l2.getValue());
+					applyCache.get(el1).put(el2, lNew);
+					return lNew;
+				}
+			}
 			
 			for(int i=0;i<n1.getVariable().getValueCount();i++) {
 				children[i] = applyOperation(n1.getChild(i),el2,op, applyCache);
@@ -636,7 +673,7 @@ public class DDBuilder {
 			int varIx1 = DDContext.getVariableIndex(n1.getVariable());
 			int varIx2 = DDContext.getVariableIndex(n2.getVariable());
 			
-			if(varIx1==varIx2) {
+			if(varIx1 == varIx2) {
 				currVar = n1.getVariable();
 				children = new BaseDDElement[n1.getVariable().getValueCount()];
 				
@@ -644,7 +681,7 @@ public class DDBuilder {
 					children[i] = applyOperation(n1.getChild(i),n2.getChild(i),op, applyCache);
 				}
 			}
-			else if(varIx1<varIx2) {
+			else if(varIx1 < varIx2) {
 				currVar = n1.getVariable();
 				children = new BaseDDElement[n1.getVariable().getValueCount()];
 				
@@ -678,7 +715,6 @@ public class DDBuilder {
 			applyCache.get(el1).put(el2, children[0]);
 			return children[0];
 		}
-		
 		
 		nNew = makeNode(currVar,children);
 		applyCache.get(el1).put(el2, nNew);

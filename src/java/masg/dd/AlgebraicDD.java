@@ -157,6 +157,10 @@ public class AlgebraicDD {
 		return ((DDLeaf)DDBuilder.eliminate(new ArrayList<DDVariable>(ruleCollection.getVariables()), ruleCollection)).getValue();
 	}
 	
+	public AlgebraicDD approximate(double approxFactor) {
+		return new AlgebraicDD(DDBuilder.approximate(ruleCollection, approxFactor).getRootNode());
+	}
+	
 	public String toString() {
 		return ruleCollection.toString();
 	}
