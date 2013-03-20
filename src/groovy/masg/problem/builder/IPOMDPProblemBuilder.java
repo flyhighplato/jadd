@@ -88,25 +88,16 @@ public class IPOMDPProblemBuilder extends AbstractMDPProblemBuilder {
 	IPOMDP buildIPOMDP() {
 		ArrayList<POMDP> otherAgentPOMDPs = new ArrayList<POMDP>();
 		
-		
-		for(Entry<String, POMDPAgentType> e1: otherAgents.entrySet() ) {
-			otherAgentPOMDPs.add(e1.getValue().builder.buildPOMDP());
-		}
-		
 		ArrayList<DDVariable> canVars = new ArrayList<DDVariable>(actVariables.values());
-		
-		for(Entry<String, POMDPAgentType> e1: otherAgents.entrySet() ) {
-			
-			canVars.addAll(e1.getValue().builder.obsVariables.values());
-			canVars.addAll(e1.getValue().builder.stateVariables.values());
-			canVars.addAll(e1.getValue().builder.statePrimeVariables.values());
-			canVars.addAll(e1.getValue().builder.actVariables.values());
-			
-		}
-		
 		canVars.addAll(obsVariables.values());
 		canVars.addAll(stateVariables.values());
 		canVars.addAll(statePrimeVariables.values());
+		
+		for(Entry<String, POMDPAgentType> e1: otherAgents.entrySet() ) {
+			otherAgentPOMDPs.add(e1.getValue().builder.buildPOMDP());
+			
+			canVars.addAll(DDContext.getCanonicalVariableOrdering());
+		}
 		
 		DDContext.setCanonicalVariableOrdering(canVars);
 		
