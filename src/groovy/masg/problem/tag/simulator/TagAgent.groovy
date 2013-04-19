@@ -17,8 +17,8 @@ public class TagAgent {
 	public DDVariable colVar
 	
 	public TagAgent(Belief initBelief) {
-		rowVar = new DDVariable('a1_row',5)
-		colVar = new DDVariable('a1_col',5)
+		rowVar = new DDVariable(0,'a1_row',5)
+		colVar = new DDVariable(0,'a1_col',5)
 		
 		//this.policy = policy;
 		this.currBelief = initBelief;

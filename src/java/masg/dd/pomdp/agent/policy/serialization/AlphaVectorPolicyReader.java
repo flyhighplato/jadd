@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 import masg.dd.alphavector.BeliefAlphaVector;
 import masg.dd.alphavector.serialization.BeliefAlphaVectorReader;
-import masg.dd.pomdp.agent.policy.AlphaVectorPolicy;
+import masg.dd.pomdp.agent.policy.BeliefAlphaVectorPolicy;
 
 public class AlphaVectorPolicyReader {
 	BufferedReader reader;
@@ -14,7 +14,11 @@ public class AlphaVectorPolicyReader {
 		this.reader = reader;
 	}
 	
-	public AlphaVectorPolicy read() throws IOException {
+	public BeliefAlphaVectorPolicy read() throws IOException {
+		return read(0);
+	}
+	
+	public BeliefAlphaVectorPolicy read(int scope) throws IOException {
 		
 		ArrayList<BeliefAlphaVector> alphas = new ArrayList<BeliefAlphaVector>();
 		while(true) {
@@ -25,7 +29,7 @@ public class AlphaVectorPolicyReader {
 			}
 			
 			BeliefAlphaVectorReader alphaReader = new BeliefAlphaVectorReader(reader);
-			BeliefAlphaVector alpha = alphaReader.read();
+			BeliefAlphaVector alpha = alphaReader.read(scope);
 			
 			if(alpha==null)
 				return null;
@@ -33,6 +37,6 @@ public class AlphaVectorPolicyReader {
 			alphas.add(alpha);
 		}
 		
-		return new AlphaVectorPolicy(alphas);
+		return new BeliefAlphaVectorPolicy(alphas);
 	}
 }

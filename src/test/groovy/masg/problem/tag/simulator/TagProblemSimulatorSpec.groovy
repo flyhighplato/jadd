@@ -11,9 +11,9 @@ import masg.dd.ProbDD;
 import masg.dd.alphavector.BeliefAlphaVector
 import masg.dd.pomdp.agent.belief.POMDPBelief
 import masg.dd.pomdp.agent.belief.BeliefRegion
-import masg.dd.pomdp.agent.policy.AlphaVectorPolicy
+import masg.dd.pomdp.agent.policy.BeliefAlphaVectorPolicy
 import masg.dd.pomdp.agent.policy.Policy
-import masg.dd.pomdp.agent.policy.AlphaVectorPolicyBuilder
+import masg.dd.pomdp.agent.policy.BeliefAlphaVectorPolicyBuilder
 import masg.dd.pomdp.agent.policy.QMDPPolicyBuilder
 import masg.dd.pomdp.agent.policy.RandomPolicy
 import masg.dd.pomdp.agent.policy.serialization.AlphaVectorPolicyReader
@@ -45,12 +45,12 @@ class TagProblemSimulatorSpec extends Specification {
 			fileName = "1000_100_100.policy"
 			BufferedReader reader = new BufferedReader(new FileReader(fileName));
 			AlphaVectorPolicyReader policyReader = new AlphaVectorPolicyReader(reader);
-			AlphaVectorPolicy pol1 = policyReader.read()
+			BeliefAlphaVectorPolicy pol1 = policyReader.read()
 			reader.close()
 			
 			reader = new BufferedReader(new FileReader(fileName));
 			policyReader = new AlphaVectorPolicyReader(reader);
-			AlphaVectorPolicy pol2 = policyReader.read()
+			BeliefAlphaVectorPolicy pol2 = policyReader.read()
 			reader.close()
 		
 			//Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()

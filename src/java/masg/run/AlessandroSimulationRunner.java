@@ -5,7 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import masg.dd.pomdp.agent.policy.AlphaVectorPolicy;
+import masg.dd.pomdp.agent.policy.BeliefAlphaVectorPolicy;
 import masg.dd.pomdp.agent.policy.serialization.AlphaVectorPolicyReader;
 import masg.problem.tag.TagProblemPOMDP;
 import masg.problem.tag.simulator.AlessandroTagSimRecorder;
@@ -24,12 +24,12 @@ public class AlessandroSimulationRunner {
 			String fileName = "policy.policy";
 			BufferedReader reader = new BufferedReader(new FileReader(fileName));
 			AlphaVectorPolicyReader policyReader = new AlphaVectorPolicyReader(reader);
-			AlphaVectorPolicy pol1 = policyReader.read();
+			BeliefAlphaVectorPolicy pol1 = policyReader.read();
 			reader.close();
 			
 			reader = new BufferedReader(new FileReader(fileName));
 			policyReader = new AlphaVectorPolicyReader(reader);
-			AlphaVectorPolicy pol2 = policyReader.read();
+			BeliefAlphaVectorPolicy pol2 = policyReader.read();
 			reader.close();
 			
 			TagProblemPOMDP problem = new TagProblemPOMDP();

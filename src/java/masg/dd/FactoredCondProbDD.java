@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 
+import masg.dd.operations.AdditionOperation;
 import masg.dd.operations.MultiplicationOperation;
 import masg.dd.representation.DDElement;
 import masg.dd.representation.builder.DDBuilder;
@@ -54,8 +55,17 @@ public class FactoredCondProbDD {
 		return val;
 	}
 	
+	public HashSet<HashMap<DDVariable,Integer>> getAllUniqueNonZeroPaths(ArrayList<DDVariable> restrVars) {
+		ArrayList<DDElement> elems = new ArrayList<DDElement>();
+		for(CondProbDD dd:indepFns) {
+			elems.add(dd.getFunction().getFunction());
+		}
+		
+		return DDBuilder.getAllUniqueNonZeroPaths(restrVars,elems);
+	}
 	
-	public ArrayList<CondProbDD> reconcile(ArrayList<CondProbDD> restrictedIndepFns) {
+	
+	public ArrayList<CondProbDD> reconcile(ArrayList<CondProbDD> restrictedIndepFns, boolean doNormalize) {
 		ArrayList<CondProbDD> reconciledIndepFns = new ArrayList<CondProbDD>();
 		
 		HashSet<CondProbDD> processedDDs = new HashSet<CondProbDD>();
@@ -98,7 +108,9 @@ public class FactoredCondProbDD {
 				} while (foundCommon);
 				
 				dd = new CondProbDD(new ArrayList<DDVariable>(), new ArrayList<DDVariable>(condProbVars),new AlgebraicDD(DDBuilder.build(new ArrayList<DDVariable>(condProbVars), commonDDs, new MultiplicationOperation())));
-				dd = dd.normalize();
+				if(doNormalize) {
+					dd = dd.normalize();
+				}
 			}
 
 			reconciledIndepFns.add(dd);
@@ -110,6 +122,9 @@ public class FactoredCondProbDD {
 	}
 	
 	public FactoredCondProbDD restrict(HashMap<DDVariable,Integer> varSpacePoint) {
+		return restrict(varSpacePoint,true);
+	}
+	public FactoredCondProbDD restrict(HashMap<DDVariable,Integer> varSpacePoint, boolean doNormalize) {
 		ArrayList<CondProbDD> restrictedIndepFns = new ArrayList<CondProbDD>();
 		
 		boolean needsReconcile = false;
@@ -122,7 +137,7 @@ public class FactoredCondProbDD {
 		}
 		
 		if(needsReconcile) {
-			restrictedIndepFns = reconcile(restrictedIndepFns);
+			restrictedIndepFns = reconcile(restrictedIndepFns, doNormalize);
 		}
 		
 		
@@ -154,6 +169,56 @@ public class FactoredCondProbDD {
 		return new ProbDD(dd);
 	}
 	
+	
+	public double dotProduct(AlgebraicDD dd) {
+		
+		ArrayList<DDElement> pertinentFns = new ArrayList<DDElement>();
+		
+		DDElement realElem = dd.getFunction();
+		
+		for(CondProbDD ddThis:indepFns) {
+			pertinentFns.add(ddThis.getFunction().getFunction());
+			/*HashSet<DDVariable> intersection = new HashSet<DDVariable>(ddThis.getPosteriorVariables());
+			intersection.retainAll(dd.getVariables());
+			
+			if(intersection.size()>0) {
+				ArrayList<DDVariable> sumOutVars = new ArrayList<DDVariable>(ddThis.getPosteriorVariables());
+				sumOutVars.removeAll(intersection);
+				
+				ddThis = ddThis.sumOut(sumOutVars);
+				
+				pertinentFns.add(ddThis.getFunction().getFunction());
+			}*/
+		}
+		
+		//dd = dd.mapCollect(new MultiplicationOperation(), new AdditionOperation(), pertinentFns);
+		//return dd.getTotalWeight();
+		
+		return DDBuilder.dotProduct(pertinentFns, realElem);
+	}
+	
+	public AlgebraicDD multAndSumOut(AlgebraicDD dd, ArrayList<DDVariable> vars) {
+		
+		ArrayList<AlgebraicDD> pertinentFns = new ArrayList<AlgebraicDD>();
+		
+		for(CondProbDD ddThis:indepFns) {
+			HashSet<DDVariable> intersection = new HashSet<DDVariable>(ddThis.getPosteriorVariables());
+			intersection.retainAll(dd.getVariables());
+			
+			if(intersection.size()>0) {
+				ArrayList<DDVariable> sumOutVars = new ArrayList<DDVariable>(ddThis.getPosteriorVariables());
+				sumOutVars.removeAll(intersection);
+				
+				ddThis = ddThis.sumOut(sumOutVars);
+				
+				pertinentFns.add(ddThis.getFunction());
+			}
+		}
+		
+		dd = dd.mapCollect(new MultiplicationOperation(), new AdditionOperation(), new HashSet<DDVariable>(vars), pertinentFns);
+		return dd;
+	}
+
 	public AlgebraicDD multiply(AlgebraicDD dd) {
 		
 		ArrayList<AlgebraicDD> pertinentFns = new ArrayList<AlgebraicDD>();
@@ -177,6 +242,10 @@ public class FactoredCondProbDD {
 	}
 	
 	public FactoredCondProbDD multiply(FactoredCondProbDD cpdd) {
+		return multiply(cpdd, new HashSet<DDVariable>());
+	}
+	
+	public FactoredCondProbDD multiply(FactoredCondProbDD cpdd, HashSet<DDVariable> doNotSumOut) {
 		
 		ArrayList<CondProbDD> indepFnsConditional = null;
 		ArrayList<CondProbDD> indepFnsPosterior = null;
@@ -257,6 +326,7 @@ public class FactoredCondProbDD {
 					
 					HashSet<DDVariable> unusedPosteriorVariables = new HashSet<DDVariable>(ddOther.getPosteriorVariables());
 					unusedPosteriorVariables.removeAll(satisfiedCondVars);
+					unusedPosteriorVariables.removeAll(doNotSumOut);
 					ddOther = ddOther.sumOut(new ArrayList<DDVariable>(unusedPosteriorVariables));
 					childToAncestors.get(ddThis).add(ddOther);
 				}
@@ -268,7 +338,8 @@ public class FactoredCondProbDD {
 					if(!satisfiedPostVars.isEmpty()) {
 						HashSet<DDVariable> unusedPosteriorVariables = new HashSet<DDVariable>(ddOther.getPosteriorVariables());
 						unusedPosteriorVariables.removeAll(ddThis.getPosteriorVariables());
-					
+						unusedPosteriorVariables.removeAll(doNotSumOut);
+						
 						ddOther = ddOther.sumOut(new ArrayList<DDVariable>(unusedPosteriorVariables));
 						childToAncestors.get(ddThis).add(ddOther);
 					}
@@ -283,7 +354,7 @@ public class FactoredCondProbDD {
 		for(Entry<CondProbDD, ArrayList<CondProbDD>> e: childToAncestors.entrySet()) {
 			CondProbDD temp = e.getKey();
 			for(CondProbDD other:e.getValue()) {
-				temp = temp.multiply(other);
+				temp = temp.multiply(other,doNotSumOut);
 			}
 			
 			newIndepFns.add(temp);
@@ -297,6 +368,7 @@ public class FactoredCondProbDD {
 				if(!temp.isEmpty()) {
 					HashSet<DDVariable> temp2 = new HashSet<DDVariable>(ddOther.getPosteriorVariables());
 					temp2.removeAll(temp);
+					temp2.removeAll(doNotSumOut);
 					CondProbDD newDD = ddOther.sumOut(new ArrayList<DDVariable>(temp2));
 					newIndepFns.add(newDD);
 				}
@@ -306,8 +378,11 @@ public class FactoredCondProbDD {
 		return new FactoredCondProbDD(newIndepFns);
 	}
 	
-	
 	public FactoredCondProbDD sumOut(ArrayList<DDVariable> vars) {
+		return sumOut(vars, true);
+	}
+	
+	public FactoredCondProbDD sumOut(ArrayList<DDVariable> vars, boolean doNormalize) {
 		ArrayList<CondProbDD> newIndepFns = new ArrayList<CondProbDD>();
 		
 		boolean needsReconcile = false;
@@ -320,7 +395,7 @@ public class FactoredCondProbDD {
 		}
 		
 		if(needsReconcile) {
-			newIndepFns = reconcile(newIndepFns);
+			newIndepFns = reconcile(newIndepFns,doNormalize);
 		}
 		
 		return new FactoredCondProbDD(newIndepFns);

@@ -6,5 +6,4 @@ public class AbsDiffOperation implements BinaryOperation {
 	public double invoke(Double val1, Double val2) {
 		return Math.abs(val1-val2);
 	}
-
 }

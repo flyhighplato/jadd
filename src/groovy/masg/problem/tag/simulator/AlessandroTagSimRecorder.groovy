@@ -3,7 +3,7 @@ package masg.problem.tag.simulator
 import java.text.SimpleDateFormat
 import java.util.HashMap;
 
-import masg.dd.pomdp.agent.policy.AlphaVectorPolicy
+import masg.dd.pomdp.agent.policy.BeliefAlphaVectorPolicy
 import masg.dd.pomdp.agent.policy.Policy;
 import masg.dd.pomdp.agent.policy.serialization.AlphaVectorPolicyWriter
 import masg.dd.variables.DDVariable;
@@ -27,7 +27,7 @@ class AlessandroTagSimRecorder implements TagSimulationRecorder {
 		new File(baseFilePath + "/alessandro").mkdir()
 		baseFilePath = baseFilePath + "/alessandro"
 		
-		if(policy instanceof AlphaVectorPolicy) {
+		if(policy instanceof BeliefAlphaVectorPolicy) {
 			BufferedWriter writer = new File(baseFilePath + "/runPolicy.policy").newWriter(false)
 			AlphaVectorPolicyWriter policyWriter = new AlphaVectorPolicyWriter(policy);
 			policyWriter.write(writer);

@@ -3,8 +3,8 @@ package masg.problem.tag.simulator
 import masg.dd.pomdp.POMDP
 import masg.dd.pomdp.agent.belief.BeliefRegion
 import masg.dd.pomdp.agent.belief.POMDPBelief
-import masg.dd.pomdp.agent.policy.AlphaVectorPolicy
-import masg.dd.pomdp.agent.policy.AlphaVectorPolicyBuilder
+import masg.dd.pomdp.agent.policy.BeliefAlphaVectorPolicy
+import masg.dd.pomdp.agent.policy.BeliefAlphaVectorPolicyBuilder
 import masg.dd.pomdp.agent.policy.Policy
 import masg.dd.pomdp.agent.policy.QMDPPolicyBuilder
 import masg.dd.pomdp.agent.policy.RandomPolicy
@@ -28,7 +28,7 @@ class SeqCogRadioProblemSpec extends Specification {
 			//pol = new QMDPPolicyBuilder(p).build()
 			
 			BeliefRegion belReg = new BeliefRegion(numSamples, numSteps, p, pol, [initBelief])
-			AlphaVectorPolicyBuilder polBuilder = new AlphaVectorPolicyBuilder(p)
+			BeliefAlphaVectorPolicyBuilder polBuilder = new BeliefAlphaVectorPolicyBuilder(p)
 			pol = polBuilder.build(belReg, 100)
 			
 			SeqCogRadioSimulator simulator = new SeqCogRadioSimulator()

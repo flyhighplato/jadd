@@ -23,7 +23,7 @@ import masg.dd.representation.builder.DDBuilder;
 import masg.dd.variables.DDVariable;
 
 
-public class AlphaVectorPolicyBuilder {
+public class BeliefAlphaVectorPolicyBuilder {
 	double tolerance = 0.00001f;
 	
 	ArrayList<BeliefAlphaVector> bestAlphas = new ArrayList<BeliefAlphaVector>();
@@ -32,13 +32,13 @@ public class AlphaVectorPolicyBuilder {
 	
 	POMDP p;
 	
-	public AlphaVectorPolicyBuilder(POMDP p) {
+	public BeliefAlphaVectorPolicyBuilder(POMDP p) {
 		this.p = p;
 	}
 	
 	
 	
-	public AlphaVectorPolicy buildPureStrategyAlphas() {
+	public BeliefAlphaVectorPolicy buildPureStrategyAlphas() {
 		ArrayList<DDVariable> qFnVars = new ArrayList<DDVariable>();
 		qFnVars.addAll(p.getStates());
 		qFnVars.addAll(p.getStatesPrime());
@@ -89,7 +89,7 @@ public class AlphaVectorPolicyBuilder {
 			}
 		}
 		
-		return new AlphaVectorPolicy(bestAlphas);
+		return new BeliefAlphaVectorPolicy(bestAlphas);
 	}
 	
 	private HashMap<POMDPBelief,BeliefAlphaVector> updateBeliefValues(HashMap<POMDPBelief,BeliefAlphaVector> oldValues, BeliefAlphaVector newAlpha, List<POMDPBelief> beliefsTemp) {
@@ -142,7 +142,7 @@ public class AlphaVectorPolicyBuilder {
 		return maxImprovement;	
 	}
 	
-	public AlphaVectorPolicy build(BeliefRegion belRegion, int numIterations) {
+	public BeliefAlphaVectorPolicy build(BeliefRegion belRegion, int numIterations) {
 		pool = Executors.newFixedThreadPool(20);
 		
 		if(bestAlphas.size()<=0)
@@ -243,7 +243,7 @@ public class AlphaVectorPolicyBuilder {
 		}
 		
 		pool.shutdownNow();
-		return new AlphaVectorPolicy(bestAlphas);
+		return new BeliefAlphaVectorPolicy(bestAlphas);
 	}
 	
 	private class BeliefGetBestAlpha implements Runnable {
@@ -261,7 +261,6 @@ public class AlphaVectorPolicyBuilder {
 		public void run() {
 			result= b.pickBestAlpha(alphas);
 		}
-		
 	}
 	
 	private class BeliefBackup implements Runnable {

@@ -1,7 +1,7 @@
 package masg.dd.pomdp.agent.policy.serialization
 
 import masg.dd.alphavector.BeliefAlphaVector
-import masg.dd.pomdp.agent.policy.AlphaVectorPolicy
+import masg.dd.pomdp.agent.policy.BeliefAlphaVectorPolicy
 import masg.dd.variables.DDVariableSpace
 import masg.problem.tag.TagProblemPOMDP;
 import spock.lang.Shared;
@@ -16,7 +16,7 @@ class AlphaVectorPolicySerializationSpec extends Specification {
 	
 	def "alpha vector policy can be written"() {
 		when:
-			AlphaVectorPolicy policy = new AlphaVectorPolicy([alpha,alpha,alpha])
+			BeliefAlphaVectorPolicy policy = new BeliefAlphaVectorPolicy([alpha,alpha,alpha])
 			AlphaVectorPolicyWriter writer = new AlphaVectorPolicyWriter(policy);
 			
 			BufferedWriter w = new BufferedWriter(new PrintWriter(System.out))
@@ -28,7 +28,7 @@ class AlphaVectorPolicySerializationSpec extends Specification {
 	
 	def "alpha vector policy can be read"() {
 		when:
-			AlphaVectorPolicy policy = new AlphaVectorPolicy([alpha,alpha,alpha])
+			BeliefAlphaVectorPolicy policy = new BeliefAlphaVectorPolicy([alpha,alpha,alpha])
 			AlphaVectorPolicyWriter writer = new AlphaVectorPolicyWriter(policy);
 			StringWriter sw = new StringWriter()
 			BufferedWriter w = new BufferedWriter(sw)
@@ -38,7 +38,7 @@ class AlphaVectorPolicySerializationSpec extends Specification {
 			
 			AlphaVectorPolicyReader reader = new AlphaVectorPolicyReader(r);
 		then:
-			AlphaVectorPolicy readPolicy = reader.read();
+			BeliefAlphaVectorPolicy readPolicy = reader.read();
 			readPolicy.getAlphaVectors().size() == 3
 			readPolicy.getAlphaVectors().each { BeliefAlphaVector alphaVector ->
 				assert alphaVector.action.equals(new DDVariableSpace(problem.getPOMDP().getActions()).iterator().next())

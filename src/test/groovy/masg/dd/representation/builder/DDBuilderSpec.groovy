@@ -1,6 +1,11 @@
-package masg.dd.representations.tables
+package masg.dd.representation.builder
 
+import java.util.ArrayList;
+import java.util.HashSet;
+
+import masg.dd.AlgebraicDD;
 import masg.dd.context.DDContext
+import masg.dd.operations.AdditionOperation
 import masg.dd.operations.ConstantMultiplicationOperation
 import masg.dd.operations.MultiplicationOperation
 import masg.dd.representation.BaseDDElement;
@@ -14,7 +19,7 @@ import masg.dd.variables.DDVariableSpace;
 import spock.lang.Specification
 import spock.lang.Shared
 
-class TableDDSpec extends Specification {
+class DDBuilderSpec extends Specification {
 	DDVariable a1RowVar, a1ColVar
 	DDVariable a1RowPrimeVar, a1ColPrimeVar
 	
@@ -27,34 +32,58 @@ class TableDDSpec extends Specification {
 	
 	@Shared
 	Closure<Double> c = { Map variables ->
-			int w_row = variables["w_row"]
-			int w_col = variables["w_col"]
+			//int w_row = variables["w_row"]
+			//int w_col = variables["w_col"]
 			int a1_row = variables["a1_row"]
 			int a1_col = variables["a1_col"]
 			
-			if(a1_col == w_col && a1_row == w_row)
-				return 10.0d
+			if(a1_row == 1 )
+				return 2.0d
 			
-			return -1.0d
+			return 0.0d
 	}
 	
 	DDVariableSpace space;
 	def setup() {
-		a1RowVar = new DDVariable("a1_row",gridHeight)
-		a1ColVar = new DDVariable("a1_col",gridWidth)
+		a1RowVar = new DDVariable(0,"a1_row",gridHeight)
+		a1ColVar = new DDVariable(0,"a1_col",gridWidth)
 		
-		wRowVar = new DDVariable("w_row",gridHeight)
-		wColVar = new DDVariable("w_col",gridWidth)
+		wRowVar = new DDVariable(0,"w_row",gridHeight)
+		wColVar = new DDVariable(0,"w_col",gridWidth)
 		
-		a1RowPrimeVar = new DDVariable((a1RowVar.name + "'").toString(), a1RowVar.getValueCount())
-		a1ColPrimeVar = new DDVariable((a1ColVar.name + "'").toString(), a1ColVar.getValueCount())
-		wRowPrimeVar = new DDVariable((wRowVar.name + "'").toString(), wRowVar.getValueCount())
-		wColPrimeVar = new DDVariable((wColVar.name + "'").toString(), wColVar.getValueCount())
+		a1RowPrimeVar = new DDVariable(0,(a1RowVar.name + "'").toString(), a1RowVar.getValueCount())
+		a1ColPrimeVar = new DDVariable(0,(a1ColVar.name + "'").toString(), a1ColVar.getValueCount())
+		wRowPrimeVar = new DDVariable(0,(wRowVar.name + "'").toString(), wRowVar.getValueCount())
+		wColPrimeVar = new DDVariable(0,(wColVar.name + "'").toString(), wColVar.getValueCount())
 		
 		DDContext.canonicalVariableOrdering = [a1RowVar,a1ColVar,wRowVar,wColVar,a1RowPrimeVar,a1ColPrimeVar,wRowPrimeVar,wColPrimeVar];
 	}
 	
-	def "collection can be built from closure"() {
+	def "binary operations perform quickly"() {
+		when:
+			ArrayList<DDVariable> vars = [a1RowVar,a1ColVar]
+			ArrayList<DDVariable> collectVars = [a1ColVar]
+			DDBuilder tableDD1 = DDBuilder.build(new DDInfo(vars,false),0,c)
+			DDBuilder tableDD2 = DDBuilder.build(new DDInfo(vars,false),0,c)
+			
+			println tableDD1
+			println tableDD2
+			MultiplicationOperation mapOp = new MultiplicationOperation();
+			AdditionOperation collectOp = new AdditionOperation();
+			
+			ArrayList<DDElement> dDs = new ArrayList<DDElement>();
+			dDs.add(tableDD1.rootNode);
+			dDs.add(tableDD2.rootNode);
+			
+			DDElement res = DDBuilder.build(vars,collectVars,dDs,mapOp,collectOp)
+			
+			
+			
+		then:
+			println res
+	}
+	
+	/*def "collection can be built from closure"() {
 		when:
 			DDBuilder tableDD = DDBuilder.build(new DDInfo([a1RowVar,a1ColVar,wRowVar,wColVar],false),c)
 			
@@ -175,5 +204,5 @@ class TableDDSpec extends Specification {
 		then:
 			println tableDD
 			println leaf
-	}
+	}*/
 }

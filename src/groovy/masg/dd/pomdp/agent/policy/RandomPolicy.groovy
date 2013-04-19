@@ -2,16 +2,17 @@ package masg.dd.pomdp.agent.policy
 
 import java.util.HashMap;
 
+import masg.dd.pomdp.AbstractPOMDP
 import masg.dd.pomdp.POMDP;
 import masg.dd.pomdp.agent.belief.Belief
 import masg.dd.pomdp.agent.belief.POMDPBelief;
 import masg.dd.variables.DDVariable;
 
 class RandomPolicy implements Policy {
-	protected POMDP p
+	protected AbstractPOMDP p
 	Random random = new Random()
 	
-	public RandomPolicy(POMDP p) {
+	public RandomPolicy(AbstractPOMDP p) {
 		assert p
 		this.p = p
 	}

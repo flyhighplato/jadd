@@ -25,15 +25,18 @@ import masg.dd.representation.DDLeaf;
 import masg.dd.representation.DDNode;
 import masg.dd.representation.builder.buildfunctions.DDBuilderClosureFunction;
 import masg.dd.representation.builder.buildfunctions.DDBuilderConstantFunction;
+import masg.dd.representation.builder.buildfunctions.DDBuilderDiractDeltaFunction;
 import masg.dd.representation.builder.buildfunctions.DDBuilderFunction;
 import masg.dd.representation.builder.buildfunctions.DDBuilderProbabilityClosuresFunction;
 import masg.dd.representation.builder.buildfunctions.DDBuilderRestrictFunction;
 import masg.dd.representation.builder.buildfunctions.DDBuilderTranslateFunction;
 import masg.dd.representation.builder.buildfunctions.MaxLeafComparator;
+import masg.dd.representation.builder.buildfunctions.MinLeafComparator;
 import masg.dd.variables.DDVariable;
 
 public class DDBuilder {
 	
+	ArrayList<Double> sortedLeaves = new ArrayList<Double>();
 	HashMap<Double, DDLeaf> leaves = new HashMap<Double, DDLeaf>();
 	HashMap<DDVariable, ArrayList< HashMap<DDElement, HashSet<DDNode>> > >  nodes = new HashMap<DDVariable, ArrayList< HashMap<DDElement, HashSet<DDNode>> > >();
 	
@@ -84,6 +87,15 @@ public class DDBuilder {
 		return dd;
 	}
 	
+	public static DDBuilder build(DDInfo info, int defaultScopeId,  HashMap<DDVariable,Integer> singlePt) {
+		DDBuilder dd = new DDBuilder(info);
+		
+		ArrayList<DDVariable> varOrder = putInCanonicalOrder(new ArrayList<DDVariable>(dd.getDDInfo().getVariables()));
+
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), varOrder, dd.getDDInfo().getVariables(), new DDBuilderDiractDeltaFunction(defaultScopeId, singlePt));
+		return dd;
+	}
+	
 	public static DDBuilder build(DDInfo info, double constVal) {
 		DDBuilder dd = new DDBuilder(info);
 		
@@ -124,6 +136,47 @@ public class DDBuilder {
 		}
 		
 		return el1;
+	}
+	
+	public static DDLeaf build(ArrayList<DDVariable> vars, ArrayList<DDElement> dags, BinaryOperation mapOp, BinaryOperation collectOp) {
+		vars = putInCanonicalOrder(vars);
+		
+		boolean allMeasure = true;
+		
+		for(DDElement dag:dags) {
+			allMeasure = allMeasure && dag.isMeasure();
+		}
+		
+		List<DDElement> dagsNew = new ArrayList<DDElement>(dags);
+
+		DDBuilder dd = new DDBuilder(new ArrayList<DDVariable>(),allMeasure);
+		DDLeaf l = dd.mapCollectLeafOperation( putInCanonicalOrder(vars), dagsNew , mapOp, collectOp, new HashMap<HashSet<DDElement>,DDLeaf>());
+		return l;
+		
+	}
+	
+	public static DDElement build(ArrayList<DDVariable> vars, ArrayList<DDVariable> collectVars, ArrayList<DDElement> dags, BinaryOperation mapOp, BinaryOperation collectOp) {
+		boolean allMeasure = true;
+		
+		for(DDElement dag:dags) {
+			allMeasure = allMeasure && dag.isMeasure();
+		}
+		
+		List<DDElement> dagsNew = new ArrayList<DDElement>(dags);
+
+		
+		DDInfo info = new DDInfo(vars,allMeasure);
+		DDBuilder dd = new DDBuilder(info);
+		DDElement resEl = dd.mapCollectOperation( putInCanonicalOrder(vars), putInCanonicalOrder(collectVars), dagsNew , mapOp, collectOp, new HashMap<HashSet<DDElement>,DDElement>());
+		
+		ArrayList<DDVariable> newVars = new ArrayList<DDVariable>(vars);
+		if(collectVars!=null) {
+			newVars.removeAll(collectVars);
+		}
+
+		info.updateInfo(newVars, allMeasure);
+		return resEl;
+		
 	}
 	
 	public static DDElement build(ArrayList<DDVariable> vars, DDElement dag, UnaryOperation op) {
@@ -235,6 +288,10 @@ public class DDBuilder {
 		return findLeaf(dag,null,new MaxLeafComparator(), new HashSet<DDElement>());
 	}
 	
+	public static DDLeaf findMinLeaf(DDElement dag) {
+		return findLeaf(dag,null,new MinLeafComparator(), new HashSet<DDElement>());
+	}
+	
 	public static DDLeaf findMaxLeaf(DDBuilder tdd) {
 		DDLeaf res = null;
 				
@@ -251,6 +308,10 @@ public class DDBuilder {
 	}
 	
 	private static ArrayList<DDVariable> putInCanonicalOrder(ArrayList<DDVariable> vars) {
+		
+		if(vars == null)
+			return null;
+		
 		ArrayList<DDVariable> retVars = new ArrayList<DDVariable>();
 		for(int i=0;i<DDContext.getCanonicalVariableOrdering().size();i++) {
 			DDVariable currVar = DDContext.getCanonicalVariableOrdering().get(i);
@@ -269,12 +330,72 @@ public class DDBuilder {
 		return info;
 	}
 	
+	static double tolerance = 0.0001d;
+	int maxLeafThresh = 1;
 	protected DDLeaf makeLeaf(Double value) {
+		
 		DDLeaf l = leaves.get(value);
 		
 		if(l==null) {
-			l = new DDLeaf(getDDInfo(),value);
-			leaves.put(value, l);
+			
+			if(sortedLeaves.size()>maxLeafThresh) {
+				int findIx = Collections.binarySearch(sortedLeaves, value);
+				if(findIx<=-1) {
+					int ubIx = -(findIx + 1);
+					if(ubIx == 0) {
+						sortedLeaves.add(0, value);
+						l = new DDLeaf(getDDInfo(),value);
+						leaves.put(value, l);
+						return l;
+					}
+					
+					int lbIx = ubIx-1;
+					
+					if(ubIx == sortedLeaves.size()) {
+						ubIx = lbIx;
+					}
+					
+					double distFromUb = Math.abs(sortedLeaves.get(ubIx)-value);
+					double distFromLb = Math.abs(sortedLeaves.get(lbIx)-value);
+					
+					if(distFromLb > tolerance && distFromUb > tolerance) {
+						sortedLeaves.add(ubIx, value);
+						l = new DDLeaf(getDDInfo(),value);
+						leaves.put(value, l);
+						return l;
+					}
+					
+					if(distFromUb<=tolerance){
+						l = leaves.get(sortedLeaves.get(ubIx));
+						return l;
+					}
+					else {
+						l = leaves.get(sortedLeaves.get(lbIx));
+						
+						return l;
+					}
+					
+					
+				}
+				else {
+					l = new DDLeaf(getDDInfo(),value);
+					leaves.put(value, l);
+					return l;
+				}
+			}
+			else {
+				l = new DDLeaf(getDDInfo(),value);
+				
+				sortedLeaves.add(value);
+				leaves.put(value, l);
+				if(sortedLeaves.size()>=maxLeafThresh) {
+					Collections.sort(sortedLeaves);
+				}
+				
+				return l;
+				
+			}
+			
 		}
 		
 		return l;
@@ -567,6 +688,7 @@ public class DDBuilder {
 		}
 		
 	}
+
 	
 	protected DDElement applyOperation(DDElement el, UnaryOperation op, HashMap<DDElement,DDElement> applyCache) {
 		if(applyCache.containsKey(el)) {
@@ -606,6 +728,7 @@ public class DDBuilder {
 		applyCache.put(el, result);
 		return result;
 	}
+	
 	protected BaseDDElement applyOperation(DDElement el1, DDElement el2, BinaryOperation op, HashMap<DDElement,HashMap<DDElement,BaseDDElement>> applyCache) {
 		
 		if(applyCache.containsKey(el1) && applyCache.get(el1).containsKey(el2)) {
@@ -722,7 +845,570 @@ public class DDBuilder {
 		return nNew;
 	}
 	
+	public static HashSet<HashMap<DDVariable,Integer>> getAllUniqueNonZeroPaths(ArrayList<DDVariable> pathVars, List<DDElement> elems) {
+		HashSet<DDVariable> allVars = new HashSet<DDVariable>();
+		for(DDElement el:elems) {
+			allVars.addAll(el.getVariables());
+		}
+		
+		return getAllUniquePaths(putInCanonicalOrder(new ArrayList<DDVariable>(allVars)),putInCanonicalOrder(pathVars),elems,new HashMap<DDVariable,Integer>());
+	}
+	protected static HashSet<HashMap<DDVariable,Integer>> getAllUniquePaths(List<DDVariable> allVars, List<DDVariable> pathVars, List<DDElement> elems, HashMap<DDVariable,Integer> prevPath) {
+		HashSet<HashMap<DDVariable,Integer>> retPaths = new HashSet<HashMap<DDVariable,Integer>>();
+
+		
+		if(allVars.size()>0 && pathVars.size()>0 && elems.size()>0) {
+			
+			DDVariable currVar = allVars.get(0);
+			DDVariable currPathVar = pathVars.get(0);
+			
+			
+			List<DDVariable> nextAllVars = allVars.subList(1, allVars.size());
+			List<DDVariable> nextPathVars = pathVars;
+			
+			boolean canPathResolve = false;
+			
+			if(currVar.equals(currPathVar)) {
+				canPathResolve = true;
+				nextPathVars = pathVars.subList(1, pathVars.size());
+			}
+			else {
+				nextPathVars = pathVars;
+				while(DDContext.getVariableIndex(currVar) > DDContext.getVariableIndex(nextPathVars.get(0))) {
+					nextPathVars = nextPathVars.subList(1, nextPathVars.size());
+				}
+			}
+			
+			for(int varVal = 0; varVal < currVar.getValueCount(); varVal++) {
+				
+				
+				HashMap<DDVariable,Integer> nextPath = prevPath;
+				
+				if(canPathResolve) {
+					nextPath = new HashMap<DDVariable,Integer>();
+					nextPath.putAll(prevPath);
+					nextPath.put(currVar, varVal);
+				}
+				
+				ArrayList<DDElement> nextElems = new ArrayList<DDElement>();
+				
+				boolean isZero = false;
+				for(DDElement el:elems) {
+					
+					if(el instanceof DDNode) {
+						DDNode n = (DDNode) el;
+						if(n.getVariable().equals(currVar)) {
+							nextElems.add(n.getChild(varVal));
+						}
+						else {
+							nextElems.add(el);
+						}
+						
+						
+					}
+					else {
+						if(((DDLeaf) el).getValue() == 0.0d) {
+							isZero = true;
+							break;
+						}
+						
+					}
+				}
+				
+				if(!isZero) {
+					retPaths.addAll(getAllUniquePaths(nextAllVars,nextPathVars,nextElems,nextPath));
+				}
+			}
+			
+		}
+		else /*if(elems.size()>0)*/ {
+			
+			boolean isZero = false;
+			
+			if(elems.size()>0) {
+				for(DDElement el:elems) {
+					if(el instanceof DDLeaf && ((DDLeaf) el).getValue() == 0.0d) {
+						isZero = true;
+						break;
+					}
+				}
+			}
+
+			if(!isZero) {	
+				retPaths.add(prevPath);
+			}
+
+		}
+
+		
+		
+		return retPaths;
+		
+		
+	}
 	
+	
+	public static void indexAlphaVector(HashMap<DDLeaf,DDLeaf> maxLeavesAfter, DDElement alphaEl) {
+		if(alphaEl instanceof DDNode) {
+			DDNode n = (DDNode) alphaEl;
+			
+			for(int i=0;i<n.getVariable().getValueCount();++i) {
+				indexAlphaVector(maxLeavesAfter,n.getChild(i));
+			}
+		}
+		else {
+			DDLeaf l = (DDLeaf) alphaEl;
+			
+			if(!maxLeavesAfter.containsKey(l)) {
+				HashMap<DDLeaf,DDLeaf> newMaxLeavesAfter = new HashMap<DDLeaf,DDLeaf>();
+				newMaxLeavesAfter.put(l, l);
+				
+				for(Entry<DDLeaf,DDLeaf> e:maxLeavesAfter.entrySet()) {
+					DDLeaf currLeaf = e.getKey();
+					DDLeaf largestAfterLeaf = e.getValue();
+					
+					if(largestAfterLeaf.getValue() < l.getValue()) {
+						newMaxLeavesAfter.put(currLeaf, l);
+					}
+					else {
+						newMaxLeavesAfter.put(currLeaf, largestAfterLeaf);
+					}
+				}
+				
+				maxLeavesAfter.putAll(newMaxLeavesAfter);
+			}
+		}
+		
+	}
+	public static int maxDotProduct(
+			List<DDElement> probElems, 
+			List<DDElement> realElems, 
+			List<DDLeaf> maxRealElemValues, 
+			List<DDLeaf> minRealElemValues,
+			List<HashMap<DDLeaf,DDLeaf>> maxLeavesAfter) {
+		
+		HashSet<DDVariable> varsSet = new HashSet<DDVariable>();
+		
+		List<Double> probElemProbLeft = new ArrayList<Double>();
+		for(DDElement probEl:probElems) {
+			probElemProbLeft.add(1.0d);
+			
+			varsSet.addAll(probEl.getVariables());
+		}
+		
+		List<Double> results = new ArrayList<Double>();
+		
+		for(DDElement realEl:realElems) {
+			results.add(0.0d);
+			varsSet.addAll(realEl.getVariables());
+		}
+		
+		List<DDVariable> vars = putInCanonicalOrder(new ArrayList<DDVariable>(varsSet));
+		
+		int numWinners = maxDotProduct(vars,probElems,1.0d,realElems,maxRealElemValues,minRealElemValues,results,maxLeavesAfter,new HashMap<HashSet<DDElement>,DDLeaf>());
+		
+		double maxValue = -Double.MAX_VALUE;
+		int maxIx = -1;
+		for(int i=0;i<results.size();++i) {
+			Double result = results.get(i);
+			if(result != null && result > maxValue) {
+				maxValue = result;
+				maxIx = i;
+			}
+		}
+		
+		//System.out.println("Num winners:" + numWinners);
+		
+		return maxIx;
+		
+	}
+	protected static int maxDotProduct(List<DDVariable> vars, 
+			List<DDElement> probElems, 
+			Double probElemProbLeft,
+			List<DDElement> realElems, 
+			List<DDLeaf> maxRealElemValues, 
+			List<DDLeaf> minRealElemValues, 
+			List<Double> results,
+			List<HashMap<DDLeaf,DDLeaf>> leafCounts,
+			HashMap<HashSet<DDElement>,DDLeaf> applyCache) {
+		
+		int numWinners = 0;
+		if(vars.size()>0) {
+			List<DDVariable> nextVars = vars.subList(1, vars.size());
+			DDVariable currVar = vars.get(0);
+			
+			for(int varVal = 0; varVal < currVar.getValueCount(); varVal++) {
+				ArrayList<DDElement> nextProbElems = new ArrayList<DDElement>();
+				ArrayList<DDElement> nextRealElems = new ArrayList<DDElement>();
+				
+				for(DDElement el:probElems) {
+					if(el instanceof DDNode && ((DDNode) el).getVariable().equals(currVar)) {
+						DDNode n = (DDNode) el;
+						nextProbElems.add(n.getChild(varVal));
+					}
+					else {
+						if(el instanceof DDLeaf) {
+							DDLeaf l = (DDLeaf) el;
+							if(l.getValue() == 0.0d) {
+								return Integer.MAX_VALUE;
+							}
+						}
+						nextProbElems.add(el);
+					}
+				}
+				
+				for(int i=0;i<realElems.size();++i) {
+					if(results.get(i) != null) {
+						DDElement el = realElems.get(i);
+						if(el instanceof DDNode && ((DDNode) el).getVariable().equals(currVar)) {
+							DDNode n = (DDNode) el;
+							nextRealElems.add(n.getChild(varVal));
+						}
+						else {
+							nextRealElems.add(el);
+						}
+					}
+					else {
+						nextRealElems.add(null);
+					}
+				}
+				
+				numWinners = maxDotProduct(nextVars,nextProbElems,probElemProbLeft,nextRealElems,maxRealElemValues,minRealElemValues,results,leafCounts,applyCache);
+				
+				if(numWinners<2) {
+					return numWinners;
+				}
+				
+			}
+			
+		}
+		else {
+			
+			double probTotal = 1.0d;
+			
+			for(int i=0;i<probElems.size();++i) {
+				DDLeaf currProbLeaf = (DDLeaf) probElems.get(i);
+				double prob = currProbLeaf.getValue();
+				
+				probTotal *= prob;
+			}
+			
+			probElemProbLeft-=probTotal;
+			
+			if(probElemProbLeft<0.0d) {
+				System.out.println("TEST");
+			}
+			
+			double maxResultSoFar = -Double.MAX_VALUE;
+			int maxResultIxSoFar = -1;
+			
+			for(int i=0;i<realElems.size();++i) {
+				if(results.get(i) != null) {
+					DDLeaf currValueLeaf = (DDLeaf) realElems.get(i);
+					
+					HashMap<DDLeaf,DDLeaf> leafCount = leafCounts.get(i);
+					
+					if(leafCount.containsKey(currValueLeaf)) {
+						maxRealElemValues.set(i, leafCount.get(currValueLeaf));
+					}
+					
+					double value = currValueLeaf.getValue();
+					double result = probTotal*value + results.get(i);
+					
+					if(result>maxResultSoFar) {
+						maxResultSoFar = result;
+						maxResultIxSoFar = i;
+					}
+					
+					results.set(i, result);
+				}
+			}
+			
+			if(minRealElemValues.get(maxResultIxSoFar).getValue()<0) {
+				maxResultSoFar += probElemProbLeft * minRealElemValues.get(maxResultIxSoFar).getValue();
+			}
+			
+			for(int i=0;i<realElems.size();++i) {
+				if(results.get(i) != null) {
+					double maxLeft = probElemProbLeft * maxRealElemValues.get(i).getValue();
+					
+					if( maxResultSoFar > results.get(i) + maxLeft) {
+						results.set(i, null);
+					}
+					else {
+						numWinners++;
+					}
+				}
+			}
+			
+
+			if(numWinners<1 && realElems.size()>1) {
+				System.out.println("TEST");
+			}
+		}
+		
+		
+		return numWinners;
+	}
+	
+	public static double dotProduct(
+			List<DDElement> probElems, 
+			DDElement realElem) {
+		
+		HashSet<DDVariable> varsSet = new HashSet<DDVariable>(realElem.getVariables());
+		
+		for(DDElement probEl:probElems) {
+			varsSet.addAll(probEl.getVariables());
+		}
+		
+		ArrayList<DDVariable> vars = putInCanonicalOrder(new ArrayList<DDVariable>(varsSet));
+		
+		return dotProduct(vars,probElems,realElem,new HashMap<HashSet<DDElement>,Double>());
+		
+	}
+	protected static double dotProduct(
+			List<DDVariable> vars,
+			List<DDElement> probElems, 
+			DDElement realElem,
+			HashMap<HashSet<DDElement>,Double> cache) {
+		
+		HashSet<DDElement> key = new HashSet<DDElement>(probElems);
+		key.add(realElem);
+		
+		if(cache.containsKey(key)) {
+			return cache.get(key);
+		}
+		double total = 0.0d;
+		
+		if(vars.size()>0) {
+			List<DDVariable> nextVars = vars.subList(1, vars.size());
+			DDVariable currVar = vars.get(0);
+			
+			for(int varVal = 0; varVal < currVar.getValueCount(); varVal++) {
+				ArrayList<DDElement> nextProbElems = new ArrayList<DDElement>();
+				DDElement nextRealElem = realElem;
+				
+				boolean isZero = false;
+				for(DDElement el:probElems) {
+					if(el instanceof DDNode && ((DDNode) el).getVariable().equals(currVar)) {
+						DDNode n = (DDNode) el;
+						nextProbElems.add(n.getChild(varVal));
+					}
+					else {
+						if(el instanceof DDLeaf) {
+							DDLeaf l = (DDLeaf) el;
+							if(l.getValue() == 0.0d) {
+								isZero = true;
+								break;
+							}
+						}
+						nextProbElems.add(el);
+					}
+				}
+				
+				if(isZero) {
+					continue;
+				}
+				
+				if(realElem instanceof DDNode && ((DDNode) realElem).getVariable().equals(currVar)) {
+					nextRealElem = ((DDNode) realElem).getChild(varVal);
+				}
+				
+				total+=dotProduct(nextVars,nextProbElems,nextRealElem,cache);
+			}
+		}
+		else {
+			DDLeaf realLeaf = (DDLeaf) realElem;
+			total = realLeaf.getValue();
+			
+			for(DDElement el:probElems) {
+				DDLeaf probLeaf = (DDLeaf) el;
+				
+				total*=probLeaf.getValue();
+			}
+		}
+		
+		cache.put(key, total);
+		return total;
+	}
+	
+	protected DDLeaf mapCollectLeafOperation(List<DDVariable> vars, List<DDElement> elems, BinaryOperation mapOp, BinaryOperation collectOp, HashMap<HashSet<DDElement>,DDLeaf> applyCache) {
+		
+		// There should be no duplicates within the elements, so this 
+		// should just create set of the same items, but the order being
+		// unimportant
+		HashSet<DDElement> cacheKey = new HashSet<DDElement>(elems);
+		
+		if(applyCache.containsKey(cacheKey)) {
+			return applyCache.get(cacheKey);
+		}
+		
+		if(vars.size()>0) {
+			List<DDVariable> nextVars = vars.subList(1, vars.size());
+			DDVariable currVar = vars.get(0);
+			
+			ArrayList<DDElement> resolvableElems = new ArrayList<DDElement>();
+			ArrayList<DDElement> unresolvableElems = new ArrayList<DDElement>();
+			for(DDElement el:elems) {
+				if(el instanceof DDNode && ((DDNode) el).getVariable().equals(currVar)) {
+					resolvableElems.add(el);
+				}
+				else {
+					unresolvableElems.add(el);
+				}
+			}
+			
+			Double value = null;
+			for(int varVal = 0; varVal < currVar.getValueCount(); varVal++) {
+				ArrayList<DDElement> nextElems = new ArrayList<DDElement>(unresolvableElems);
+				
+				for(DDElement el:resolvableElems) {
+					DDNode n = (DDNode) el;
+					nextElems.add(n.getChild(varVal));
+				}
+				
+				DDLeaf resLeaf = mapCollectLeafOperation(nextVars,nextElems,mapOp,collectOp,applyCache);
+				if(value == null) {
+					value = resLeaf.getValue();
+				}
+				else {
+					value = collectOp.invoke(value, resLeaf.getValue());
+				}
+			}
+			
+			DDLeaf resLeaf = makeLeaf(value);
+			applyCache.put(cacheKey, resLeaf);
+			return resLeaf;
+		}
+		else {
+			
+			Double value = null;
+			for(DDElement el:elems) {
+				DDLeaf l = (DDLeaf) el;
+				if(value == null) {
+					value = l.getValue();
+				}
+				else {
+					value = mapOp.invoke(value, l.getValue());
+				}
+				
+				if(mapOp instanceof MultiplicationOperation && value == 0.0d) {
+					break;
+				}
+			}
+			
+			DDLeaf resLeaf = makeLeaf(value);
+			applyCache.put(cacheKey, resLeaf);
+			return resLeaf;
+		}
+
+	}
+	
+	protected DDElement mapCollectOperation(List<DDVariable> allVarsInOrder, List<DDVariable> collectAtVarsInOrder, List<DDElement> elems, BinaryOperation mapOp, BinaryOperation collectOp, HashMap<HashSet<DDElement>,DDElement> applyCache) {
+		
+		// There should be no duplicates within the elements, so this 
+		// should just create set of the same items, but the order being
+		// unimportant
+		HashSet<DDElement> cacheKey = new HashSet<DDElement>(elems);
+		
+		if(applyCache.containsKey(cacheKey)) {
+			return applyCache.get(cacheKey);
+		}
+		
+		
+		if(allVarsInOrder.size()>0) {
+			List<DDVariable> nextAllVarsInOrder = allVarsInOrder.subList(1, allVarsInOrder.size());
+			List<DDVariable> nextCollectAtVarsInOrder = null;
+			
+			DDVariable currVar = allVarsInOrder.get(0);
+			boolean collectHere = collectAtVarsInOrder!=null && collectAtVarsInOrder.size()>0 && currVar.equals(collectAtVarsInOrder.get(0));
+			
+			if(collectHere) {
+				nextCollectAtVarsInOrder = collectAtVarsInOrder.subList(1, collectAtVarsInOrder.size());
+			} else {
+				nextCollectAtVarsInOrder = collectAtVarsInOrder;
+			}
+			
+			ArrayList<DDElement> resolvableElems = new ArrayList<DDElement>();
+			ArrayList<DDElement> unresolvableElems = new ArrayList<DDElement>();
+			for(DDElement el:elems) {
+				if(el instanceof DDNode && ((DDNode) el).getVariable().equals(currVar)) {
+					resolvableElems.add(el);
+				}
+				else if(collectAtVarsInOrder!=null && collectAtVarsInOrder.size()>0 && mapOp instanceof MultiplicationOperation && el instanceof DDLeaf && ((DDLeaf) el).getValue() == 0.0d) {
+					DDLeaf resLeaf = makeLeaf(0.0d);
+					applyCache.put(cacheKey, resLeaf);
+					return resLeaf;
+				}
+				else {
+					unresolvableElems.add(el);
+				}
+			}
+
+			ArrayList<DDElement> childrenList = new ArrayList<DDElement>();
+			for(int varVal = 0; varVal < currVar.getValueCount(); varVal++) {
+				ArrayList<DDElement> nextElems = new ArrayList<DDElement>(unresolvableElems);
+				
+				for(DDElement el:resolvableElems) {
+					DDNode n = (DDNode) el;
+					nextElems.add(n.getChild(varVal));
+				}
+				
+				DDElement resEl = mapCollectOperation(nextAllVarsInOrder,nextCollectAtVarsInOrder,nextElems,mapOp,collectOp,applyCache);
+				childrenList.add(resEl);
+			}
+			
+			DDElement resEl;
+			if(collectHere) {
+				resEl = mapCollectOperation(nextAllVarsInOrder,null,childrenList, collectOp, null, applyCache);
+			}
+			else {
+				BaseDDElement[] children = childrenList.toArray(new BaseDDElement[0]);
+				
+				boolean allEqual = true;
+				BaseDDElement currEl = children[0];
+				for(int i=1;i<currVar.getValueCount() && allEqual;i++) {
+					allEqual = allEqual && currEl.equals(children[i]);
+					currEl = children[i];
+				}
+				
+				if(allEqual) {
+					resEl = children[0];
+				}
+				else {
+					resEl = makeNode(currVar,children);
+				}
+			}
+			
+			applyCache.put(cacheKey, resEl);
+			return resEl;
+		}
+		else {
+			
+			Double value = null;
+			for(DDElement el:elems) {
+				DDLeaf l = (DDLeaf) el;
+				if(value == null) {
+					value = l.getValue();
+				}
+				else {
+					value = mapOp.invoke(value, l.getValue());
+				}
+				
+				if(mapOp instanceof MultiplicationOperation && value == 0.0d) {
+					break;
+				}
+			}
+			
+			DDLeaf resLeaf = makeLeaf(value);
+			applyCache.put(cacheKey, resLeaf);
+			return resLeaf;
+		}
+
+	}
+	
+
+		
 	public static String toString(DDElement el, HashSet<Long> processed) {
 		String str = "";
 		
@@ -782,6 +1468,7 @@ public class DDBuilder {
 	
 	public static String toString(DDElement el) {
 		String str = "";
+		str += "//" + el.getVariables() + "\n";
 		str += "digraph add {\n";
 		str += "	rankdir=LR;\n";
 		str += "	node [shape = circle];\n";

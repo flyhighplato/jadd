@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import masg.dd.representation.DDLeaf;
 import masg.dd.variables.DDVariable;
 
 public class CondProbDD {
@@ -22,6 +23,16 @@ public class CondProbDD {
 		allVariables.addAll(this.condVars);
 		
 		fn = new AlgebraicDD(allVariables, defaultScopeId, c, true);
+	}
+	
+	public CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, int defaultScopeId, HashMap<DDVariable,Integer> pt) {
+		this.condVars.addAll(new HashSet<DDVariable>(condVars));
+		this.uncondVars.addAll(new HashSet<DDVariable>(uncondVars));
+		
+		ArrayList<DDVariable> allVariables = new ArrayList<DDVariable>(this.uncondVars);
+		allVariables.addAll(this.condVars);
+		
+		fn = new AlgebraicDD(allVariables, defaultScopeId, pt);
 	}
 	
 	public CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, AlgebraicDD fn) {
@@ -63,10 +74,18 @@ public class CondProbDD {
 	}
 	
 	public CondProbDD multiply(CondProbDD cpddOther) {
-		return CondProbDD.multiply(this,cpddOther);
+		return CondProbDD.multiply(this,cpddOther, new HashSet<DDVariable>());
 	}
 	
-	private static CondProbDD multiply(CondProbDD cpdd1, CondProbDD cpdd2) {
+	public CondProbDD multiply(CondProbDD cpddOther, HashSet<DDVariable> doNotSumOut) {
+		return CondProbDD.multiply(this,cpddOther, doNotSumOut);
+	}
+	
+	/*private static CondProbDD multiply(CondProbDD cpdd1, CondProbDD cpdd2) {
+		return multiply(cpdd1,cpdd2, new HashSet<DDVariable>());
+	}*/
+	
+	private static CondProbDD multiply(CondProbDD cpdd1, CondProbDD cpdd2, HashSet<DDVariable> doNotSumOut) {
 		
 		HashSet<DDVariable> newCondVars = new HashSet<DDVariable>();
 		HashSet<DDVariable> newUncondVars = new HashSet<DDVariable>();
@@ -74,6 +93,7 @@ public class CondProbDD {
 		
 		HashSet<DDVariable> solvedConditionalVariables1 = new HashSet<DDVariable>(cpdd1.getPosteriorVariables());
 		solvedConditionalVariables1.retainAll(cpdd2.getConditionalVariables());
+		
 		
 		HashSet<DDVariable> solvedConditionalVariables2 = new HashSet<DDVariable>(cpdd2.getPosteriorVariables());
 		solvedConditionalVariables2.retainAll(cpdd1.getConditionalVariables());
@@ -83,8 +103,11 @@ public class CondProbDD {
 		if(!solvedConditionalVariables1.isEmpty()) {
 			canMultiply = true;
 			
+			solvedConditionalVariables1.removeAll(doNotSumOut);
+			
 			newCondVars.addAll(cpdd1.getConditionalVariables());
 			newCondVars.addAll(cpdd2.getConditionalVariables());
+			
 			newCondVars.removeAll(solvedConditionalVariables1);
 			
 			
@@ -97,6 +120,8 @@ public class CondProbDD {
 		}
 		else if(!solvedConditionalVariables2.isEmpty()) {
 			canMultiply = true;
+			
+			solvedConditionalVariables2.removeAll(doNotSumOut);
 			
 			newCondVars.addAll(cpdd1.getConditionalVariables());
 			newCondVars.addAll(cpdd2.getConditionalVariables());
@@ -137,6 +162,7 @@ public class CondProbDD {
 		}
 		
 		if(canMultiply) {
+			newUncondVars.removeAll(newCondVars);
 			return new CondProbDD(new ArrayList<DDVariable>(newCondVars),new ArrayList<DDVariable>(newUncondVars),cpdd1.getFunction().multiply(cpdd2.getFunction()).sumOut(new ArrayList<DDVariable>(elimVars)));
 		}
 		
@@ -172,7 +198,15 @@ public class CondProbDD {
 		ArrayList<DDVariable> condVars = new ArrayList<DDVariable>(this.condVars);
 		ArrayList<DDVariable> uncondVars = new ArrayList<DDVariable>(this.uncondVars);
 		
-		AlgebraicDD resultDD = fn.div(fn.sumOut(this.uncondVars));
+		AlgebraicDD ddNorm = fn.sumOut(this.uncondVars);
+		
+		AlgebraicDD resultDD;
+		if(ddNorm.getTotalWeight() == 0.0d) {
+			resultDD = fn.multiply(0.0d);
+		}
+		else {
+			resultDD = fn.div(ddNorm);
+		}
 		return new CondProbDD(condVars,uncondVars,resultDD);
 	}
 	public CondProbDD unprime() {

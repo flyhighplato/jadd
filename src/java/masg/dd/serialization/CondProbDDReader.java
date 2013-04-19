@@ -16,10 +16,10 @@ public class CondProbDDReader {
 		this.reader = reader;
 	}
 	
-	public CondProbDD read() throws IOException {
+	public CondProbDD read(int scope) throws IOException {
 		
 		DDElementReader elReader = new DDElementReader(reader);
-		DDElement el = elReader.read();
+		DDElement el = elReader.read(scope);
 		
 		if(el==null)
 			return null;
@@ -40,7 +40,7 @@ public class CondProbDDReader {
 			String varName = params[0];
 			int valCount = Integer.parseInt(params[1]);
 			
-			condVars.add(new DDVariable(0,varName,valCount));
+			condVars.add(new DDVariable(scope,varName,valCount));
 		}
 		
 		ArrayList<DDVariable> postVars = new ArrayList<DDVariable>();
@@ -55,7 +55,7 @@ public class CondProbDDReader {
 			String varName = params[0];
 			int valCount = Integer.parseInt(params[1]);
 			
-			postVars.add(new DDVariable(0,varName,valCount));
+			postVars.add(new DDVariable(scope,varName,valCount));
 		}
 		
 		return new CondProbDD(condVars,postVars,dd);

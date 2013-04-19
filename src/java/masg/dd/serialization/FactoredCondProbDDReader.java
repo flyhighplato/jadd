@@ -13,7 +13,7 @@ public class FactoredCondProbDDReader {
 		this.reader = reader;
 	}
 	
-	public FactoredCondProbDD read() throws IOException {
+	public FactoredCondProbDD read(int scope) throws IOException {
 		
 		ArrayList<CondProbDD> fns = new ArrayList<CondProbDD>();
 		while(true) {
@@ -24,7 +24,7 @@ public class FactoredCondProbDDReader {
 			}
 			
 			CondProbDDReader cpddReader = new CondProbDDReader(reader);
-			CondProbDD cpdd = cpddReader.read();
+			CondProbDD cpdd = cpddReader.read(scope);
 			
 			if(cpdd==null)
 				return null;

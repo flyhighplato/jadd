@@ -41,6 +41,11 @@ public class AlgebraicDD {
 		ruleCollection = DDBuilder.build(new DDInfo(vars,true), defaultScopeId, c).getRootNode();
 	}
 	
+	public AlgebraicDD(ArrayList<DDVariable> vars, int defaultScopeId, HashMap<DDVariable,Integer> pt) {
+		variables = vars;
+		ruleCollection = DDBuilder.build(new DDInfo(vars,true), defaultScopeId, pt).getRootNode();
+	}
+	
 	public AlgebraicDD(ArrayList<DDVariable> vars, double val) {
 		variables = vars;
 		ruleCollection = DDBuilder.build(new DDInfo(vars,true), val).getRootNode();
@@ -65,6 +70,10 @@ public class AlgebraicDD {
 	
 	public AlgebraicDD absDiff(AlgebraicDD dd) {
 		return oper(new AbsDiffOperation(),dd);
+	}
+	
+	public double maxAbsDiff(AlgebraicDD dd) {
+		return mapCollect(new AbsDiffOperation(),new MaxOperation(),dd).getTotalWeight();
 	}
 	
 	public AlgebraicDD minus(AlgebraicDD dd) {
@@ -140,6 +149,59 @@ public class AlgebraicDD {
 			vars.addAll(dd.getVariables());
 		}
 		return new AlgebraicDD(DDBuilder.build(new ArrayList<DDVariable>(vars), dDs, oper));
+	}
+	
+	
+	
+	protected AlgebraicDD mapCollect(BinaryOperation mapOp, BinaryOperation collectOp, AlgebraicDD ddOther) {
+		ArrayList<AlgebraicDD> ddOtherList = new ArrayList<AlgebraicDD>();
+		ddOtherList.add(ddOther);
+		
+		return mapCollect(mapOp,collectOp,ddOtherList);
+	}
+	
+	protected AlgebraicDD mapCollect(BinaryOperation mapOp, BinaryOperation collectOp, ArrayList<AlgebraicDD> ddOtherList) {
+		ArrayList<DDElement> dDs = new ArrayList<DDElement>();
+		dDs.add(ruleCollection);
+		
+		HashSet<DDVariable> vars = new HashSet<DDVariable>();
+		vars.addAll(getVariables());
+		for(AlgebraicDD dd:ddOtherList) {
+			dDs.add(dd.ruleCollection);
+			vars.addAll(dd.getVariables());
+		}
+		return new AlgebraicDD(DDBuilder.build(new ArrayList<DDVariable>(vars), dDs, mapOp, collectOp));
+	}
+	
+	protected AlgebraicDD mapCollect(BinaryOperation mapOp, BinaryOperation collectOp, HashSet<DDVariable> collectAtVars, AlgebraicDD ddOther) {
+		ArrayList<AlgebraicDD> ddOtherList = new ArrayList<AlgebraicDD>();
+		ddOtherList.add(ddOther);
+		
+		return mapCollect(mapOp,collectOp,collectAtVars,ddOtherList);
+	}
+	
+	protected AlgebraicDD mapCollect(BinaryOperation mapOp, BinaryOperation collectOp, HashSet<DDVariable> collectAtVars, ArrayList<AlgebraicDD> ddOtherList) {
+		ArrayList<DDElement> dDs = new ArrayList<DDElement>();
+		dDs.add(ruleCollection);
+		
+		HashSet<DDVariable> vars = new HashSet<DDVariable>();
+		vars.addAll(getVariables());
+		for(AlgebraicDD dd:ddOtherList) {
+			dDs.add(dd.ruleCollection);
+			vars.addAll(dd.getVariables());
+		}
+		
+		ArrayList<DDVariable> collectAtVarsTemp = null;
+		
+		if(collectAtVars!=null) {
+			HashSet<DDVariable> collectAtVarsNew = new HashSet<DDVariable>(collectAtVars);
+			collectAtVarsNew.retainAll(vars);
+			
+			collectAtVarsTemp = new ArrayList<DDVariable>(collectAtVarsNew);
+		}
+		
+		
+		return new AlgebraicDD(DDBuilder.build(new ArrayList<DDVariable>(vars), collectAtVarsTemp, dDs, mapOp, collectOp));
 	}
 	
 	public AlgebraicDD normalize() {

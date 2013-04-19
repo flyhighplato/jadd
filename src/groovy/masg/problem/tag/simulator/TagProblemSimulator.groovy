@@ -6,7 +6,7 @@ import java.util.Random;
 import masg.dd.FactoredCondProbDD
 import masg.dd.ProbDD
 import masg.dd.pomdp.agent.belief.POMDPBelief
-import masg.dd.pomdp.agent.policy.AlphaVectorPolicy
+import masg.dd.pomdp.agent.policy.BeliefAlphaVectorPolicy
 import masg.dd.pomdp.agent.policy.FSCPolicy
 import masg.dd.pomdp.agent.policy.Policy
 import masg.dd.pomdp.agent.policy.serialization.AlphaVectorPolicyWriter
@@ -16,16 +16,16 @@ import masg.problem.tag.TagProblemModel;
 
 class TagProblemSimulator {
 	
-	DDVariable a1_row = new DDVariable("a1_row",5)
-	DDVariable a1_col = new DDVariable("a1_col",5)
-	DDVariable a2_row = new DDVariable("a2_row",5)
-	DDVariable a2_col = new DDVariable("a2_col",5)
-	DDVariable w_row = new DDVariable("w_row",5)
-	DDVariable w_col = new DDVariable("w_col",5)
+	DDVariable a1_row = new DDVariable(0,"a1_row",5)
+	DDVariable a1_col = new DDVariable(0,"a1_col",5)
+	DDVariable a2_row = new DDVariable(0,"a2_row",5)
+	DDVariable a2_col = new DDVariable(0,"a2_col",5)
+	DDVariable w_row = new DDVariable(0,"w_row",5)
+	DDVariable w_col = new DDVariable(0,"w_col",5)
 	
-	DDVariable a1_row_loc = new DDVariable("a1_row_loc",5)
-	DDVariable a1_col_loc = new DDVariable("a1_col_loc",5)
-	DDVariable w_pres = new DDVariable("w_pres",2)
+	DDVariable a1_row_loc = new DDVariable(0,"a1_row_loc",5)
+	DDVariable a1_col_loc = new DDVariable(0,"a1_col_loc",5)
+	DDVariable w_pres = new DDVariable(0,"w_pres",2)
 	
 	Random random = new Random();
 	
@@ -39,7 +39,7 @@ class TagProblemSimulator {
 		new File(filePath).mkdir()
 		new File(filePath + "/policy").mkdir()
 		
-		if(pol1 instanceof AlphaVectorPolicy) {
+		if(pol1 instanceof BeliefAlphaVectorPolicy) {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(filePath + "/policy/runPolicy.policy",false));
 			AlphaVectorPolicyWriter policyWriter = new AlphaVectorPolicyWriter(pol1);
 			policyWriter.write(writer);

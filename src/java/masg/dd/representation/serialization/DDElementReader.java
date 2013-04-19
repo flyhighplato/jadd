@@ -27,7 +27,7 @@ public class DDElementReader {
 		DDElement[] children = null;
 	}
 
-	public DDElement read() throws IOException {
+	public DDElement read(int scope) throws IOException {
 		
 		HashSet<DDVariable> vars = new HashSet<DDVariable>();
 		HashMap<Integer,DDVariable> varByIndex = new HashMap<Integer,DDVariable>();
@@ -52,7 +52,7 @@ public class DDElementReader {
 			String varName = params[1];
 			int valCount = Integer.parseInt(params[2]);
 			
-			DDVariable v = new DDVariable(0,varName,valCount);
+			DDVariable v = new DDVariable(scope,varName,valCount);
 			vars.add(v);
 			varByIndex.put(ix, v);
 			

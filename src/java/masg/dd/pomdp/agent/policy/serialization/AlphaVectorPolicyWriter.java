@@ -3,23 +3,24 @@ package masg.dd.pomdp.agent.policy.serialization;
 import java.io.BufferedWriter;
 import java.io.IOException;
 
+import masg.dd.alphavector.AlphaVector;
 import masg.dd.alphavector.BeliefAlphaVector;
 import masg.dd.alphavector.serialization.BeliefAlphaVectorWriter;
-import masg.dd.pomdp.agent.policy.AlphaVectorPolicy;
+import masg.dd.pomdp.agent.policy.BeliefAlphaVectorPolicy;
 
 public class AlphaVectorPolicyWriter {
-	AlphaVectorPolicy pol;
+	BeliefAlphaVectorPolicy pol;
 	
-	public AlphaVectorPolicyWriter(AlphaVectorPolicy pol) {
+	public AlphaVectorPolicyWriter(BeliefAlphaVectorPolicy pol) {
 		this.pol = pol;
 	}
 	
 	public void write(BufferedWriter w) throws IOException {
-		for(BeliefAlphaVector alpha:pol.getAlphaVectors()){
+		for(AlphaVector alpha:pol.getAlphaVectors()){
 			w.write("+ALPHA");
 			w.newLine();
 			
-			BeliefAlphaVectorWriter alphaWriter = new BeliefAlphaVectorWriter(alpha);
+			BeliefAlphaVectorWriter alphaWriter = new BeliefAlphaVectorWriter((BeliefAlphaVector) alpha);
 			alphaWriter.write(w);
 		}
 		w.newLine();

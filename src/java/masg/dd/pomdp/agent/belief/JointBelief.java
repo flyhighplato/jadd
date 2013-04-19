@@ -1,11 +1,11 @@
 package masg.dd.pomdp.agent.belief;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.Random;
 
 import masg.dd.FactoredCondProbDD;
-import masg.dd.ProbDD;
 import masg.dd.pomdp.AbstractPOMDP;
 import masg.dd.variables.DDVariable;
 
@@ -21,24 +21,21 @@ public class JointBelief implements Belief {
 	HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> > nextBeliefFnsMe = new HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> >();
 	HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> > nextBeliefFnsOther = new HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> >();
 
-	HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> obsProbFnsMe = new HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD>();
-	HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> obsProbFnsOther = new HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD>();
-	
 	HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, Double> > obsProbsMe = new HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, Double> >();
 	HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, Double> > obsProbsOther = new HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, Double> >();
 	
 	Random random = new Random();
+	
+	boolean cachesInit = false;
 	
 	private JointBelief(
 			AbstractPOMDP pMe,
 			AbstractPOMDP pOther, 
 			FactoredCondProbDD beliefFnMe, 
 			FactoredCondProbDD beliefFnOther, 
-			HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> > nextBeliefFnsMe,
+			HashMap<HashMap<DDVariable, Integer>, HashMap<HashMap<DDVariable, Integer>, FactoredCondProbDD>> nextBeliefFnsMe,
 			HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> > nextBeliefFnsOther,
-			HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> obsProbFnsMe,
-			HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> obsProbFnsOther,
-			HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, Double> > obsProbsMe,
+			HashMap<HashMap<DDVariable, Integer>, HashMap<HashMap<DDVariable, Integer>, Double>> obsProbsMe,
 			HashMap< HashMap<DDVariable,Integer>, HashMap<HashMap<DDVariable,Integer>, Double> > obsProbsOther,
 			JointBelief reverseBelief
 			) 
@@ -52,14 +49,12 @@ public class JointBelief implements Belief {
 		this.nextBeliefFnsMe = nextBeliefFnsMe;
 		this.nextBeliefFnsOther = nextBeliefFnsOther;
 		
-		this.obsProbFnsMe = obsProbFnsMe;
-		this.obsProbFnsOther = obsProbFnsOther;
-		
 		this.obsProbsMe = obsProbsMe;
 		this.obsProbsOther = obsProbsOther;
 		
 		this.reverseBelief = reverseBelief;
 		
+		cachesInit = true;
 	}
 	
 	public JointBelief(JointBelief bMe, JointBelief bOther) {
@@ -72,9 +67,6 @@ public class JointBelief implements Belief {
 		this.nextBeliefFnsMe = bMe.nextBeliefFnsMe;
 		this.nextBeliefFnsOther = bOther.nextBeliefFnsMe;
 		
-		this.obsProbFnsMe = bMe.obsProbFnsMe;
-		this.obsProbFnsOther = bOther.obsProbFnsMe;
-		
 		this.obsProbsMe = bMe.obsProbsMe;
 		this.obsProbsOther = bOther.obsProbsMe;
 		
@@ -86,103 +78,113 @@ public class JointBelief implements Belief {
 		this.pOther = pOther;
 		this.beliefFnMe = beliefFnMe;
 		this.beliefFnOther = beliefFnOther;
+	}
+	
+	
+	private void initCaches() {
+		if(cachesInit)
+			return;
 		
-		//P(s'|a,s)*P(s) = P(s'|a)
-		FactoredCondProbDD restrTransBeliefFnMe = pMe.getTransitionFunction().multiply(beliefFnMe);
-		restrTransBeliefFnMe = restrTransBeliefFnMe.sumOut(pMe.getStates());
-		restrTransBeliefFnMe = restrTransBeliefFnMe.normalize();
-		restrTransBeliefFnMe = restrTransBeliefFnMe.approximate(pMe.getTolerance());
+		FactoredCondProbDD transitionProbMe;
+		FactoredCondProbDD transitionProbOther;
 		
-		//P(o|a,s')*P(s'|a) = P(o|a)
-		FactoredCondProbDD restrObsFnMe = pMe.getObservationFunction().multiply(restrTransBeliefFnMe);
-		restrObsFnMe = restrObsFnMe.approximate(pMe.getTolerance());
+		HashSet<DDVariable> retainVarsMe = new HashSet<DDVariable>();
+		retainVarsMe.addAll(pMe.getObservations());
+		retainVarsMe.addAll(pMe.getActions());
+		retainVarsMe.addAll(pOther.getActions());
+		retainVarsMe.addAll(pMe.getStatesPrime());
 		
-		FactoredCondProbDD restrTransBeliefFnOther = pOther.getTransitionFunction().multiply(beliefFnOther);
-		restrTransBeliefFnOther = restrTransBeliefFnOther.sumOut(pOther.getStates());
-		restrTransBeliefFnOther = restrTransBeliefFnOther.normalize();
-		restrTransBeliefFnOther = restrTransBeliefFnOther.approximate(pOther.getTolerance());
+		HashSet<DDVariable> retainVarsOther = new HashSet<DDVariable>();
+		retainVarsOther.addAll(pOther.getObservations());
+		retainVarsOther.addAll(pOther.getActions());
+		retainVarsOther.addAll(pMe.getActions());
+		retainVarsOther.addAll(pOther.getStatesPrime());
 		
-		FactoredCondProbDD restrObsFnOther = pOther.getObservationFunction().multiply(restrTransBeliefFnOther);
-		restrObsFnOther = restrObsFnOther.approximate(pOther.getTolerance());
+		transitionProbMe =  pMe.getTransitionFunction().multiply(beliefFnMe,retainVarsMe);
+		transitionProbMe =  pMe.getObservationFunction().multiply(transitionProbMe,retainVarsMe);
+		
+		transitionProbOther =  pOther.getTransitionFunction().multiply(beliefFnOther,retainVarsOther);
+		transitionProbOther =  pOther.getObservationFunction().multiply(transitionProbOther,retainVarsOther);
 		
 		for(HashMap<DDVariable,Integer> actMe:pMe.getActionSpace()) {
-			FactoredCondProbDD tempRestrTransBeliefFnMe = restrTransBeliefFnMe.restrict(actMe);
-			FactoredCondProbDD tempRestrTransBeliefFnOther = restrTransBeliefFnOther.restrict(actMe);
-			
-			FactoredCondProbDD restrObsProbFnMe = pMe.getObservationFunction().restrict(actMe);
-			FactoredCondProbDD restrObsProbFnOther = pOther.getObservationFunction().restrict(actMe);
+			FactoredCondProbDD transitionProbMeActMeRestr = transitionProbMe.restrict(actMe);
+			FactoredCondProbDD transitionProbOtherActMeRestr = transitionProbOther.restrict(actMe);
 			
 			for(HashMap<DDVariable,Integer> actOther:pOther.getActionSpace()) {
-				
+
 				HashMap<DDVariable,Integer> jointAction = new HashMap<DDVariable,Integer>(actMe);
 				jointAction.putAll(actOther);
-				
-				FactoredCondProbDD obsProbFn = restrObsFnMe.restrict(jointAction);
-				obsProbFn = obsProbFn.sumOut(pMe.getStatesPrime());
-				obsProbFn = obsProbFn.normalize();
-				obsProbFn = obsProbFn.approximate(pOther.getTolerance());
-				
-				obsProbFnsMe.put(jointAction, obsProbFn);
-				
-				nextBeliefFnsMe.put(jointAction, new HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD>());
-				obsProbsMe.put(jointAction, new HashMap<HashMap<DDVariable,Integer>, Double>());
-				
-				FactoredCondProbDD tempRestrTransFn = tempRestrTransBeliefFnMe.restrict(actOther);
-				FactoredCondProbDD tempRestrObsProbFnMe = restrObsProbFnMe.restrict(actOther);
-				
-				for(HashMap<DDVariable,Integer> obsMe:pMe.getObservationSpace()) {
-					double obsProb = obsProbFn.getValue(obsMe);
-					
-					obsProbsMe.get(jointAction).put(obsMe, obsProb);
-					
-					if(obsProb>0.0d) {
-						
-						FactoredCondProbDD tempRestrObsFn =  tempRestrObsProbFnMe.restrict(obsMe);
 
-						FactoredCondProbDD nextBelief =  tempRestrTransFn.multiply(tempRestrObsFn);
-						nextBelief = nextBelief.normalize();
-						nextBelief = nextBelief.approximate(pMe.getTolerance());
-						nextBelief = nextBelief.unprime();
-						
-						
-						nextBeliefFnsMe.get(jointAction).put(obsMe, nextBelief);
-						
-					}
+				//System.out.println("Action:" + jointAction);
+				
+				FactoredCondProbDD transitionProbMeActRestr = transitionProbMeActMeRestr.restrict(actOther);
+				HashSet<HashMap<DDVariable,Integer>> uniqueObservationsMe = transitionProbMeActRestr.getAllUniqueNonZeroPaths(pMe.getObservations());
+				
+				
+				HashMap<HashMap<DDVariable,Integer>,Double> obsProbs = new HashMap<HashMap<DDVariable,Integer>,Double>();
+				HashMap<HashMap<DDVariable,Integer>,FactoredCondProbDD> obsBeliefs = new HashMap<HashMap<DDVariable,Integer>,FactoredCondProbDD>();
+				
+				double totalObsWeight = 0.0d;
+				for(HashMap<DDVariable,Integer> obs:uniqueObservationsMe) {
+					
+					FactoredCondProbDD condBelief = transitionProbMeActRestr.restrict(obs, false);
+					
+					double obsWeight = condBelief.sumOut(pMe.getStatesPrime(), false).toProbabilityDD().getFunction().getTotalWeight();
+					totalObsWeight += obsWeight;	
+					obsProbs.put(obs, obsWeight);
+					
+					FactoredCondProbDD newBelief = transitionProbMeActRestr.restrict(obs).normalize().unprime();
+					
+					obsBeliefs.put(obs, newBelief);
+					
 				}
-
-				obsProbFn = restrObsFnOther.restrict(jointAction);
-				obsProbFn = obsProbFn.sumOut(pOther.getStatesPrime());
-				obsProbFn = obsProbFn.normalize();
-				obsProbFn = obsProbFn.approximate(pOther.getTolerance());
 				
-				obsProbFnsOther.put(jointAction, obsProbFn);
-				
-				nextBeliefFnsOther.put(jointAction, new HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD>());
-				obsProbsOther.put(jointAction, new HashMap<HashMap<DDVariable,Integer>, Double>());
-				
-				tempRestrTransFn = tempRestrTransBeliefFnOther.restrict(actOther);
-				FactoredCondProbDD tempObsProbFnOther = restrObsProbFnOther.restrict(actOther);
-					
-				for(HashMap<DDVariable,Integer> obsOther:pOther.getObservationSpace()) {
-					double obsProb = obsProbFn.getValue(obsOther);
-					
-					obsProbsOther.get(jointAction).put(obsOther, obsProb);
-					
-					if(obsProb>0.0d) {
-						FactoredCondProbDD tempRestrObsFn =  tempObsProbFnOther.restrict(obsOther);
-						
-						FactoredCondProbDD nextBelief = tempRestrTransFn.multiply(tempRestrObsFn);
-						nextBelief = nextBelief.normalize();
-						nextBelief = nextBelief.approximate(pOther.getTolerance());
-						nextBelief = nextBelief.unprime();
-						
-						nextBeliefFnsOther.get(jointAction).put(obsOther, nextBelief);
-					}
+				for(HashMap<DDVariable,Integer> obs:uniqueObservationsMe) {
+					obsProbs.put(obs, obsProbs.get(obs)/totalObsWeight);
 				}
+				
+				
+				//System.out.println(" 1:Obs:" + uniqueObservationsMe.size());
+				obsProbsMe.put(jointAction, obsProbs);
+				nextBeliefFnsMe.put(jointAction, obsBeliefs);
+				
+				FactoredCondProbDD transitionProbOtherActRestr = transitionProbOtherActMeRestr.restrict(actOther);
+				HashSet<HashMap<DDVariable,Integer>> uniqueObservationsOther = transitionProbOtherActRestr.getAllUniqueNonZeroPaths(pOther.getObservations());
+				
+				obsProbs = new HashMap<HashMap<DDVariable,Integer>,Double>();
+				obsBeliefs = new HashMap<HashMap<DDVariable,Integer>,FactoredCondProbDD>();
+				
+				
+				totalObsWeight = 0.0d;
+				for(HashMap<DDVariable,Integer> obs:uniqueObservationsOther) {
+					
+					FactoredCondProbDD condBelief = transitionProbOtherActRestr.restrict(obs, false);
+					
+					FactoredCondProbDD obsWeightFn = condBelief.sumOut(pOther.getStatesPrime(), false);
+					
+					double obsWeight = obsWeightFn.toProbabilityDD().getFunction().getTotalWeight();
+					totalObsWeight += obsWeight;	
+					obsProbs.put(obs, obsWeight);
+					
+					FactoredCondProbDD newBelief = transitionProbOtherActRestr.restrict(obs).normalize().unprime();
+					
+					obsBeliefs.put(obs, newBelief);
+					
+				}
+				
+				for(HashMap<DDVariable,Integer> obs:uniqueObservationsOther) {
+					obsProbs.put(obs, obsProbs.get(obs)/totalObsWeight);
+				}
+				
+				//System.out.println(" 2:Obs:" + uniqueObservationsOther.size());
+				obsProbsOther.put(jointAction, obsProbs);
+				nextBeliefFnsOther.put(jointAction, obsBeliefs);
 				
 			}
-			
 		}
+		
+		
+		cachesInit = true;
 	}
 	
 	@Override
@@ -190,21 +192,16 @@ public class JointBelief implements Belief {
 		return beliefFnMe;
 	}
 
-	public FactoredCondProbDD getObservationProbabilityFunction(HashMap<DDVariable,Integer> jointAction) {
-		return obsProbFnsMe.get(jointAction);
-	}
-	
 	public JointBelief reverse() {
+		initCaches();
 		if(reverseBelief==null)
 			reverseBelief = new JointBelief(
 					pOther,
 					pMe,
 					beliefFnOther,
 					beliefFnMe, 
-					nextBeliefFnsOther, 
-					nextBeliefFnsMe, 
-					obsProbFnsOther, 
-					obsProbFnsMe,
+					nextBeliefFnsOther,
+					nextBeliefFnsMe,
 					obsProbsOther, 
 					obsProbsMe, 
 					this);
@@ -217,24 +214,35 @@ public class JointBelief implements Belief {
 			HashMap<DDVariable, Integer> obsMe, 
 			HashMap<DDVariable, Integer> obsOther) {
 		
+		initCaches();
+		
 		HashMap<DDVariable,Integer> jointAction = new HashMap<DDVariable,Integer>(actMe);
 		jointAction.putAll(actOther);
 		
-		return new JointBelief(pMe, pOther,  nextBeliefFnsMe.get(jointAction).get(obsMe), nextBeliefFnsOther.get(jointAction).get(obsOther));
+		FactoredCondProbDD nextBeliefFnMe = nextBeliefFnsMe.get(jointAction).get(obsMe);
+		FactoredCondProbDD nextBeliefFnOther = nextBeliefFnsOther.get(jointAction).get(obsOther);
+		
+		if(nextBeliefFnMe == null || nextBeliefFnOther == null)
+			System.out.println("Impossible observation");
+		
+		return new JointBelief(pMe, pOther,  nextBeliefFnMe, nextBeliefFnOther);
 	}
 
 	public FactoredCondProbDD getNextBeliefFunction(
 			HashMap<DDVariable, Integer> actMe,
 			HashMap<DDVariable, Integer> actOther,
 			HashMap<DDVariable, Integer> obsMe) {
+		initCaches();
+		
 		HashMap<DDVariable,Integer> jointAction = new HashMap<DDVariable,Integer>(actMe);
 		jointAction.putAll(actOther);
-		return  nextBeliefFnsMe.get(jointAction).get(obsMe);
+		return nextBeliefFnsMe.get(jointAction).get(obsMe);
 	}
 
 	public HashMap<HashMap<DDVariable, Integer>, Double> getObservationOtherProbabilities(
 			HashMap<DDVariable, Integer> actMe,
 			HashMap<DDVariable, Integer> actOther) {
+		initCaches();
 		
 		HashMap<DDVariable,Integer> jointAction = new HashMap<DDVariable,Integer>(actMe);
 		jointAction.putAll(actOther);
@@ -245,43 +253,37 @@ public class JointBelief implements Belief {
 	public HashMap<HashMap<DDVariable, Integer>, Double> getObservationProbabilities(
 			HashMap<DDVariable, Integer> actMe,
 			HashMap<DDVariable, Integer> actOther) {
+		
+		initCaches();
+		
 		HashMap<DDVariable,Integer> jointAction = new HashMap<DDVariable,Integer>(actMe);
 		jointAction.putAll(actOther);
 		return obsProbsMe.get(jointAction);
 	}
 	
 	public HashMap<DDVariable,Integer> sampleNextObservation(HashMap<DDVariable,Integer> actMe, HashMap<DDVariable,Integer> actOther) {
+		initCaches();
 		
 		HashMap<DDVariable,Integer> jointAction = new HashMap<DDVariable,Integer>(actMe);
 		jointAction.putAll(actOther);
 		
-		return sampleSpacePoint(pMe.getObservations(),getObservationProbabilityFunction(jointAction));
-	}
-	
-	public HashMap<DDVariable,Integer> sampleSpacePoint(ArrayList<DDVariable> variables, FactoredCondProbDD probFn) {
-		HashMap<DDVariable,Integer> point = new HashMap<DDVariable,Integer>();
+		double thresh = random.nextDouble();
+		double weight = 0.0f;
 		
-		for(DDVariable variable:variables) {
-			ArrayList<DDVariable> sumOutVars = new ArrayList<DDVariable>(variables);
-			sumOutVars.remove(variable);
-			
-			ProbDD probTempFn = probFn.sumOut(sumOutVars).toProbabilityDD();
-			
-			double thresh = random.nextDouble();
-			double weight = 0.0f;
-			
-			for(int i=0;i<variable.getValueCount();i++){
-				HashMap<DDVariable,Integer> tempPt = new HashMap<DDVariable,Integer>();
-				tempPt.put(variable,i);
-				weight += probTempFn.getValue(tempPt);
-				if(weight>thresh) {
-					point.put(variable,i);
-					break;
+		if(obsProbsMe.containsKey(jointAction)) {
+			for(Entry<HashMap<DDVariable, Integer>, Double> e:obsProbsMe.get(jointAction).entrySet()) {
+				
+				weight += e.getValue();
+				
+				if(weight>=thresh) {
+					return e.getKey();
 				}
 			}
 		}
 		
-		return point;
+		System.out.println("SAMPLING PROBLEM");
+		
+		return null;
 	}
 
 }

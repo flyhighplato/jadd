@@ -79,10 +79,7 @@ public class POMDPBelief implements Belief {
 		BeliefAlphaVector bestAlpha = null;
 		
 		for(BeliefAlphaVector alpha:alphas) {
-			double tempVal;
-			AlgebraicDD valFn = beliefFn.multiply(alpha.getValueFunction());
-			tempVal = valFn.getTotalWeight();
-			
+			double tempVal = beliefFn.dotProduct(alpha.getValueFunction());
 			
 			if(tempVal>=bestVal) {
 				bestVal = tempVal;
@@ -91,34 +88,6 @@ public class POMDPBelief implements Belief {
 		}
 		
 		return bestAlpha;
-	}
-	
-	public List<BeliefAlphaVector> pickUsefulAlphas(List<BeliefAlphaVector> alphas) {
-		ArrayList<BeliefAlphaVector> usefulAlphas = new ArrayList<BeliefAlphaVector>();
-		usefulAlphas.add(pickBestAlpha(alphas));
-		
-		for(HashMap<HashMap<DDVariable,Integer>, FactoredCondProbDD> actBeliefs: nextBeliefFns.values()) {
-			for(FactoredCondProbDD nextBeliefFn:actBeliefs.values()) {
-				BeliefAlphaVector bestAlpha = null;
-				double bestVal = -Double.MAX_VALUE;
-				for(BeliefAlphaVector alpha:alphas) {
-					double tempVal;
-		
-					AlgebraicDD valFn = nextBeliefFn.multiply(alpha.getValueFunction());
-					tempVal = valFn.getTotalWeight();
-		
-					if(tempVal>=bestVal) {
-						bestVal = tempVal;
-						bestAlpha = alpha;
-					}
-				}
-				if(bestAlpha!=null) {
-					usefulAlphas.add(bestAlpha);
-				}
-			}
-		}
-		
-		return usefulAlphas;
 	}
 	
 	public FactoredCondProbDD getBeliefFunction() {

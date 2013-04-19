@@ -8,5 +8,4 @@ public class DivisionOperation implements BinaryOperation {
 			return 0.0f;
 		return val1/val2;
 	}
-
 }

@@ -12,8 +12,8 @@ public class TagWumpus extends TagAgent {
 	Random random = new Random()
 	
 	public TagWumpus(POMDP pomdp) {
-		rowVar = new DDVariable('w_row',5)
-		colVar = new DDVariable('w_col',5)
+		rowVar = new DDVariable(0,'w_row',5)
+		colVar = new DDVariable(0,'w_col',5)
 		
 		row = random.nextInt(5)
 		column = random.nextInt(5)

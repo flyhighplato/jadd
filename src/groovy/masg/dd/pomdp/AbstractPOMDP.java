@@ -20,6 +20,7 @@ public abstract class AbstractPOMDP {
 	
 	protected DDVariableSpace actSpace;
 	protected DDVariableSpace obsSpace;
+	protected DDVariableSpace stateSpace;
 	
 	
 	public AbstractPOMDP(FactoredCondProbDD initialBelief, AlgebraicDD rewFn, FactoredCondProbDD transnFn, FactoredCondProbDD observFn, ArrayList<DDVariable> states, ArrayList<DDVariable> observations, ArrayList<DDVariable> actions) {
@@ -43,7 +44,7 @@ public abstract class AbstractPOMDP {
 		
 		actSpace = new DDVariableSpace(actions);
 		obsSpace = new DDVariableSpace(observations);
-		
+		stateSpace = new DDVariableSpace(states);
 	}
 
 	
@@ -77,6 +78,10 @@ public abstract class AbstractPOMDP {
 	
 	public final DDVariableSpace getObservationSpace() {
 		return obsSpace;
+	}
+	
+	public final DDVariableSpace getStateSpace() {
+		return stateSpace;
 	}
 	
 	public final ArrayList<DDVariable> getActions() {

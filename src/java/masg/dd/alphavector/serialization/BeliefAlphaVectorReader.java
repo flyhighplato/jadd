@@ -19,7 +19,7 @@ public class BeliefAlphaVectorReader {
 		this.reader = reader;
 	}
 	
-	public BeliefAlphaVector read() throws IOException {
+	public BeliefAlphaVector read(int scope) throws IOException {
 		HashMap<DDVariable,Integer> action = new HashMap<DDVariable,Integer>();
 		while(true) {
 			String str = reader.readLine();
@@ -32,20 +32,20 @@ public class BeliefAlphaVectorReader {
 			String varName = params[0];
 			int valCount = Integer.parseInt(params[1]);
 			
-			DDVariable v = new DDVariable(0,varName,valCount);
+			DDVariable v = new DDVariable(scope,varName,valCount);
 			int valAssigned = Integer.parseInt(params[2]);
 			
 			action.put(v, valAssigned);
 		}
 		
 		CondProbDDReader cpddReader = new CondProbDDReader(reader);
-		CondProbDD witnessPt = cpddReader.read();
+		CondProbDD witnessPt = cpddReader.read(scope);
 		
 		if(witnessPt==null)
 			return null;
 		
 		DDElementReader elReader = new DDElementReader(reader);
-		DDElement el = elReader.read();
+		DDElement el = elReader.read(scope);
 		
 		if(el==null)
 			return null;

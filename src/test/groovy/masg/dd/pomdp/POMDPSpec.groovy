@@ -6,7 +6,7 @@ import masg.dd.ProbDD;
 import masg.dd.alphavector.BeliefAlphaVector;
 import masg.dd.pomdp.agent.belief.BeliefRegion;
 import masg.dd.pomdp.agent.policy.Policy
-import masg.dd.pomdp.agent.policy.AlphaVectorPolicyBuilder;
+import masg.dd.pomdp.agent.policy.BeliefAlphaVectorPolicyBuilder;
 import masg.dd.pomdp.agent.policy.RandomPolicy;
 import masg.dd.variables.DDVariable;
 import masg.dd.variables.DDVariableSpace;
@@ -214,7 +214,7 @@ class POMDPSpec extends Specification {
 			
 			def timeStart = new Date().getTime()
 			
-			AlphaVectorPolicyBuilder polBuilder = new AlphaVectorPolicyBuilder(problem.getPOMDP())
+			BeliefAlphaVectorPolicyBuilder polBuilder = new BeliefAlphaVectorPolicyBuilder(problem.getPOMDP())
 			Policy pol = polBuilder.build(belReg, numIterations)
 			
 			def timeEnd = new Date().getTime() - timeStart
