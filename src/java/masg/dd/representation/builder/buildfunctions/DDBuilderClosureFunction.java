@@ -24,6 +24,9 @@ public class DDBuilderClosureFunction implements DDBuilderFunction {
 			
 			if(e.getKey().getScope()!=defaultScopeId) {
 				HashMap val = new HashMap();
+				if(args.containsKey(e.getKey().getScope())) {
+					val = (HashMap) args.get(e.getKey().getScope());
+				}
 				val.put(e.getKey().getName(), e.getValue());
 				args.put(e.getKey().getScope(), val);
 			}

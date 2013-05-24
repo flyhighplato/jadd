@@ -19,10 +19,19 @@ class RandomPolicy implements Policy {
 
 	@Override
 	public HashMap<DDVariable, Integer> getAction(Belief belief) {
+		return getAction()
+	}
+	
+	public HashMap<DDVariable, Integer> getAction(Object belief) {
+		return getAction()
+	}
+	
+	public HashMap<DDVariable, Integer> getAction() {
 		HashMap<DDVariable,Integer> rndActs = []
 		p.actions.each{DDVariable a ->
 			rndActs[a] = random.nextInt(a.getValueCount())
 		}
-		return rndActs;
+		return rndActs
 	}
+	
 }

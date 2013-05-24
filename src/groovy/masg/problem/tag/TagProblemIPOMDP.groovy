@@ -30,6 +30,9 @@ class TagProblemIPOMDP implements TagProblemModel {
 		builder.addObservation("a1_row_loc",gridHeight);
 		builder.addObservation("a1_col_loc",gridWidth);
 		
+		builder.addObservation("a2_row_loc",gridHeight);
+		builder.addObservation("a2_col_loc",gridWidth);
+		
 		builder.addState("a1_row", gridHeight);
 		builder.addState("a1_col", gridWidth);
 		
@@ -221,6 +224,26 @@ class TagProblemIPOMDP implements TagProblemModel {
 			int a1_row_loc = variables["a1_row_loc"]
 			
 			if(a1_row == a1_row_loc)
+				return 1.0d;
+			
+			return 0.0d;
+		}
+		
+		builder.addObservationFunction(["a2_col'"], [], [:], ["a2_col_loc"]) { Map variables ->
+			int a2_col = variables["a2_col'"]
+			int a2_col_loc = variables["a2_col_loc"]
+			
+			if(a2_col == a2_col_loc)
+				return 1.0d;
+			
+			return 0.0d;
+		}
+		
+		builder.addObservationFunction(["a2_row'"], [], [:], ["a2_row_loc"]) { Map variables ->
+			int a2_row = variables["a2_row'"]
+			int a2_row_loc = variables["a2_row_loc"]
+			
+			if(a2_row == a2_row_loc)
 				return 1.0d;
 			
 			return 0.0d;

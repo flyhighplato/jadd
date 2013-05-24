@@ -10,6 +10,7 @@ import masg.dd.operations.AbsDiffOperation;
 import masg.dd.operations.AdditionOperation;
 import masg.dd.operations.BinaryOperation;
 import masg.dd.operations.ConstantAdditionOperation;
+import masg.dd.operations.ConstantDivisionOperation;
 import masg.dd.operations.ConstantMultiplicationOperation;
 import masg.dd.operations.DivisionOperation;
 import masg.dd.operations.MaxOperation;
@@ -48,7 +49,7 @@ public class AlgebraicDD {
 	
 	public AlgebraicDD(ArrayList<DDVariable> vars, double val) {
 		variables = vars;
-		ruleCollection = DDBuilder.build(new DDInfo(vars,true), val).getRootNode();
+		ruleCollection = DDBuilder.build(new DDInfo(vars,true), val);
 	}
 	
 	public AlgebraicDD(DDElement immutableDDElement) {
@@ -94,6 +95,10 @@ public class AlgebraicDD {
 	
 	public AlgebraicDD plus(AlgebraicDD dd) {
 		return oper(new AdditionOperation(),dd);
+	}
+	
+	public AlgebraicDD div(double val) {
+		return oper(new ConstantDivisionOperation(val));
 	}
 	
 	public AlgebraicDD div(AlgebraicDD dd) {
@@ -213,6 +218,10 @@ public class AlgebraicDD {
 	
 	public AlgebraicDD unprime() {
 		return new AlgebraicDD(DDBuilder.unprime(ruleCollection).getRootNode());
+	}
+	
+	public AlgebraicDD switchScope(int newScopeId) {
+		return new AlgebraicDD(DDBuilder.switchScope(ruleCollection, newScopeId).getRootNode());
 	}
 	
 	public Double getTotalWeight() {

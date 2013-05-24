@@ -7,6 +7,7 @@ import masg.dd.variables.DDVariableSpace
 
 class IPOMDP extends AbstractPOMDP {
 	protected ArrayList<POMDP> otherAgents;
+	protected HashMap<AbstractPOMDP,FactoredCondProbDD> worldStateTranslators = new HashMap<AbstractPOMDP,FactoredCondProbDD>()
 	
 	public IPOMDP(FactoredCondProbDD initialBelief, AlgebraicDD rewFn, FactoredCondProbDD transnFn, FactoredCondProbDD observFn, ArrayList<DDVariable> states, ArrayList<DDVariable> observations, ArrayList<DDVariable> actions, ArrayList<POMDP> actionsOther) {
 		super(initialBelief,rewFn, transnFn, observFn, states, observations, actions);

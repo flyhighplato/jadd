@@ -53,7 +53,7 @@ public class PessimisticAlphaVectorPolicyBuilder {
 			
 			System.out.println("Generating pure strategy for action:" + actSpacePt);
 			
-			AlgebraicDD actionAlpha = new AlgebraicDD(DDBuilder.build(new DDInfo(pMe.getStates(),false),0.0d).getRootNode());
+			AlgebraicDD actionAlpha = new AlgebraicDD(DDBuilder.build(new DDInfo(pMe.getStates(),false),0.0d));
 			double bellmanError = 20*tolerance;
 			
 			for(int i=0;i<50 && bellmanError>tolerance;++i) {
@@ -188,7 +188,7 @@ public class PessimisticAlphaVectorPolicyBuilder {
 		List<JointBelief> beliefs = belRegion.getBeliefSamples();
 
 		
-		for(HashMap<DDVariable,Integer> statePtMe:pMe.getStateSpace()){
+		/*for(HashMap<DDVariable,Integer> statePtMe:pMe.getStateSpace()){
 			FactoredCondProbDD beliefFnMe = new FactoredCondProbDD(new CondProbDD(new ArrayList<DDVariable>(),new ArrayList<DDVariable>(pMe.getStates()),0,statePtMe));
 			
 			HashMap<DDVariable,Integer> statePtOther = new HashMap<DDVariable,Integer>();
@@ -202,7 +202,7 @@ public class PessimisticAlphaVectorPolicyBuilder {
 			JointBelief b = new JointBelief(pMe,pOther,beliefFnMe,beliefFnOther);
 			beliefs.add(b);
 
-		}
+		}*/
 		
 		
 		

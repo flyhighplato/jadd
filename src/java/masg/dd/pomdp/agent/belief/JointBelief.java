@@ -129,7 +129,7 @@ public class JointBelief implements Belief {
 					
 					FactoredCondProbDD condBelief = transitionProbMeActRestr.restrict(obs, false);
 					
-					double obsWeight = condBelief.sumOut(pMe.getStatesPrime(), false).toProbabilityDD().getFunction().getTotalWeight();
+					double obsWeight = condBelief.sumOut(pMe.getStatesPrime(), false, true).toProbabilityDD().getFunction().getTotalWeight();
 					totalObsWeight += obsWeight;	
 					obsProbs.put(obs, obsWeight);
 					
@@ -160,7 +160,7 @@ public class JointBelief implements Belief {
 					
 					FactoredCondProbDD condBelief = transitionProbOtherActRestr.restrict(obs, false);
 					
-					FactoredCondProbDD obsWeightFn = condBelief.sumOut(pOther.getStatesPrime(), false);
+					FactoredCondProbDD obsWeightFn = condBelief.sumOut(pOther.getStatesPrime(), false, true);
 					
 					double obsWeight = obsWeightFn.toProbabilityDD().getFunction().getTotalWeight();
 					totalObsWeight += obsWeight;	

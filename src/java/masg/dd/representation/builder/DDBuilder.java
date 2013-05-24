@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import masg.dd.context.DDContext;
@@ -96,11 +97,12 @@ public class DDBuilder {
 		return dd;
 	}
 	
-	public static DDBuilder build(DDInfo info, double constVal) {
-		DDBuilder dd = new DDBuilder(info);
+	public static DDLeaf build(DDInfo info, double constVal) {
+		//DDBuilder dd = new DDBuilder(info);
 		
-		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderConstantFunction(constVal));
-		return dd;
+		
+		//dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), DDContext.getCanonicalVariableOrdering(), dd.getDDInfo().getVariables(), new DDBuilderConstantFunction(constVal));
+		return new DDLeaf(info,constVal);
 	}
 	
 	public static DDElement build(ArrayList<DDVariable> vars, ArrayList<DDElement> dags, BinaryOperation op) {
@@ -278,6 +280,29 @@ public class DDBuilder {
 		
 	}
 	
+	public static DDBuilder switchScope(DDElement dag, int newScopeId) {
+		HashMap<DDVariable,DDVariable> translation = new HashMap<DDVariable,DDVariable>();
+		
+		ArrayList<DDVariable> vars = new ArrayList<DDVariable>();
+		for(DDVariable var:dag.getVariables()) {
+			DDVariable newScopeVar = new DDVariable(newScopeId,var.getName(),var.getValueCount());
+			vars.add(newScopeVar);
+			translation.put(newScopeVar, var);
+		}
+		
+		DDInfo info = new DDInfo(vars, dag.isMeasure());
+		DDBuilder dd = new DDBuilder(info);
+		
+		ArrayList<DDVariable> varOrder = new ArrayList<DDVariable>(dd.getDDInfo().getVariables());
+		varOrder.addAll(dag.getVariables());
+		varOrder = putInCanonicalOrder(varOrder);
+		
+		dd.rootNode = dd.makeSubGraph(new HashMap<DDVariable,Integer>(), varOrder, dd.getDDInfo().getVariables(), new DDBuilderTranslateFunction(dag,translation));
+		info.updateInfo(vars, dag.isMeasure());
+		return dd;
+		
+	}
+	
 	public static DDBuilder approximate(DDElement dag, double tolerance) {
 		DDBuilder dd = new DDBuilder(new ArrayList<DDVariable>(dag.getVariables()), dag.isMeasure());
 		dd.rootNode = dd.approximateSubgraph(dag, new ArrayList<DDLeaf>(), tolerance, new HashMap<DDElement,BaseDDElement>());
@@ -307,7 +332,7 @@ public class DDBuilder {
 		return res;
 	}
 	
-	private static ArrayList<DDVariable> putInCanonicalOrder(ArrayList<DDVariable> vars) {
+	private static ArrayList<DDVariable> putInCanonicalOrder(List<DDVariable> vars) {
 		
 		if(vars == null)
 			return null;
@@ -330,7 +355,7 @@ public class DDBuilder {
 		return info;
 	}
 	
-	static double tolerance = 0.0001d;
+	static double tolerance = 0.00001d;
 	int maxLeafThresh = 1;
 	protected DDLeaf makeLeaf(Double value) {
 		
@@ -590,104 +615,7 @@ public class DDBuilder {
 		}
 	}
 	
-	protected DDElement sumSubtrees(DDElement el,List<DDVariable> subtreeElimVars, HashMap<DDElement,DDElement> applyCache) {
-		
-		if(applyCache.containsKey(el)) {
-			return applyCache.get(el);
-		}
-		
-		int varIx = -1;
-		
-		if(el instanceof DDNode) {
-			DDNode n = (DDNode) el;
-			varIx = DDContext.getVariableIndex(n.getVariable());
-		}
-		
-		DDVariable currVar = subtreeElimVars.get(0);
-		int subtreeRootVarIx = DDContext.getVariableIndex(currVar);
-		
-		if(el instanceof DDLeaf || varIx>subtreeRootVarIx) {
-			//ArrayList<DDVariable> varsNew = new ArrayList<DDVariable>(el.getVariables());
-			
-			double multiplier = 1.0d;
-			for(DDVariable v:subtreeElimVars) {
-				multiplier*=v.getValueCount();
-			}
-			
-			//DDBuilder dd = new DDBuilder(info);
-			DDElement result = applyOperation(el, new ConstantMultiplicationOperation(multiplier), new HashMap<DDElement,DDElement>());
-			
-			if(result instanceof DDLeaf) {
-				result = makeLeaf(((DDLeaf) result).getValue());
-			}
-			else if(result instanceof DDNode) {
-				if(subtreeElimVars.size()>1) {
-					result = sumSubtrees(result,subtreeElimVars.subList(1, subtreeElimVars.size()), applyCache);
-				}
-			}
-			
-			applyCache.put(el, result);
-			return result;
-		}
-		else {
-			DDNode n = (DDNode) el;
-			
-			if(n.getVariable().equals(currVar)) {
-				ArrayList<DDElement> dags = new ArrayList<DDElement>(Arrays.asList(n.getChildren()));
-				
-				DDElement result = dags.get(0); 
-				
-				DDElement el2 = null;
-				DDBuilder dd=null;
-				for(int i=1;i<dags.size();i++) {
-					el2 = dags.get(i);
-					dd = new DDBuilder(info);
-					result = dd.applyOperation(result, el2, new AdditionOperation(), new HashMap<DDElement,HashMap<DDElement,BaseDDElement>>());
-				}
-				
-				
-				if(subtreeElimVars.size()>1) {
-					result = sumSubtrees(result,subtreeElimVars.subList(1, subtreeElimVars.size()), applyCache);
-				}
-				
-				if(result instanceof DDLeaf) {
-					result = makeLeaf(((DDLeaf) result).getValue());
-				}
-				
-				applyCache.put(el, result);
-				return result;
-			}
-			else {
-				DDNode nNew;
-				DDElement[] children = new DDElement[el.getVariable().getValueCount()];
-				
-				for(int i=0;i<el.getVariable().getValueCount();i++) {
-					children[i] = sumSubtrees(n.getChild(i), subtreeElimVars, applyCache);
-				}
-				
-				nNew = makeNode(el.getVariable(),children);
-
-				boolean allEqual = true;
-				
-				DDElement currEl = children[0];
-				for(int i=1;i<el.getVariable().getValueCount() && allEqual;i++) {
-					allEqual = allEqual && currEl.equals(children[i]);
-					currEl = children[i];
-				}
-				
-				if(allEqual) {
-					applyCache.put(el, children[0]);
-					return children[0];
-				}
-				
-				applyCache.put(el, nNew);
-				return nNew;
-			}
-			
-			
-		}
-		
-	}
+	
 
 	
 	protected DDElement applyOperation(DDElement el, UnaryOperation op, HashMap<DDElement,DDElement> applyCache) {
@@ -851,6 +779,9 @@ public class DDBuilder {
 			allVars.addAll(el.getVariables());
 		}
 		
+		pathVars = new ArrayList<DDVariable>(pathVars);
+		pathVars.retainAll(allVars);
+		
 		return getAllUniquePaths(putInCanonicalOrder(new ArrayList<DDVariable>(allVars)),putInCanonicalOrder(pathVars),elems,new HashMap<DDVariable,Integer>());
 	}
 	protected static HashSet<HashMap<DDVariable,Integer>> getAllUniquePaths(List<DDVariable> allVars, List<DDVariable> pathVars, List<DDElement> elems, HashMap<DDVariable,Integer> prevPath) {
@@ -874,7 +805,7 @@ public class DDBuilder {
 			}
 			else {
 				nextPathVars = pathVars;
-				while(DDContext.getVariableIndex(currVar) > DDContext.getVariableIndex(nextPathVars.get(0))) {
+				while(nextPathVars.size()>0 && DDContext.getVariableIndex(currVar) > DDContext.getVariableIndex(nextPathVars.get(0))) {
 					nextPathVars = nextPathVars.subList(1, nextPathVars.size());
 				}
 			}
@@ -1405,6 +1336,146 @@ public class DDBuilder {
 			return resLeaf;
 		}
 
+	}
+	
+	protected DDElement sumSubtrees(DDElement el,List<DDVariable> subtreeElimVars, HashMap<DDElement,DDElement> applyCache) {
+		ArrayList<DDVariable> allVarsInOrder = putInCanonicalOrder(new ArrayList<DDVariable>(el.getVariables()));
+		HashMap<DDElement,Integer> multipliers = new HashMap<DDElement,Integer>();
+		multipliers.put(el, 1);
+		
+		return sumSubtrees(allVarsInOrder,putInCanonicalOrder(subtreeElimVars),multipliers,new  HashMap<HashMap<DDElement,Integer>,DDElement>());
+	}
+	
+	protected DDElement sumSubtrees(List<DDVariable> allVarsInOrder, List<DDVariable> collectAtVarsInOrder, HashMap<DDElement,Integer> multipliers, HashMap<HashMap<DDElement,Integer>,DDElement> applyCache) {
+		
+		// There should be no duplicates within the elements, so this 
+		// should just create set of the same items, but the order being
+		// unimportant
+		
+		if(applyCache.containsKey(multipliers)) {
+			return applyCache.get(multipliers);
+		}
+		
+		DDElement resEl;
+		if(allVarsInOrder.size()>0) {
+			List<DDVariable> nextAllVarsInOrder = allVarsInOrder.subList(1, allVarsInOrder.size());
+			List<DDVariable> nextCollectAtVarsInOrder = null;
+			
+			DDVariable currVar = allVarsInOrder.get(0);
+			boolean collectHere = collectAtVarsInOrder!=null && collectAtVarsInOrder.size()>0 && currVar.equals(collectAtVarsInOrder.get(0));
+			
+			if(collectHere) {
+				nextCollectAtVarsInOrder = collectAtVarsInOrder.subList(1, collectAtVarsInOrder.size());
+			} else {
+				nextCollectAtVarsInOrder = collectAtVarsInOrder;
+			}
+			
+			HashMap<DDElement,Integer> newMultipliers = new HashMap<DDElement,Integer>();
+			
+			ArrayList<DDElement> resolvableElems = new ArrayList<DDElement>();
+			for(Entry<DDElement,Integer> e:multipliers.entrySet()) {
+				DDElement el = e.getKey();
+				
+				if(el instanceof DDNode && ((DDNode) el).getVariable().equals(currVar)) {
+					resolvableElems.add(el);
+				}
+				else {
+					
+					if(collectHere) {
+						newMultipliers.put(el, e.getValue() * currVar.getValueCount());
+					}
+					else {
+						newMultipliers.put(el, e.getValue());
+					}
+				}
+			}
+			
+			
+			if(collectHere) {
+				for(DDElement el:resolvableElems) {
+					DDNode n = (DDNode) el;
+					
+					for(int varVal = 0; varVal < currVar.getValueCount(); varVal++) {
+						DDElement child = n.getChild(varVal);
+						if(!newMultipliers.containsKey(child)){
+							newMultipliers.put(child, multipliers.get(n));
+						}
+						else {
+							newMultipliers.put(child, newMultipliers.get(child) + multipliers.get(n));
+						}
+						
+					}
+				}
+				
+				resEl = sumSubtrees(nextAllVarsInOrder,nextCollectAtVarsInOrder,newMultipliers,applyCache);
+			}
+			else {
+				ArrayList<DDElement> childrenList = new ArrayList<DDElement>();
+				for(int varVal = 0; varVal < currVar.getValueCount(); varVal++) {
+					
+					HashMap<DDElement,Integer> tempMultipliers = new HashMap<DDElement,Integer>();
+					tempMultipliers.putAll(newMultipliers);
+					
+					for(DDElement el:resolvableElems) {
+						
+						DDNode n = (DDNode) el;
+						DDElement child = n.getChild(varVal);
+						
+						if(!tempMultipliers.containsKey(child)){
+							tempMultipliers.put(child, multipliers.get(n));
+						}
+						else {
+							tempMultipliers.put(child, tempMultipliers.get(child) + multipliers.get(n));
+							
+						}
+					}
+					
+					childrenList.add(sumSubtrees(nextAllVarsInOrder,nextCollectAtVarsInOrder,tempMultipliers,applyCache));
+				}
+				
+				BaseDDElement[] children = childrenList.toArray(new BaseDDElement[0]);
+				
+				boolean allEqual = true;
+				BaseDDElement currEl = children[0];
+				for(int i=1;i<currVar.getValueCount() && allEqual;i++) {
+					allEqual = allEqual && currEl.equals(children[i]);
+					currEl = children[i];
+				}
+				
+				
+				if(allEqual) {
+					resEl = children[0];
+				}
+				else {
+					resEl = makeNode(currVar,children);
+				}
+				
+				
+			}
+
+		}
+		else {
+			
+			
+			Double value = null;
+			for(Entry<DDElement,Integer> e:multipliers.entrySet()) {
+				if(! (e.getKey() instanceof DDLeaf)) {
+					System.out.println("Not a leaf");
+				}
+				DDLeaf l = (DDLeaf) e.getKey();
+				if(value == null) {
+					value = l.getValue() * e.getValue();
+				}
+				else {
+					value = value + l.getValue() * e.getValue();
+				}
+			}
+			
+			resEl = makeLeaf(value);
+		}
+		
+		applyCache.put(multipliers, resEl);
+		return resEl;
 	}
 	
 

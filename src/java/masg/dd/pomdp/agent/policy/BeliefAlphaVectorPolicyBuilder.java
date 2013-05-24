@@ -48,7 +48,7 @@ public class BeliefAlphaVectorPolicyBuilder {
 			
 			System.out.println("Generating pure strategy for action:" + actSpacePt);
 			
-			AlgebraicDD actionAlpha = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStates(),false),0.0d).getRootNode());
+			AlgebraicDD actionAlpha = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStates(),false),0.0d));
 			double bellmanError = 20*tolerance;
 			
 			for(int i=0;i<50 && bellmanError>tolerance;++i) {

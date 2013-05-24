@@ -18,7 +18,7 @@ public class QMDPPolicyBuilder {
 	
 	public QMDPPolicy build() {
 		
-		AlgebraicDD valFn = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStatesPrime(),false),0.0f).getRootNode());
+		AlgebraicDD valFn = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStatesPrime(),false),0.0f));
 		
 		HashMap<HashMap<DDVariable,Integer>, AlgebraicDD> qFn = new HashMap<HashMap<DDVariable,Integer>, AlgebraicDD>();
 		
@@ -28,7 +28,7 @@ public class QMDPPolicyBuilder {
 			System.out.println("Iteration:" + i);
 			
 			DDBuilder ddResult = null;
-			AlgebraicDD valFnNew = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStates(),false),-Double.MAX_VALUE).getRootNode());
+			AlgebraicDD valFnNew = new AlgebraicDD(DDBuilder.build(new DDInfo(p.getStates(),false),-Double.MAX_VALUE));
 			for(HashMap<DDVariable,Integer> actSpacePt:p.getActionSpace()) {
 				FactoredCondProbDD transFn = p.getTransitionFunction(actSpacePt);
 				AlgebraicDD futureVal = transFn.multiply(valFn);

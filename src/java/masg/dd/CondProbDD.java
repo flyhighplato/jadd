@@ -25,6 +25,16 @@ public class CondProbDD {
 		fn = new AlgebraicDD(allVariables, defaultScopeId, c, true);
 	}
 	
+	public CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, int defaultScopeId, double constVal) {
+		this.condVars.addAll(new HashSet<DDVariable>(condVars));
+		this.uncondVars.addAll(new HashSet<DDVariable>(uncondVars));
+		
+		ArrayList<DDVariable> allVariables = new ArrayList<DDVariable>(this.uncondVars);
+		allVariables.addAll(this.condVars);
+		
+		fn = new AlgebraicDD(allVariables, constVal);
+	}
+	
 	public CondProbDD(ArrayList<DDVariable> condVars, ArrayList<DDVariable> uncondVars, int defaultScopeId, HashMap<DDVariable,Integer> pt) {
 		this.condVars.addAll(new HashSet<DDVariable>(condVars));
 		this.uncondVars.addAll(new HashSet<DDVariable>(uncondVars));
@@ -159,6 +169,14 @@ public class CondProbDD {
 				newUncondVars.addAll(cpdd1.getPosteriorVariables());
 				newUncondVars.addAll(cpdd2.getPosteriorVariables());
 			}
+			else if(condVars1.isEmpty() || condVars2.isEmpty()) {
+				canMultiply = true;
+				
+				newCondVars.addAll(cpdd1.getConditionalVariables());
+				newCondVars.addAll(cpdd2.getConditionalVariables());
+				newUncondVars.addAll(cpdd1.getPosteriorVariables());
+				newUncondVars.addAll(cpdd2.getPosteriorVariables());
+			}
 		}
 		
 		if(canMultiply) {
@@ -184,11 +202,13 @@ public class CondProbDD {
 		ArrayList<DDVariable> uncondVars = new ArrayList<DDVariable>(this.uncondVars);
 		
 		uncondVars.removeAll(vars);
+		condVars.removeAll(vars);
 		
 		AlgebraicDD resultDD = fn.sumOut(vars);
 		
 		if(normVars.size()>0) {
-			resultDD = resultDD.div(fn.sumOut(normVars));
+			AlgebraicDD norm = resultDD.sumOut(normVars);
+			resultDD = resultDD.div(norm);
 		}
 		
 		return new CondProbDD(condVars,uncondVars,resultDD);
@@ -237,6 +257,20 @@ public class CondProbDD {
 		
 	}
 	
+	public CondProbDD switchScope(int newScopeId) {
+		ArrayList<DDVariable> condVars = new ArrayList<DDVariable>();
+		for(DDVariable v:this.condVars) {
+			condVars.add(new DDVariable(newScopeId,v.getName(),v.getValueCount()));
+		}
+		ArrayList<DDVariable> uncondVars = new ArrayList<DDVariable>();
+		for(DDVariable v:this.uncondVars) {
+			uncondVars.add(new DDVariable(newScopeId,v.getName(),v.getValueCount()));
+		}
+		
+		return new CondProbDD(condVars,uncondVars,fn.switchScope(newScopeId));
+		
+	}
+	
 	public CondProbDD approximate(double approxFactor) {
 		return new CondProbDD(condVars,uncondVars,fn.approximate(approxFactor));
 	}
@@ -246,4 +280,6 @@ public class CondProbDD {
 		str += this.uncondVars + "\n";
 		return str + fn.toString();
 	}
+
+	
 }

@@ -21,7 +21,7 @@ class PessimisticAlphaVectorPolicySpec extends Specification {
 		
 			JointBelief b = new JointBelief(problem.getIPOMDP(), problem.otherAgents.get(0),problem.getIPOMDP().initialBelief, problem.otherAgents.get(0).initialBelief)
 			JointBeliefRegion reg = new JointBeliefRegion()
-			reg.sampleStartingWith(b, 100, 100, problem.getIPOMDP(), problem.otherAgents.get(0), new RandomPolicy(problem.getIPOMDP()),  new RandomPolicy(problem.otherAgents.get(0)))
+			reg.sampleStartingWith(b, 1000, 100, problem.getIPOMDP(), problem.otherAgents.get(0), new RandomPolicy(problem.getIPOMDP()),  new RandomPolicy(problem.otherAgents.get(0)))
 			
 			PessimisticAlphaVectorPolicyBuilder policyBuilder = new PessimisticAlphaVectorPolicyBuilder(problem.getIPOMDP(),problem.otherAgents.get(0))
 			
