@@ -38,16 +38,8 @@ class POMDPBayesianNetworkStepSpec extends Specification {
 			}
 			
 		then:
-			//println step.sampleBelief()
-			//println step.obsDist
-			//println step.sampleObservation()
-			/*step.getActDistChain().eachWithIndex { l, ix ->
-				println "-- $ix"
-				println l
-				println()
-			}*/
 			100.times {
-				println step.sampleBelief()
+				println step.sampleBelief().getBeliefFunction()
 			}
 	}
 	

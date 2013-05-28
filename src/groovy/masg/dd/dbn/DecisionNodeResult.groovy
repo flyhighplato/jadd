@@ -19,6 +19,17 @@ class DecisionNodeResult extends BayesianNetworkNodeResult {
 		resolve(result.resultFn)
 	}
 	
+	public resolve(UncertaintyNodeResult result) {
+		resolve(result.resultFn)
+		
+		if(!result.isCPT()) {
+			def varsToResolve = result.resultFn.variables.findAll{ node.variables.contains(it)}
+			
+			result.resolvedConditional += varsToResolve
+			result.resultFn = result.resultFn.sumOut(varsToResolve)
+		}
+	}
+	
 	public resolve(AlgebraicDD resultFnIn) {
 		def varsToResolve = resultFnIn.variables.findAll{ node.variables.contains(it)}
 		
