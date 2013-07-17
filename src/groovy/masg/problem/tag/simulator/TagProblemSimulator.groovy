@@ -5,6 +5,7 @@ import java.util.Random;
 
 import masg.dd.FactoredCondProbDD
 import masg.dd.ProbDD
+import masg.dd.pomdp.agent.belief.JointActionPOMDPBelief
 import masg.dd.pomdp.agent.belief.POMDPBelief
 import masg.dd.pomdp.agent.policy.BeliefAlphaVectorPolicy
 import masg.dd.pomdp.agent.policy.FSCPolicy
@@ -12,6 +13,8 @@ import masg.dd.pomdp.agent.policy.Policy
 import masg.dd.pomdp.agent.policy.serialization.AlphaVectorPolicyWriter
 import masg.dd.variables.DDVariable
 import masg.dd.variables.DDVariableSpace
+import masg.problem.tag.TagProblemJointPOMDPAgent1
+import masg.problem.tag.TagProblemJointPOMDPAgent2
 import masg.problem.tag.TagProblemModel;
 
 class TagProblemSimulator {
@@ -31,7 +34,7 @@ class TagProblemSimulator {
 	
 	private String filePath = System.getProperty("user.dir") + "/experiments/tagproblem/runs/" +  new SimpleDateFormat("MM-dd-yy hh.mm.ss.SS a").format(new Date())
 	
-	public int simulate(TagProblemModel problem, Policy pol1, Policy pol2, int numTrials, int numSteps, List<TagSimulationRecorder> simRecorders = []) {
+	public int simulate(TagProblemModel problemMe, TagProblemModel problemOther, Policy pol1, Policy pol2, int numTrials, int numSteps, List<TagSimulationRecorder> simRecorders = []) {
 		
 		new File(System.getProperty("user.dir") + "/experiments").mkdir()
 		new File(System.getProperty("user.dir") + "/experiments/tagproblem").mkdir()
@@ -49,7 +52,7 @@ class TagProblemSimulator {
 		
 		
 		simRecorders.each{ 
-			it.initialize(problem, pol1, filePath)
+			it.initialize(problemMe, pol1, filePath)
 			it.startSimulation()
 		}
 		
@@ -76,9 +79,17 @@ class TagProblemSimulator {
 			
 			BufferedWriter fileWriter = new BufferedWriter(new FileWriter(filePath + "/" + (trialIx+1) + ".trial"))
 			
-			TagAgent agent1 = new TagAgent(new POMDPBelief(problem.getPOMDP(),problem.getPOMDP().initialBelief))
-			TagAgent agent2 = new TagAgent(new POMDPBelief(problem.getPOMDP(),problem.getPOMDP().initialBelief))
-			TagWumpus wumpus = new TagWumpus(problem.getPOMDP())
+			TagAgent agent1, agent2
+			if(problemMe instanceof TagProblemJointPOMDPAgent1 || problemMe instanceof TagProblemJointPOMDPAgent2) {
+				agent1 = new TagAgent(new JointActionPOMDPBelief(problemMe.getPOMDP(), problemOther.getPOMDP(), problemMe.getPOMDP().initialBelief))
+				agent2 = new TagAgent(new JointActionPOMDPBelief(problemOther.getPOMDP(), problemMe.getPOMDP(), problemOther.getPOMDP().initialBelief))
+			}
+			else {
+				agent1 = new TagAgent(new POMDPBelief(problemMe.getPOMDP(),problemMe.getPOMDP().initialBelief))
+				agent2 = new TagAgent(new POMDPBelief(problemOther.getPOMDP(),problemOther.getPOMDP().initialBelief))
+			}
+			
+			TagWumpus wumpus = new TagWumpus(problemMe.getPOMDP())
 			TagGrid grid = new TagGrid(5,5, agent1, agent2, wumpus)
 			
 			numColocations = 0;
@@ -93,10 +104,10 @@ class TagProblemSimulator {
 				actualStateAgt1[w_col] = wumpus.column
 				
 				HashMap<DDVariable,Integer> actualStateAgt2 = new HashMap<DDVariable,Integer>()
-				actualStateAgt2[a1_row] = agent2.row
-				actualStateAgt2[a1_col] = agent2.column
-				actualStateAgt2[a2_row] = agent1.row
-				actualStateAgt2[a2_col] = agent1.column
+				actualStateAgt2[a1_row] = agent1.row
+				actualStateAgt2[a1_col] = agent1.column
+				actualStateAgt2[a2_row] = agent2.row
+				actualStateAgt2[a2_col] = agent2.column
 				actualStateAgt2[w_row] = wumpus.row
 				actualStateAgt2[w_col] = wumpus.column
 				
@@ -151,17 +162,17 @@ class TagProblemSimulator {
 				
 				
 				
-				FactoredCondProbDD restrTransFn1 = problem.getPOMDP().getTransitionFunction().restrict(action1)
+				FactoredCondProbDD restrTransFn1 = problemMe.getPOMDP().getTransitionFunction().restrict(action1).restrict(action2)
 				restrTransFn1 = restrTransFn1.restrict(actualStateAgt1)
 				restrTransFn1 = restrTransFn1.normalize();
 				
 				
-				FactoredCondProbDD restrTransFn2 = problem.getPOMDP().getTransitionFunction().restrict(action2)
+				FactoredCondProbDD restrTransFn2 = problemOther.getPOMDP().getTransitionFunction().restrict(action2).restrict(action1)
 				restrTransFn2 = restrTransFn2.restrict(actualStateAgt2)
 				restrTransFn2 = restrTransFn2.normalize();
 				
-				HashMap<DDVariable,Integer> actualStateAgt1New = sampleSpacePoint(problem.getPOMDP().getStatesPrime(), restrTransFn1)
-				HashMap<DDVariable,Integer> actualStateAgt2New = sampleSpacePoint(problem.getPOMDP().getStatesPrime(), restrTransFn2)
+				HashMap<DDVariable,Integer> actualStateAgt1New = sampleSpacePoint(problemMe.getPOMDP().getStatesPrime(), restrTransFn1)
+				HashMap<DDVariable,Integer> actualStateAgt2New = sampleSpacePoint(problemOther.getPOMDP().getStatesPrime(), restrTransFn2)
 				
 				wumpus.moveRandomly(5, 5)
 				
@@ -175,30 +186,30 @@ class TagProblemSimulator {
 				HashMap<DDVariable,Integer> actualStateNewAg1Primed = new HashMap<DDVariable,Integer>();
 				actualStateNewAg1Primed[a1_row.getPrimed()] = actualStateAgt1New[a1_row.getPrimed()]
 				actualStateNewAg1Primed[a1_col.getPrimed()] = actualStateAgt1New[a1_col.getPrimed()]
-				actualStateNewAg1Primed[a2_row.getPrimed()] = actualStateAgt2New[a1_row.getPrimed()]
-				actualStateNewAg1Primed[a2_col.getPrimed()] = actualStateAgt2New[a1_col.getPrimed()]
+				actualStateNewAg1Primed[a2_row.getPrimed()] = actualStateAgt2New[a2_row.getPrimed()]
+				actualStateNewAg1Primed[a2_col.getPrimed()] = actualStateAgt2New[a2_col.getPrimed()]
 				actualStateNewAg1Primed[w_row.getPrimed()] = wumpus.row
 				actualStateNewAg1Primed[w_col.getPrimed()] = wumpus.column
 				
 				HashMap<DDVariable,Integer> actualStateNewAg2Primed = new HashMap<DDVariable,Integer>();
-				actualStateNewAg2Primed[a1_row.getPrimed()] = actualStateAgt2New[a1_row.getPrimed()]
-				actualStateNewAg2Primed[a1_col.getPrimed()] = actualStateAgt2New[a1_col.getPrimed()]
-				actualStateNewAg2Primed[a2_row.getPrimed()] = actualStateAgt1New[a1_row.getPrimed()]
-				actualStateNewAg2Primed[a2_col.getPrimed()] = actualStateAgt1New[a1_col.getPrimed()]
+				actualStateNewAg2Primed[a2_row.getPrimed()] = actualStateAgt2New[a2_row.getPrimed()]
+				actualStateNewAg2Primed[a2_col.getPrimed()] = actualStateAgt2New[a2_col.getPrimed()]
+				actualStateNewAg2Primed[a1_row.getPrimed()] = actualStateAgt1New[a1_row.getPrimed()]
+				actualStateNewAg2Primed[a1_col.getPrimed()] = actualStateAgt1New[a1_col.getPrimed()]
 				actualStateNewAg2Primed[w_row.getPrimed()] = wumpus.row
 				actualStateNewAg2Primed[w_col.getPrimed()] = wumpus.column
 				
 				
-				FactoredCondProbDD restrObsFn1 = problem.getPOMDP().getObservationFunction().restrict(action1)
+				FactoredCondProbDD restrObsFn1 = problemMe.getPOMDP().getObservationFunction().restrict(action1).restrict(action2)
 				restrObsFn1 = restrObsFn1.restrict(actualStateNewAg1Primed)
 				restrObsFn1 = restrObsFn1.normalize()
 				
-				FactoredCondProbDD restrObsFn2 = problem.getPOMDP().getObservationFunction().restrict(action2)
+				FactoredCondProbDD restrObsFn2 = problemOther.getPOMDP().getObservationFunction().restrict(action2).restrict(action1)
 				restrObsFn2 = restrObsFn2.restrict(actualStateNewAg2Primed)
 				restrObsFn2 = restrObsFn2.normalize()
 				
-				HashMap<DDVariable,Integer> obs1 = sampleSpacePoint(problem.getPOMDP().getObservations(), restrObsFn1);
-				HashMap<DDVariable,Integer> obs2 = sampleSpacePoint(problem.getPOMDP().getObservations(), restrObsFn2);
+				HashMap<DDVariable,Integer> obs1 = sampleSpacePoint(problemMe.getPOMDP().getObservations(), restrObsFn1);
+				HashMap<DDVariable,Integer> obs2 = sampleSpacePoint(problemOther.getPOMDP().getObservations(), restrObsFn2);
 				
 				if(pol1 instanceof FSCPolicy) {
 					pol1.update(obs1)
@@ -227,6 +238,11 @@ class TagProblemSimulator {
 					POMDPBelief b = agent1.currBelief
 					agent1.currBelief = b.getNextBelief(action1, obs1)
 				}
+				else if(agent1.currBelief instanceof JointActionPOMDPBelief) {
+					JointActionPOMDPBelief b = agent1.currBelief
+					def maybeAction2 = pol2.getAction(b)
+					agent1.currBelief = b.getNextBelief(action1 + maybeAction2, obs1)
+				}
 				agent1.row = actualStateNewAg1Primed[a1_row.getPrimed()]
 				agent1.column = actualStateNewAg1Primed[a1_col.getPrimed()]
 				
@@ -234,9 +250,14 @@ class TagProblemSimulator {
 					POMDPBelief b = agent2.currBelief
 					agent2.currBelief = b.getNextBelief(action2, obs2)
 				}
+				else if(agent2.currBelief instanceof JointActionPOMDPBelief) {
+					JointActionPOMDPBelief b = agent2.currBelief
+					def maybeAction1 = pol1.getAction(b)
+					agent2.currBelief = b.getNextBelief(action2 + maybeAction1, obs2)
+				}
 				
-				agent2.row = actualStateNewAg2Primed[a1_row.getPrimed()]
-				agent2.column = actualStateNewAg2Primed[a1_col.getPrimed()]
+				agent2.row = actualStateNewAg2Primed[a2_row.getPrimed()]
+				agent2.column = actualStateNewAg2Primed[a2_col.getPrimed()]
 			}
 			
 			

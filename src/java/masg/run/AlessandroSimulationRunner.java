@@ -38,7 +38,7 @@ public class AlessandroSimulationRunner {
 			ArrayList l = new ArrayList();
 			l.add(new AlessandroTagSimRecorder());
 			
-			simulator.simulate(problem, pol1, pol2, numTrials, numSteps, l);
+			simulator.simulate(problem, problem, pol1, pol2, numTrials, numSteps, l);
 	}
 
 }

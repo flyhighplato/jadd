@@ -105,7 +105,7 @@ public class BeliefAlphaVectorPolicy implements AlphaVectorPolicy {
 		
 		boolean dominated = false;
 		for(AlphaVector oldAlpha:alphaVectors) {
-			if(alphaVector.getValueFunction().maxAbsDiff(oldAlpha.getValueFunction()) < 0.0001d) {
+			if(DDBuilder.findMaxLeaf(alphaVector.getValueFunction().minus(oldAlpha.getValueFunction()).getFunction()).getValue() < 0.0001d) {
 				dominated = true;
 				break;
 			}

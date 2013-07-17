@@ -42,6 +42,8 @@ class JointBeliefRegion {
 			HashMap<DDVariable,Integer> actMe = policyMe.getAction(beliefMe)
 			HashMap<DDVariable,Integer> actOther = policyOther.getAction(beliefOther)
 			
+			HashMap<DDVariable,Integer> actJoint = actMe + actOther
+			
 			HashMap<DDVariable,Integer> obsMe = beliefMe.sampleNextObservation(actMe, actOther);
 			HashMap<DDVariable,Integer> obsOther = beliefOther.sampleNextObservation(actOther,actMe);
 			

@@ -7,8 +7,6 @@ class UncertaintyNode extends BayesianNetworkNode {
 	def conditionalVariables = []
 	def posteriorVariables = []
 	
-	//def alreadySolvedVariables = []
-	
 	def children = []
 	def parents = []
 	

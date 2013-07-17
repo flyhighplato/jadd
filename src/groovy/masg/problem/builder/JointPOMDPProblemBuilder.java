@@ -3,6 +3,7 @@ package masg.problem.builder;
 import groovy.lang.Closure;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import masg.dd.AlgebraicDD;
@@ -13,20 +14,46 @@ import masg.dd.context.DDContext;
 import masg.dd.pomdp.POMDP;
 import masg.dd.variables.DDVariable;
 
-public class POMDPProblemBuilder extends AbstractMDPProblemBuilder {
+public class JointPOMDPProblemBuilder extends AbstractMDPProblemBuilder {
+	protected HashMap<String,DDVariable> actOtherVariables = new HashMap<String,DDVariable>();
 	
+	void addActionOther(String name, int numValues) throws Exception {
+		DDVariable v = new DDVariable(scope, name,numValues);
+		if(varExists(v)) {
+			throw new Exception("Variable " + v + " already exists");
+		}
+		actOtherVariables.put(name, v);
+	}
 	
-	void setRewardFunction(List<String> stateVars, List<String> actVars, Closure<Double> c) throws Exception {
+	boolean varExists(DDVariable v) {
+		return super.varExists(v) || actOtherVariables.containsValue(v);
+	}
+	
+	protected ArrayList<DDVariable> toActionOtherVariableList(List<String> varNames) throws Exception {
+		ArrayList<DDVariable> varsRes = null;
+		
+		try {
+			varsRes = toVariableList(varNames,actOtherVariables);
+		} catch (Exception e) {
+			throw new Exception("One or more action variables are undefined");
+		}
+		
+		return varsRes;
+	}
+	
+	void setRewardFunction(List<String> stateVars, List<String> actVars, List<String> actOtherVars, Closure<Double> c) throws Exception {
 		ArrayList<DDVariable> vars = new ArrayList<DDVariable>(toStateVariableList(stateVars));
 		vars.addAll(toActionVariableList(actVars));
+		vars.addAll(toActionOtherVariableList(actOtherVars));
 		
 		rFnParameters = vars;
 		rFunction = c;
 	}
 	
-	void addTransition(List<String> stateVars, List<String> actVars, List<String> statePrimeVars, Closure<Double> c) throws Exception {
+	void addTransition(List<String> stateVars, List<String> actVars, List<String> actOtherVars, List<String> statePrimeVars, Closure<Double> c) throws Exception {
 		ArrayList<DDVariable> varsConditional = new ArrayList<DDVariable>(toStateVariableList(stateVars));
 		varsConditional.addAll(toActionVariableList(actVars));
+		varsConditional.addAll(toActionOtherVariableList(actOtherVars));
 		
 		ArrayList<DDVariable> varsDependent = new ArrayList<DDVariable>(toStatePrimeVariableList(statePrimeVars));
 		
@@ -38,9 +65,10 @@ public class POMDPProblemBuilder extends AbstractMDPProblemBuilder {
 		tFunctions.add(c);
 	}
 	
-	void addObservation(List<String> statePrimeVars, List<String> actVars, List<String> obsVars, Closure<Double> c) throws Exception {
+	void addObservation(List<String> statePrimeVars, List<String> actVars, List<String> actOtherVars, List<String> obsVars, Closure<Double> c) throws Exception {
 		ArrayList<DDVariable> varsConditional = new ArrayList<DDVariable>(toStatePrimeVariableList(statePrimeVars));
 		varsConditional.addAll(toActionVariableList(actVars));
+		varsConditional.addAll(toActionOtherVariableList(actOtherVars));
 		
 		ArrayList<DDVariable> varsDependent = new ArrayList<DDVariable>(toObservationVariableList(obsVars));
 		
@@ -55,17 +83,10 @@ public class POMDPProblemBuilder extends AbstractMDPProblemBuilder {
 	POMDP buildPOMDP() {
 		
 		ArrayList<DDVariable> canVars = new ArrayList<DDVariable>(actVariables.values());
+		canVars.addAll(actOtherVariables.values());
 		canVars.addAll(obsVariables.values());
 		canVars.addAll(stateVariables.values());
 		canVars.addAll(statePrimeVariables.values());
-		
-		/*for(int i=1;i<100;i++) {
-			canVars.add(new DDVariable(0,"neur" + i,2));
-		}
-		
-		for(DDVariable v:obsVariables.values()) {
-			canVars.add(v.getPrimed());
-		}*/
 		
 		DDContext.setCanonicalVariableOrdering(canVars);
 		

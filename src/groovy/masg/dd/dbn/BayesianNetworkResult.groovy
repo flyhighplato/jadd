@@ -15,7 +15,7 @@ class BayesianNetworkResult {
 		
 	public buildNetwork() {
 		def unnecessaryNodes = []
-		resultNodes.each{ BayesianNetworkNode node, BayesianNetworkNodeResult resultNode ->
+		/*resultNodes.each{ BayesianNetworkNode node, BayesianNetworkNodeResult resultNode ->
 			
 			if(resultNode instanceof UncertaintyNodeResult) {
 				UncertaintyNodeResult unResultNode = resultNode
@@ -44,9 +44,65 @@ class BayesianNetworkResult {
 					
 				}
 			}
-		}
+		}*/
 		
 		BayesianNetwork newNetwork = new BayesianNetwork()
+		
+		def resultNodesOld = [:]
+		resultNodesOld.putAll(resultNodes)
+		resultNodesOld.each{ BayesianNetworkNode node, BayesianNetworkNodeResult resultNode ->
+			if(resultNode instanceof UncertaintyNodeResult && !unnecessaryNodes.contains(resultNode)) {
+				UncertaintyNodeResult unResultNode = resultNode
+				UncertaintyNode un = node
+				
+				if(!unResultNode.isCPT()) {
+					HashSet fns = new HashSet()
+					fns.add(resultNode.resultFn)
+					
+					HashSet allVars = new HashSet()
+					allVars.addAll(resultNode.resultFn.variables)
+					
+					int oldSize = 0
+					while(fns.size() != oldSize) {
+					
+						oldSize = fns.size()
+						
+						resultNodesOld.values().findAll { BayesianNetworkNodeResult otherResultNode ->
+							
+							if(otherResultNode!=resultNode && otherResultNode.resultFn.variables.intersect(allVars)) {
+								allVars.addAll(otherResultNode.resultFn.variables)
+								fns.add(otherResultNode.resultFn)
+								
+								unnecessaryNodes << otherResultNode
+							}
+							
+							
+						}
+						
+					}
+					
+					if(fns.size()>1) {
+						
+						unnecessaryNodes << resultNode
+						
+						AlgebraicDD newFn = new AlgebraicDD(new ArrayList(allVars),1.0d)
+						fns.each {
+							newFn = newFn.multiply(it)
+						}
+						newFn = newFn.normalize()
+						
+						UncertaintyNode unNew = new UncertaintyNode([],
+							allVars,
+							newFn
+							)
+						
+						resultNodes[unNew] = getResultNode(unNew)
+					}
+				}
+			}
+		}
+		
+		
 		resultNodes.each{ BayesianNetworkNode node, BayesianNetworkNodeResult resultNode ->
 			if(resultNode.shouldRetain() && !unnecessaryNodes.contains(resultNode)) {
 				if(resultNode instanceof UncertaintyNodeResult) {
@@ -61,6 +117,7 @@ class BayesianNetworkResult {
 							)
 					}
 					else {
+						
 						unNew = new UncertaintyNode([],
 							unResultNode.resultFn.variables,
 							unResultNode.resultFn

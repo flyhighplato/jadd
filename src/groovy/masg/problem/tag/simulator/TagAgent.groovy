@@ -26,7 +26,7 @@ public class TagAgent {
 		updateState();
 	}
 	
-	protected TagAgent() {
+	public TagAgent() {
 		
 	}
 	

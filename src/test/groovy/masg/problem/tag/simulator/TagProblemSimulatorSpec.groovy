@@ -29,7 +29,7 @@ class TagProblemSimulatorSpec extends Specification {
 	@Shared
 	TagProblemPOMDP problem = new TagProblemPOMDP()
 	
-	int numSamples = 1000
+	int numSamples = 100
 	int numIterations = 100
 	
 	int numSteps = 100;
@@ -43,7 +43,7 @@ class TagProblemSimulatorSpec extends Specification {
 		when:
 		
 			fileName = "1000_100_100.policy"
-			BufferedReader reader = new BufferedReader(new FileReader(fileName));
+			/*BufferedReader reader = new BufferedReader(new FileReader(fileName));
 			AlphaVectorPolicyReader policyReader = new AlphaVectorPolicyReader(reader);
 			BeliefAlphaVectorPolicy pol1 = policyReader.read()
 			reader.close()
@@ -51,28 +51,28 @@ class TagProblemSimulatorSpec extends Specification {
 			reader = new BufferedReader(new FileReader(fileName));
 			policyReader = new AlphaVectorPolicyReader(reader);
 			BeliefAlphaVectorPolicy pol2 = policyReader.read()
-			reader.close()
+			reader.close()*/
 		
 			//Policy pol = new QMDPPolicyBuilder(problem.getPOMDP()).build()
-			/*BeliefRegion belReg = new BeliefRegion(numSamples, numSteps, problem.getPOMDP(), avPol)
+			//BeliefRegion belReg = new BeliefRegion(numSamples, numSteps, problem.getPOMDP(), pol)
 			
-			avPol.alphaVectors.each{
+			/*avPol.alphaVectors.each{
 				belReg.beliefSamples << new POMDPBelief(problem.getPOMDP(),new FactoredCondProbDD(it.witnessPt))
-			}
+			}*/
 			
-			AlphaVectorPolicyBuilder polBuilder = new AlphaVectorPolicyBuilder(problem.getPOMDP())
+			BeliefAlphaVectorPolicyBuilder polBuilder = new BeliefAlphaVectorPolicyBuilder(problem.getPOMDP())
 			
-			polBuilder.bestAlphas.addAll(avPol.alphaVectors)
+			//polBuilder.bestAlphas.addAll(avPol.alphaVectors)
 			
-			Policy pol = polBuilder.build(belReg, numIterations)
+			Policy pol = polBuilder.build(problem.getPOMDP(), numIterations)
 			BufferedWriter writer = new BufferedWriter(new FileWriter(fileName,false));
 			AlphaVectorPolicyWriter policyWriter = new AlphaVectorPolicyWriter(pol);
 			policyWriter.write(writer);
 			writer.flush();
-			writer.close();*/
+			writer.close();
 			
 		then:
-			simulator.simulate(problem, pol1, pol2, numTrials, numSteps, [new AlessandroTagSimRecorder()]);
+			simulator.simulate(problem, pol, pol, numTrials, numSteps);
 			
 	}
 	

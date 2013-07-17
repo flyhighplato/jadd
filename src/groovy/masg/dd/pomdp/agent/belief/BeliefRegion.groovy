@@ -14,6 +14,8 @@ import masg.dd.variables.DDVariable;
 class BeliefRegion {
 	POMDP p
 	ArrayList<POMDPBelief> beliefSamples = []
+	List actions = []
+	List observations = []
 	
 	public final List<POMDPBelief> getBeliefSamples() {
 		return beliefSamples;
@@ -62,7 +64,7 @@ class BeliefRegion {
 				
 				ProbDD beliefProbDD = belief.beliefFn.toProbabilityDD()
 				boolean goodSample = true;
-				for(int i=0;i<beliefSamples.size();i++) {
+				/*for(int i=0;i<beliefSamples.size();i++) {
 					POMDPBelief beliefOther = beliefSamples.get(i)
 					
 					AlgebraicDD absDiffDD = beliefOther.beliefFn.toProbabilityDD().getFunction().absDiff(beliefProbDD.getFunction())
@@ -78,10 +80,12 @@ class BeliefRegion {
 					
 					
 					
-				}
+				}*/
 				
 				if(goodSample) {
 					samplesTaken++;
+					actions << actPoint
+					observations << obsPt
 					beliefSamples << belief
 				}
 				

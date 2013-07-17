@@ -7,7 +7,11 @@ repositories {
 }
 
 dependencies {
-	testCompile 'org.spockframework:spock-core:0.6-groovy-1.8'
+	testCompile('org.spockframework:spock-core:0.7-groovy-2.0') {
+		
+		exclude module: 'groovy-all'
+		
+	}
 	//compile 'com.googlecode.javaewah:JavaEWAH:0.5.2'
 	compile 'org.codehaus.gpars:gpars:1.0-beta-2'
 }

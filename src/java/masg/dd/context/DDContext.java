@@ -2,6 +2,7 @@ package masg.dd.context;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import masg.dd.variables.DDVariable;
 import masg.dd.variables.DDVariableSpace;
@@ -20,7 +21,10 @@ public class DDContext {
 	
 	public static void setCanonicalVariableOrdering(ArrayList<DDVariable> newVariableOrdering) {
 
-		canonicalVariableOrdering = newVariableOrdering;
+		newVariableOrdering.removeAll(canonicalVariableOrdering);
+		
+		canonicalVariableOrdering.addAll(newVariableOrdering);
+		
 		varIndices = new HashMap<DDVariable,Integer>();
 		
 		for(int i=0;i<canonicalVariableOrdering.size();++i) {

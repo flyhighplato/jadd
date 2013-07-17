@@ -15,12 +15,25 @@ class POMDPBayesianNetworkStep {
 	List<AlgebraicDD> postStateDist
 	List<AlgebraicDD> actDist
 	
+	List<AlgebraicDD> initialBelief = []
+	
+	def actions = []
+	def observations = []
+	def states = []
+	
+	BayesianNetwork beliefOtherNetwork
+	def actOther = [], obsOther = []
+	
+	/*def states = []
+	def actionsMe = []
+	def obsMe = []*/
+	
 	int time = 0
 	
-	POMDP p
-	Random r = new Random()
+	//POMDP p
+	static Random r = new Random()
 	
-	public POMDPBayesianNetworkStep(POMDP p) {
+	/*public POMDPBayesianNetworkStep(POMDP p) {
 		this.p = p
 		
 		stationaryNetwork = new BayesianNetwork()
@@ -39,17 +52,41 @@ class POMDPBayesianNetworkStep {
 			}
 		}
 		
+		p.getInitialBelief().each { FactoredCondProbDD fcdd ->
+			fcdd.functions.each{ CondProbDD cdd ->
+				initialBelief << cdd.getFunction()
+			}
+		}
+		
 		DecisionNode dn = new DecisionNode(p.actions, 0)
 		stationaryNetwork.addNode(dn)
 		
 		initializeActDist()
 		
+	}*/
+	
+	public POMDPBayesianNetworkStep(BayesianNetwork stationaryNetwork, BayesianNetwork beliefOtherNetwork, initialBelief, actions, actOther, states, observations, obsOther) {
+		this.stationaryNetwork = stationaryNetwork
+		this.beliefOtherNetwork = beliefOtherNetwork
+		this.initialBelief = initialBelief
+		this.actions = actions
+		this.actOther = actOther
+		this.states = states
+		this.observations = observations
+		this.obsOther = obsOther
+		initializeActDist()
 	}
 	
-	protected POMDPBayesianNetworkStep(POMDPBayesianNetworkStep parent, POMDP p, BayesianNetwork stationaryNetwork, List<AlgebraicDD> stateDist) {
+	protected POMDPBayesianNetworkStep(POMDPBayesianNetworkStep parent, BayesianNetwork stationaryNetwork, BayesianNetwork beliefOtherNetwork, initialBelief, actions, actOther, states, observations, obsOther) {
 		this.parent = parent
-		this.p = p
 		this.stationaryNetwork = stationaryNetwork
+		this.beliefOtherNetwork = beliefOtherNetwork
+		this.initialBelief = initialBelief
+		this.actions = actions
+		this.actOther = actOther
+		this.states = states
+		this.observations = observations
+		this.obsOther = obsOther
 		this.time = parent.time + 1
 		
 		initializeActDist()
@@ -70,29 +107,76 @@ class POMDPBayesianNetworkStep {
 			
 			BayesianNetwork newNetwork = networkResult.buildNetwork()
 			
-			actDist = newNetwork.getJointProbability( p.getActions() )
+			actDist = newNetwork.getJointProbability( actions )
 		}
 		else {
 			int actCombinations = 1
-			p.getActions().each {
+			actions.each {
 				actCombinations *= it.numValues
 			}
-			actDist = [new AlgebraicDD(p.getActions(),1.0d/actCombinations)]
+			actDist = [new AlgebraicDD(actions,1.0d/actCombinations)]
 		}
+	}
+	
+	
+	private multiply(List<AlgebraicDD> fn1, List<AlgebraicDD> fn2) {
+		def fnsNew = []
+		def fns = fn1 + fn2
+		
+		while(fns) {
+			int oldSize = 0
+			
+			HashSet group = new HashSet()
+			group.add(fns[0])
+			HashSet vars = new HashSet()
+			vars.addAll(fns[0].variables)
+			
+			while(group.size() != oldSize) {
+				oldSize = group.size()
+				
+				group.addAll(fns.findAll {
+					it.variables.intersect(vars)
+				})
+				
+				group.each {
+					vars.addAll(it.variables)
+				}
+			}
+			
+			fns = fns - group
+			
+			AlgebraicDD ddNew = new AlgebraicDD(new ArrayList(vars),1.0d)
+			
+			group.each {
+				ddNew = ddNew.multiply(it)
+			}
+			
+			fnsNew << ddNew.normalize()
+		}
+		
+		fnsNew
 	}
 	
 	private updatePostState(List<AlgebraicDD> postStateDist) {
 		if(this.postStateDist) {
-			this.postStateDist = postStateDist.collect { AlgebraicDD ddNew ->
-				AlgebraicDD ddOld = this.postStateDist.find { AlgebraicDD ddOld ->
-					ddOld.variables.containsAll(ddNew.variables)
-				}
-				
-				ddNew.multiply(ddOld.sumOut(ddOld.variables-ddNew.variables)).normalize().prime()
-			}
+			this.postStateDist = multiply(this.postStateDist,postStateDist)
 		}
 		else {
 			this.postStateDist = postStateDist
+		}
+		
+		
+		assert this.postStateDist
+		
+		def temp = this.postStateDist.find{
+			it.totalWeight < 0.8d
+		}
+		
+		if(temp) {
+			println "wrong!"
+		}
+		this.postStateDist.find{
+			assert it.totalWeight > 0.8d
 		}
 		
 		if(parent) {
@@ -112,7 +196,7 @@ class POMDPBayesianNetworkStep {
 			
 			BayesianNetwork newNetwork = networkResult.buildNetwork()
 			
-			List<AlgebraicDD> stateDistNew = newNetwork.getJointProbability( p.getStates() ).collect { it.prime() }
+			List<AlgebraicDD> stateDistNew = newNetwork.getJointProbability( states ).collect { it.prime() }
 			
 			parent.updatePostState(stateDistNew)
 		}
@@ -123,6 +207,8 @@ class POMDPBayesianNetworkStep {
 			parent.updateActObs()
 		}
 		
+		def oldActDist = actDist
+		
 		BayesianNetworkResult networkResult = new BayesianNetworkResult( this.stationaryNetwork )
 		
 		if(parent && parent.postStateDist) {
@@ -131,10 +217,8 @@ class POMDPBayesianNetworkStep {
 			}
 		}
 		else {
-			p.getInitialBelief().each { FactoredCondProbDD fcdd ->
-				fcdd.functions.each{ CondProbDD cdd ->
-					networkResult.probabilityIs(cdd.getFunction())
-				}
+			initialBelief.each {
+				networkResult.probabilityIs(it)
 			}
 		}
 		
@@ -146,7 +230,17 @@ class POMDPBayesianNetworkStep {
 		
 		BayesianNetwork newNetwork = networkResult.buildNetwork()
 		
-		actDist = newNetwork.getJointProbability( p.getActions() )
+		actDist = newNetwork.getJointProbability( actions )
+		
+		def temp = actDist.find{
+			it.totalWeight < 0.8d
+		}
+		
+		if(temp) {
+			println "wrong!"
+		}
+		
+		assert actDist
 	}
 	
 	
@@ -159,7 +253,7 @@ class POMDPBayesianNetworkStep {
 		}
 		
 		if(!child) {
-			child = new POMDPBayesianNetworkStep( this, p, stationaryNetwork, postStateDistUnprimed )
+			child = new POMDPBayesianNetworkStep( this, stationaryNetwork, beliefOtherNetwork, postStateDistUnprimed, actions, actOther, states, observations, obsOther )
 		}
 		
 		child
@@ -169,11 +263,17 @@ class POMDPBayesianNetworkStep {
 		return sample(actDist)
 	}
 	
-	private sample(List<AlgebraicDD> fns) {
+	public static sample(List<AlgebraicDD> fns, def vars = []) {
 		def sample = [:]
 		
 		fns.each { AlgebraicDD dd ->
-			dd.variables.each { DDVariable varCurr ->
+			def varsTemp = dd.variables
+			
+			if(vars) {
+				varsTemp = vars.intersect(dd.variables)
+			}
+			
+			varsTemp.each { DDVariable varCurr ->
 				double thresh = r.nextDouble()
 				double accumProb = 0.0d
 				int varVal = 0
@@ -194,43 +294,122 @@ class POMDPBayesianNetworkStep {
 	}
 	
 	public sampleBelief() {
-		POMDPBelief b
-		if(parent) {
-			b = parent.sampleBelief()
-		}
-		else {
-			b = new POMDPBelief(p, p.getInitialBelief())
-		}
-		def act = sampleAction()
+		List<AlgebraicDD> b
+		def bFiltered = []
 		
-		BayesianNetworkResult networkResult = new BayesianNetworkResult( this.stationaryNetwork )
-		postStateDist.each { AlgebraicDD dd ->
-			networkResult.probabilityIs(dd)
-		}
-		
-		if(parent) {
-			parent.postStateDist.each { AlgebraicDD dd ->
-				networkResult.probabilityIs(dd.unprime())
+		while(!bFiltered || bFiltered.find { it.totalWeight - 1.0d < -0.01d}) {
+			if(parent) {
+				//println "Sampling at time $time"
+				b = parent.sampleBelief()
+				bFiltered = multiply(b,parent.postStateDist.collect {it.unprime()})
+			}
+			else {
+				b =  initialBelief
+				bFiltered = b
+			}
+			
+			if(bFiltered.find { it.totalWeight - 1.0d < -0.01d}) {
+				println "Dropping sample and resampling"
 			}
 		}
 		
-		networkResult.decisionIs(new AlgebraicDD(p.getActions(),0,act))
+		def act = sample(actDist,actOther)
+		def actSample = new AlgebraicDD(actOther,0,act)
+		
+		def actDistTemp = actDist.collect {
+			if(it.variables.containsAll(actOther)) {
+				return actSample
+			}
+			else {
+				return it
+			}
+		}
+		
+		
+		
+		//Compute possible states prime
+		BayesianNetworkResult networkResult = new BayesianNetworkResult( this.beliefOtherNetwork )
+		
+		bFiltered.each { AlgebraicDD dd ->
+			assert Math.abs(dd.totalWeight - 1.0d) < 0.0000001d
+			networkResult.probabilityIs(dd)
+		}
+		
+		actDistTemp.each { 
+			networkResult.decisionIs(it)
+		}
+		networkResult.solve()
+		BayesianNetwork newNetwork = networkResult.buildNetwork()
+		List<AlgebraicDD> possNextStates = newNetwork.getJointProbability( states.collect {it.getPrimed()} )
+		
+		if(postStateDist) {
+			possNextStates = multiply(possNextStates,postStateDist)
+		}
+		
+		def actDistOther = actDist.collect {
+			if(it.variables.containsAll(actOther)) {
+				return actSample
+			}
+			else {
+				int actCombinations = 1
+				it.variables.each {
+					actCombinations *= it.numValues
+				}
+				return new AlgebraicDD(it.variables,1.0d/actCombinations)
+			}
+		}
+		
+		def actDistOtherFiltered = multiply(actDist, actDistOther)
+		
+		//Compute possible observations
+		networkResult = new BayesianNetworkResult( this.beliefOtherNetwork )
+		bFiltered.each {
+			//assert Math.abs(it.totalWeight - 1.0d) < 0.000001d
+			networkResult.probabilityIs(it)
+		}
+		possNextStates.each {
+			//assert Math.abs(it.totalWeight - 1.0d) < 0.000001d
+			networkResult.probabilityIs(it)
+		}
+		actDistOtherFiltered.each {
+			//assert Math.abs(it.totalWeight - 1.0d) < 0.0000001d
+			networkResult.decisionIs(it)
+		}
+		networkResult.solve()
+		newNetwork = networkResult.buildNetwork()
+		
+		List<AlgebraicDD> obsPossible = newNetwork.getJointProbability( observations )
+		
+		/*obsPossible.each {
+			assert Math.abs(it.totalWeight - 1.0d) < 0.0000001d
+		}*/
+		
+		def obs = sample(obsPossible, obsOther)
+		def obsSample = new AlgebraicDD(obsOther,0,obs)
+		
+		println time + ":" + act + ":" + obs
+		println()
+
+		//Compute resulting belief
+		
+		networkResult = new BayesianNetworkResult( this.beliefOtherNetwork )
+		b.each {
+			networkResult.probabilityIs(it)
+		}
+		
+		actDistOther.each {
+			networkResult.decisionIs(it)
+		}
+		networkResult.probabilityIs(obsSample)
 		networkResult.solve()
 		
-		BayesianNetwork newNetwork = networkResult.buildNetwork()
+		newNetwork = networkResult.buildNetwork()
 		
-		List<AlgebraicDD> obsDistTemp = newNetwork.getJointProbability( p.getObservations() )
-		
-		def obs = sample(obsDistTemp)
-		println time + ":" + act + ":" + obs
-		
-		println()
-		
-		try {
-			return b.getNextBelief(act, obs)
-		} catch (e) {
-			println "impossible belief"
+		def result =  newNetwork.getJointProbability(states.collect{it.getPrimed()}).collect {
+			it.unprime()
 		}
+		
+		result
 		
 	}
 	

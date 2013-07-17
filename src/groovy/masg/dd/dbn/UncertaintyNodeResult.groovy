@@ -46,7 +46,7 @@ class UncertaintyNodeResult extends BayesianNetworkNodeResult {
 			}
 			else {
 				AlgebraicDD divisor = resultFn.sumOut( node.conditionalVariables ).sumOut(varsToResolve)
-				resultFn = resultFn.sumOut(varsToResolve)
+				//resultFn = resultFn.sumOut(varsToResolve)
 				resultFn = resultFn.div(divisor)
 			}
 			

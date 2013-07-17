@@ -106,6 +106,7 @@ public class DDElementReader {
 			String[] params = str.split(":");
 			
 			DDNodeScaffold n = new DDNodeScaffold();
+			
 			n.oldId = Long.parseLong(params[0]);
 			n.v = varByIndex.get(Integer.parseInt(params[1]));
 			n.isMeasure = Integer.parseInt(params[2])==1;
